@@ -220,6 +220,16 @@
         transform: rotate(-45deg) translate(5px, -5px);
     }
 
+    /* Hide "Powered by" on mobile */
+    .nav-brand-divider,
+    .nav-brand-powered {
+        display: none;
+    }
+
+    .nav-brand-logo {
+        height: 18px;
+    }
+
     /* Hero */
     .hero {
         padding-top: calc(var(--space-16) + 80px);

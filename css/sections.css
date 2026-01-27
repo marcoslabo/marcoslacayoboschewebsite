@@ -36,8 +36,10 @@
 .nav-brand {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-2);
     text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .nav-logo {
@@ -85,7 +87,7 @@
 .nav-links {
     display: flex;
     align-items: center;
-    gap: var(--space-8);
+    gap: var(--space-6);
 }
 
 .nav-link {
