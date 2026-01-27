@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Contact | Marcos Bosche - AI Transformation Consultant</title>
+    <meta name="description"
+        content="Book a consultation with Marcos Bosche. Let's discuss how AI can transform your organization.">
+    <meta name="author" content="Marcos Bosche">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/sections.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="container nav-container">
+            <a href="index.html" class="nav-brand">
+                <span class="nav-brand-name">Marcos Bosche</span>
+                <span class="nav-brand-tagline">Powered by Nymbl</span>
+            </a>
+
+            <div class="nav-links" id="nav-links">
+                <a href="index.html#problem" class="nav-link">The Problem</a>
+                <a href="index.html#how-work" class="nav-link">How I Work</a>
+                <a href="index.html#services" class="nav-link">Services</a>
+                <a href="index.html#results" class="nav-link">Results</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+                <div class="nav-cta">
+                    <a href="#book" class="btn btn-primary btn-sm">Book a Call</a>
+                </div>
+            </div>
+
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Contact Hero -->
+    <section class="contact-hero">
+        <div class="container">
+            <h1 class="contact-hero-title">Let's talk</h1>
+            <p class="contact-hero-subtitle">Book a consultation or send me a message</p>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section section" id="book">
+        <div class="container">
+            <div class="contact-grid">
+                <!-- Calendly Embed -->
+                <div class="contact-calendly">
+                    <div style="text-align: center;">
+                        <h3 style="margin-bottom: var(--space-4);">Book a 30-minute call</h3>
+                        <p style="color: var(--color-text-muted); margin-bottom: var(--space-6);">Pick a time that works
+                            for you and we'll have a conversation about your AI challenges.</p>
+                        <a href="https://calendly.com" target="_blank" rel="noopener noreferrer"
+                            class="btn btn-primary">Open Booking Calendar</a>
+                        <p
+                            style="font-size: var(--text-sm); color: var(--color-text-dark); margin-top: var(--space-4);">
+                            (Calendly widget will be embedded here)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Contact Form -->
+                <div class="contact-form-container">
+                    <h2 class="contact-form-title">Send a message</h2>
+
+                    <form id="contact-form">
+                        <div class="contact-form-row">
+                            <div class="form-group">
+                                <label for="firstName" class="form-label">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName" class="form-label">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" class="form-input" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email" class="form-label">Work Email *</label>
+                            <input type="email" id="email" name="email" class="form-input" required>
+                        </div>
+
+                        <div class="contact-form-row">
+                            <div class="form-group">
+                                <label for="company" class="form-label">Company *</label>
+                                <input type="text" id="company" name="company" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jobTitle" class="form-label">Job Title</label>
+                                <input type="text" id="jobTitle" name="jobTitle" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="industry" class="form-label">Industry</label>
+                            <select id="industry" name="industry" class="form-select">
+                                <option value="">Select an industry...</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="financial">Financial Services</option>
+                                <option value="manufacturing">Manufacturing</option>
+                                <option value="consulting">Consulting</option>
+                                <option value="private-equity">Private Equity</option>
+                                <option value="technology">Technology</option>
+                                <option value="retail">Retail</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="service" class="form-label">What are you looking for?</label>
+                            <select id="service" name="service" class="form-select">
+                                <option value="">Select a service...</option>
+                                <option value="readiness-audit">AI Readiness Audit</option>
+                                <option value="education">Corporate Education</option>
+                                <option value="discovery">Use Case Discovery</option>
+                                <option value="point-solution">Point Solution</option>
+                                <option value="engineering">AI Engineering</option>
+                                <option value="transformation">Full Transformation</option>
+                                <option value="not-sure">Not sure yet</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message" class="form-label">Tell me about your situation</label>
+                            <textarea id="message" name="message" class="form-textarea"
+                                placeholder="What challenges are you facing? What are you hoping to achieve with AI?"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Send Message</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="contact-bottom">
+                <p>Prefer email? Reach me at <a href="mailto:marcos@nymbl.app">marcos@nymbl.app</a></p>
+                <p style="margin-top: var(--space-2);">Based in Austin, TX. Working with teams everywhere.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-brand-name">Marcos Bosche</div>
+                    <div class="footer-brand-tagline">AI Transformation</div>
+                    <div class="footer-brand-powered">Powered by Nymbl</div>
+                    <p class="footer-brand-desc">Helping organizations move AI from experiment to impact.</p>
+                </div>
+
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Navigation</h4>
+                    <nav class="footer-links">
+                        <a href="index.html#problem" class="footer-link">The Problem</a>
+                        <a href="index.html#how-work" class="footer-link">How I Work</a>
+                        <a href="index.html#services" class="footer-link">Services</a>
+                        <a href="index.html#results" class="footer-link">Results</a>
+                        <a href="contact.html" class="footer-link">Contact</a>
+                    </nav>
+                </div>
+
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Services</h4>
+                    <nav class="footer-links">
+                        <a href="index.html#services" class="footer-link">AI Readiness Audit</a>
+                        <a href="index.html#services" class="footer-link">Corporate Education</a>
+                        <a href="index.html#services" class="footer-link">Use Case Discovery</a>
+                        <a href="index.html#services" class="footer-link">Point Solutions</a>
+                        <a href="index.html#services" class="footer-link">AI Engineering</a>
+                        <a href="index.html#services" class="footer-link">Full Transformation</a>
+                    </nav>
+                </div>
+
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Connect</h4>
+                    <nav class="footer-links">
+                        <a href="mailto:marcos@nymbl.app" class="footer-link">marcos@nymbl.app</a>
+                        <a href="https://linkedin.com/in/marcoslacayobosche" target="_blank" rel="noopener noreferrer"
+                            class="footer-link">LinkedIn</a>
+                        <a href="https://nymbl.app" target="_blank" rel="noopener noreferrer"
+                            class="footer-link">nymbl.app</a>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2026 Marcos Bosche. All rights reserved.</p>
+                <p class="footer-powered">Powered by Nymbl LLC</p>
+                <div class="footer-social">
+                    <a href="https://linkedin.com/in/marcoslacayobosche" target="_blank" rel="noopener noreferrer"
+                        class="footer-social-link" aria-label="LinkedIn">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                        </svg>
+                    </a>
+                    <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="footer-social-link"
+                        aria-label="Twitter">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/navigation.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
