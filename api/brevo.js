@@ -54,11 +54,16 @@ async function syncContact(apiKey, contact) {
         updateEnabled: true // Update if exists
     };
 
-    // Add list IDs based on tag
+    // Add list IDs based on tag (from user's Brevo Spark CRM folder)
     const listMap = {
-        'spark-lead': parseInt(process.env.BREVO_LIST_SPARK) || 3,
-        'met-lead': parseInt(process.env.BREVO_LIST_MET) || 3,
-        'clay-lead': parseInt(process.env.BREVO_LIST_CLAY) || 3
+        'met-lead': 7,         // MeetinPerson#1
+        'direct-lead': 8,      // Directcall#2
+        'linkedin-lead': 9,    // LinkedinSM#3
+        'referral-lead': 10,   // ReferralImport#4
+        'spark-lead': 3,       // Spark leads (original list)
+        'event-lead': 7,       // Events go to Met In Person
+        'clay-lead': 10,       // Clay imports go to Referral
+        'other-lead': 7        // Default to Met In Person
     };
 
     if (tag && listMap[tag]) {
