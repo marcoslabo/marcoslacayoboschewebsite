@@ -198,14 +198,24 @@ class SparkApp {
                 name: formData.company_name
             });
 
-            // Create contact
+            // Create contact (with CRM fields for auto-sync to CRM dashboard)
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
             const contact = await window.sparkDB.createContact({
                 first_name: formData.first_name,
                 last_name: formData.last_name,
                 email: formData.email,
                 company_id: company.id,
                 source: 'Website (Spark)',
-                is_lead: true
+                is_lead: true,
+                // CRM fields
+                problem: formData.problem_raw,
+                status: 'New',
+                next_action: 'Call',
+                next_action_date: tomorrow.toISOString().split('T')[0],
+                brevo_tag: 'spark-lead',
+                brevo_synced: false
             });
 
             // Use AI to estimate effort from problem description
