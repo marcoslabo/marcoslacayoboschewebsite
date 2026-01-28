@@ -66,9 +66,9 @@ async function syncContact(apiKey, contact) {
         'other-lead': 7        // Default to Met In Person
     };
 
-    if (tag && listMap[tag]) {
-        payload.listIds = [listMap[tag]];
-    }
+    // Always add to a list - default to Met In Person (7) if no tag match
+    const listId = (tag && listMap[tag]) ? listMap[tag] : 7;
+    payload.listIds = [listId];
 
     const response = await fetch('https://api.brevo.com/v3/contacts', {
         method: 'POST',
