@@ -191,6 +191,8 @@ class CRMApp {
                 last_name: lastName,
                 email: formData.get('email'),
                 phone: formData.get('phone') || null,
+                job_title: formData.get('jobTitle') || null,
+                linkedin_url: formData.get('linkedinUrl') || null,
                 company_id: companyId,
                 source: formData.get('source'),
                 problem: formData.get('problem') || null
@@ -210,6 +212,140 @@ class CRMApp {
         } catch (error) {
             alert('Error creating contact: ' + error.message);
         }
+    }
+
+    // ==========================================================================
+    // LinkedIn Extraction
+    // ==========================================================================
+
+    async extractLinkedIn() {
+        const urlInput = document.getElementById('linkedinUrlInput');
+        const statusEl = document.getElementById('linkedinStatus');
+        const url = urlInput.value.trim();
+
+        if (!url) {
+            statusEl.textContent = 'Please paste a LinkedIn URL';
+            return;
+        }
+
+        statusEl.textContent = 'Extracting...';
+
+        try {
+            const response = await fetch('/api/extract-contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ linkedinUrl: url })
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.contact) {
+                // Fill form fields
+                const c = data.contact;
+                if (c.first_name) document.getElementById('qaName').value = `${c.first_name} ${c.last_name || ''}`.trim();
+                if (c.linkedin_url) document.getElementById('qaLinkedIn').value = c.linkedin_url;
+                if (c.email) document.getElementById('qaEmail').value = c.email;
+                if (c.company) document.getElementById('qaCompany').value = c.company;
+                if (c.job_title) document.getElementById('qaJobTitle').value = c.job_title;
+
+                // Set source to LinkedIn
+                const linkedinRadio = document.querySelector('input[name="source"][value="LinkedIn"]');
+                if (linkedinRadio) linkedinRadio.checked = true;
+
+                statusEl.textContent = '✓ Extracted! Fill in remaining fields.';
+                urlInput.value = '';
+            } else {
+                statusEl.textContent = 'Could not extract info. Try manual entry.';
+            }
+        } catch (error) {
+            statusEl.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    // ==========================================================================
+    // Voice Dictation
+    // ==========================================================================
+
+    startVoiceDictation() {
+        const statusEl = document.getElementById('voiceStatus');
+        const voiceBtn = document.getElementById('voiceBtn');
+
+        // Check browser support
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            statusEl.textContent = 'Voice not supported in this browser. Try Chrome.';
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        voiceBtn.textContent = '🎤 Listening...';
+        voiceBtn.disabled = true;
+        statusEl.textContent = 'Speak now: "John Smith from Acme Corp, VP of Operations, email john@acme.com..."';
+
+        recognition.onresult = async (event) => {
+            const transcript = event.results[0][0].transcript;
+            statusEl.textContent = `Heard: "${transcript}" - Processing...`;
+
+            try {
+                const response = await fetch('/api/extract-contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voiceText: transcript })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.contact) {
+                    const c = data.contact;
+                    if (c.first_name || c.last_name) {
+                        document.getElementById('qaName').value = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+                    }
+                    if (c.email) document.getElementById('qaEmail').value = c.email;
+                    if (c.phone) document.getElementById('qaPhone').value = c.phone;
+                    if (c.company) document.getElementById('qaCompany').value = c.company;
+                    if (c.job_title) document.getElementById('qaJobTitle').value = c.job_title;
+                    if (c.problem) document.getElementById('qaProblem').value = c.problem;
+
+                    // Set source if detected
+                    if (c.source) {
+                        const sourceRadio = document.querySelector(`input[name="source"][value="${c.source}"]`);
+                        if (sourceRadio) sourceRadio.checked = true;
+                    }
+
+                    // Set industry if detected
+                    if (c.industry) {
+                        document.getElementById('qaIndustry').value = c.industry;
+                    }
+
+                    statusEl.textContent = '✓ Parsed! Review and fill missing fields.';
+                } else {
+                    statusEl.textContent = 'Could not parse. Try again or enter manually.';
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+            }
+
+            voiceBtn.textContent = 'Click to Dictate Contact Info';
+            voiceBtn.disabled = false;
+        };
+
+        recognition.onerror = (event) => {
+            statusEl.textContent = 'Error: ' + event.error;
+            voiceBtn.textContent = 'Click to Dictate Contact Info';
+            voiceBtn.disabled = false;
+        };
+
+        recognition.onend = () => {
+            voiceBtn.textContent = 'Click to Dictate Contact Info';
+            voiceBtn.disabled = false;
+        };
+
+        recognition.start();
     }
 
     // ==========================================================================
