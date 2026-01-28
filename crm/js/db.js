@@ -206,8 +206,12 @@ class CRMDB {
                     .eq('id', contact.id);
                 console.log('✅ Contact synced to Brevo:', contact.email);
                 return true;
+            } else {
+                // Log the error response for debugging
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Brevo sync failed for', contact.email, ':', errorData.error || response.status);
+                return false;
             }
-            return false;
         } catch (error) {
             console.error('Brevo sync error:', error);
             return false;
