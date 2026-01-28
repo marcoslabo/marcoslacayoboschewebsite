@@ -170,7 +170,45 @@ class CRMDB {
             throw error;
         }
 
+        // Auto-sync to Brevo
+        this.syncToBrevo(data).catch(e => console.log('Brevo sync failed (will retry):', e));
+
         return data;
+    }
+
+    /**
+     * Sync contact to Brevo
+     */
+    async syncToBrevo(contact) {
+        try {
+            const response = await fetch('/api/brevo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'sync',
+                    contact: {
+                        email: contact.email,
+                        firstName: contact.first_name,
+                        lastName: contact.last_name,
+                        company: contact.companies?.name || '',
+                        source: contact.source,
+                        tag: contact.brevo_tag,
+                        problem: contact.problem
+                    }
+                })
+            });
+
+            if (response.ok) {
+                // Mark as synced in database
+                await this.supabase
+                    .from('contacts')
+                    .update({ brevo_synced: true })
+                    .eq('id', contact.id);
+                console.log('✅ Contact synced to Brevo:', contact.email);
+            }
+        } catch (error) {
+            console.error('Brevo sync error:', error);
+        }
     }
 
     /**

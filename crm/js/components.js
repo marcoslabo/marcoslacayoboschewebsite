@@ -197,9 +197,13 @@ const CRMComponents = {
                         <button class="btn btn-secondary btn-sm" onclick="window.crmApp.editContact('${contact.id}')">Edit</button>
                     </div>
 
-                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                    <div style="display: flex; gap: 12px; margin-bottom: 24px; align-items: center;">
                         ${this.renderSourceBadge(contact.source)}
                         ${this.renderStatusBadge(contact.status)}
+                        ${contact.brevo_synced
+                ? '<span class="badge" style="background: #d1fae5; color: #047857;">✓ Synced to Brevo</span>'
+                : `<button class="btn btn-sm btn-secondary" onclick="window.crmApp.syncToBrevo('${contact.id}')">Sync to Brevo</button>`
+            }
                     </div>
                 </div>
 

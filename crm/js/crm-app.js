@@ -310,6 +310,17 @@ class CRMApp {
         // For now, just alert - could open a modal later
         alert('Edit functionality coming soon!');
     }
+
+    async syncToBrevo(id) {
+        try {
+            const contact = await window.crmDB.getContact(id);
+            await window.crmDB.syncToBrevo(contact);
+            await this.renderContactDetail(id);
+            alert('Contact synced to Brevo!');
+        } catch (error) {
+            alert('Sync failed: ' + error.message);
+        }
+    }
 }
 
 // Create global instance
