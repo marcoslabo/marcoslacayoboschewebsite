@@ -106,7 +106,17 @@ async function syncContact(apiKey, contact) {
         throw new Error(errorMessage);
     }
 
-    return await response.json();
+    // Brevo may return empty body for 201 Created - that's OK
+    const responseText = await response.text();
+    if (!responseText) {
+        return { success: true, status: response.status };
+    }
+
+    try {
+        return JSON.parse(responseText);
+    } catch (e) {
+        return { success: true, status: response.status };
+    }
 }
 
 /**
