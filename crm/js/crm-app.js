@@ -488,6 +488,255 @@ class CRMApp {
         btn.textContent = originalText;
         btn.disabled = false;
     }
+
+    // ==========================================================================
+    // CSV Import
+    // ==========================================================================
+
+    openCsvImport() {
+        document.getElementById('csvImportModal').style.display = 'flex';
+        this.resetCsvImport();
+    }
+
+    closeCsvImport() {
+        document.getElementById('csvImportModal').style.display = 'none';
+        this.csvData = null;
+        // Refresh contacts view
+        const path = window.crmRouter.getCurrentPath();
+        if (path === '/contacts') {
+            this.renderContacts();
+        } else if (path === '/') {
+            this.renderDashboard();
+        }
+    }
+
+    resetCsvImport() {
+        document.getElementById('csvStep1').style.display = 'block';
+        document.getElementById('csvStep2').style.display = 'none';
+        document.getElementById('csvStep3').style.display = 'none';
+        document.getElementById('csvStep4').style.display = 'none';
+        document.getElementById('csvFileInput').value = '';
+        this.csvData = null;
+    }
+
+    handleCsvSelect(event) {
+        const file = event.target.files[0];
+        if (file) this.parseCsvFile(file);
+    }
+
+    handleCsvDrop(event) {
+        const file = event.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            this.parseCsvFile(file);
+        }
+    }
+
+    parseCsvFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            const rows = this.parseCSV(text);
+
+            if (rows.length < 2) {
+                alert('CSV file is empty or has no data rows.');
+                return;
+            }
+
+            this.csvData = {
+                headers: rows[0],
+                rows: rows.slice(1),
+                columnMap: this.autoMapColumns(rows[0])
+            };
+
+            this.showCsvPreview();
+        };
+        reader.readAsText(file);
+    }
+
+    parseCSV(text) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = '';
+        let insideQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1];
+
+            if (char === '"') {
+                if (insideQuotes && nextChar === '"') {
+                    currentCell += '"';
+                    i++;
+                } else {
+                    insideQuotes = !insideQuotes;
+                }
+            } else if (char === ',' && !insideQuotes) {
+                currentRow.push(currentCell.trim());
+                currentCell = '';
+            } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !insideQuotes) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(cell => cell)) {
+                    rows.push(currentRow);
+                }
+                currentRow = [];
+                currentCell = '';
+                if (char === '\r') i++;
+            } else {
+                currentCell += char;
+            }
+        }
+
+        // Handle last row
+        if (currentCell || currentRow.length) {
+            currentRow.push(currentCell.trim());
+            if (currentRow.some(cell => cell)) {
+                rows.push(currentRow);
+            }
+        }
+
+        return rows;
+    }
+
+    autoMapColumns(headers) {
+        const map = {};
+        const normalizedHeaders = headers.map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
+
+        // Auto-detect common column names
+        const patterns = {
+            email: ['email', 'emailaddress', 'mail', 'workemail', 'personalemail'],
+            first_name: ['firstname', 'first', 'fname', 'givenname'],
+            last_name: ['lastname', 'last', 'lname', 'surname', 'familyname'],
+            company: ['company', 'companyname', 'organization', 'org', 'employer'],
+            phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone'],
+            job_title: ['title', 'jobtitle', 'position', 'role'],
+            linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile']
+        };
+
+        for (const [field, keywords] of Object.entries(patterns)) {
+            const index = normalizedHeaders.findIndex(h => keywords.includes(h));
+            if (index !== -1) {
+                map[field] = index;
+            }
+        }
+
+        return map;
+    }
+
+    showCsvPreview() {
+        document.getElementById('csvStep1').style.display = 'none';
+        document.getElementById('csvStep2').style.display = 'block';
+
+        const { headers, rows, columnMap } = this.csvData;
+
+        document.getElementById('csvRowCount').textContent = `${rows.length} contacts found`;
+
+        // Build preview table showing first 5 rows
+        const previewRows = rows.slice(0, 5);
+        let html = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        ${headers.map((h, i) => {
+            const mappedTo = Object.entries(columnMap).find(([k, v]) => v === i);
+            const badge = mappedTo ? `<span style="display: block; font-size: 11px; color: #8b5cf6; font-weight: 600;">→ ${mappedTo[0]}</span>` : '';
+            return `<th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">${h}${badge}</th>`;
+        }).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${previewRows.map(row => `
+                        <tr>
+                            ${headers.map((_, i) => `<td style="padding: 8px; border: 1px solid #e2e8f0;">${row[i] || ''}</td>`).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        if (rows.length > 5) {
+            html += `<p style="text-align: center; color: #94a3b8; margin-top: 12px;">...and ${rows.length - 5} more contacts</p>`;
+        }
+
+        // Check if email column is mapped
+        if (columnMap.email === undefined) {
+            html = `<div style="padding: 20px; background: #fef2f2; border-radius: 8px; color: #dc2626; margin-bottom: 16px;">
+                <strong>⚠️ Could not find email column.</strong><br>
+                Make sure your CSV has a column named "Email" or "email".
+            </div>` + html;
+            document.getElementById('csvImportBtn').disabled = true;
+        } else {
+            document.getElementById('csvImportBtn').disabled = false;
+        }
+
+        document.getElementById('csvPreviewTable').innerHTML = html;
+    }
+
+    async importCsvContacts() {
+        if (!this.csvData || !this.csvData.columnMap.email === undefined) return;
+
+        const { rows, columnMap } = this.csvData;
+        const source = document.getElementById('csvImportSource').value;
+
+        // Show progress
+        document.getElementById('csvStep2').style.display = 'none';
+        document.getElementById('csvStep3').style.display = 'block';
+
+        let imported = 0;
+        let skipped = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const email = row[columnMap.email];
+
+            if (!email || !email.includes('@')) {
+                skipped++;
+                continue;
+            }
+
+            const contact = {
+                first_name: row[columnMap.first_name] || '',
+                last_name: row[columnMap.last_name] || '',
+                email: email,
+                phone: row[columnMap.phone] || null,
+                job_title: row[columnMap.job_title] || null,
+                linkedin_url: row[columnMap.linkedin_url] || null,
+                source: source,
+                status: 'New',
+                brevo_tag: source === 'Clay Import' ? 'clay-lead' :
+                    source === 'LinkedIn' ? 'linkedin-lead' :
+                        source === 'Referral' ? 'referral-lead' :
+                            source === 'Event' ? 'event-lead' : 'other-lead'
+            };
+
+            // Handle company
+            const companyName = row[columnMap.company];
+            if (companyName) {
+                try {
+                    contact.company_id = await window.crmDB.findOrCreateCompany(companyName);
+                } catch (e) {
+                    console.error('Error creating company:', e);
+                }
+            }
+
+            try {
+                await window.crmDB.createContact(contact);
+                imported++;
+            } catch (e) {
+                console.error('Error importing contact:', e);
+                skipped++;
+            }
+
+            // Update progress
+            const progress = Math.round(((i + 1) / rows.length) * 100);
+            document.getElementById('csvProgressBar').style.width = progress + '%';
+            document.getElementById('csvProgressText').textContent = `Importing... ${i + 1} of ${rows.length}`;
+        }
+
+        // Show complete
+        document.getElementById('csvStep3').style.display = 'none';
+        document.getElementById('csvStep4').style.display = 'block';
+        document.getElementById('csvCompleteText').textContent = `Imported ${imported} contacts!${skipped > 0 ? ` (${skipped} skipped)` : ''}`;
+    }
 }
 
 // Create global instance
