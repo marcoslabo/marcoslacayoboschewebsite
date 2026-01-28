@@ -1255,3 +1255,56 @@
     color: var(--color-text-muted);
     max-width: none;
 }
+
+/* --------------------------------------------------------------------------
+   Spark CTA Section
+   -------------------------------------------------------------------------- */
+
+.spark-cta {
+    background: var(--color-secondary);
+    padding: var(--space-16) 0;
+}
+
+.spark-cta-card {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-12);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(124, 58, 237, 0.3);
+}
+
+.spark-cta-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.spark-cta-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: var(--space-4);
+}
+
+.spark-cta-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    color: #ffffff !important;
+    margin-bottom: var(--space-4);
+}
+
+.spark-cta-text {
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.95) !important;
+    margin-bottom: var(--space-8);
+    line-height: var(--leading-relaxed);
+}
+
+.spark-cta .btn-primary {
+    background: white;
+    color: #7c3aed;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.spark-cta .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <title>Spark | AI Solution Brief Tool | Powered by Nymbl</title>
+    <meta name="description" content="Capture, quantify, and share AI opportunities. Calculate potential ROI instantly.">
+    
+    <!-- Fonts (same as main site) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="css/spark.css">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="spark-nav">
+        <div class="spark-nav-container">
+            <a href="/spark/" class="spark-brand">
+                <span class="spark-logo">⚡</span>
+                <span class="spark-name">Spark</span>
+            </a>
+            <div class="spark-nav-actions">
+                <button class="btn btn-primary" id="newBriefBtn">+ New Brief</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main App Container -->
+    <main class="spark-main" id="app">
+        <!-- Content will be rendered by JavaScript -->
+        <div class="spark-loading">
+            <div class="spark-loading-spinner"></div>
+            <p>Loading Spark...</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="spark-footer">
+        <p>Spark by Marcos Bosche | Powered by <img src="../images/nymbl-logo.png" alt="Nymbl" class="spark-nymbl-logo"></p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/ai-prompts.js"></script>
+    <script src="js/ai-services.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/spark-app.js"></script>
+</body>
+</html>

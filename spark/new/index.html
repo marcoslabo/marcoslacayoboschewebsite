@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Brief | Spark | Powered by Nymbl</title>
+    <meta name="description"
+        content="Calculate your AI ROI in 30 seconds. Describe your challenge and get an instant estimate of potential time and cost savings.">
+
+    <!-- Redirect to Spark app with /new route -->
+    <script>
+        // Store intended route and redirect to main Spark app
+        sessionStorage.setItem('sparkRoute', '/spark/new');
+        window.location.replace('/spark/');
+    </script>
+
+    <!-- Fallback for no-JS -->
+    <noscript>
+        <meta http-equiv="refresh" content="0;url=/spark/">
+    </noscript>
+</head>
+
+<body>
+    <p>Redirecting to Spark...</p>
+</body>
+
+</html>

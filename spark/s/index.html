@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spark | AI Opportunity Assessment</title>
+    <meta name="description" content="View your AI opportunity assessment from Marcos Bosche">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../css/spark.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="spark-main" id="app">
+        <div class="spark-loading">
+            <div class="spark-loading-spinner"></div>
+            <p>Loading brief...</p>
+        </div>
+    </main>
+
+    <footer class="spark-footer">
+        <p>Spark by Marcos Bosche | Powered by Nymbl</p>
+    </footer>
+
+    <script src="../js/config.js"></script>
+    <script>
+        // Initialize Supabase
+        const supabaseClient = supabase.createClient(
+            SPARK_CONFIG.SUPABASE_URL,
+            SPARK_CONFIG.SUPABASE_ANON_KEY
+        );
+
+        // Get share ID from URL query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareId = urlParams.get('id');
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Get level stars
+        function getLevelStars(level) {
+            if (level?.includes('Level 1')) return '★☆☆';
+            if (level?.includes('Level 2')) return '★★☆';
+            if (level?.includes('Level 3')) return '★★★';
+            return '☆☆☆';
+        }
+
+        // Load and display brief
+        async function loadBrief() {
+            try {
+                // Increment view count
+                const { data: briefData } = await supabaseClient
+                    .from('briefs')
+                    .select('id, share_link_views')
+                    .eq('share_id', shareId)
+                    .single();
+
+                if (briefData) {
+                    await supabaseClient
+                        .from('briefs')
+                        .update({ share_link_views: (briefData.share_link_views || 0) + 1 })
+                        .eq('id', briefData.id);
+                }
+
+                // Get full brief with company info
+                const { data: brief, error } = await supabaseClient
+                    .from('briefs_with_roi')
+                    .select('*')
+                    .eq('share_id', shareId)
+                    .single();
+
+                if (error || !brief) {
+                    document.getElementById('app').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <h3 class="empty-state-title">Brief not found</h3>
+                            <p class="empty-state-text">This link may have expired or is invalid.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Render brief
+                const annualSavings = brief.annual_potential_savings || 0;
+
+                document.getElementById('app').innerHTML = `
+                    <div class="form-page fade-in" style="padding-top: var(--space-8);">
+                        <div style="text-align: center; margin-bottom: var(--space-8);">
+                            <div style="font-size: 2rem; margin-bottom: var(--space-2);">⚡</div>
+                            <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-1);">
+                                AI Opportunity Assessment
+                            </h1>
+                            <p style="color: var(--color-text-muted);">
+                                Prepared for ${brief.company_name || 'Your Organization'}
+                            </p>
+                        </div>
+
+                        <div class="content-section">
+                            <h3 class="content-section-title">The Challenge</h3>
+                            <div class="content-section-body">
+                                ${brief.problem_clean || brief.problem_raw || 'No problem description'}
+                            </div>
+                        </div>
+
+                        <div class="roi-card">
+                            <div class="roi-label">Estimated Annual Value</div>
+                            <div class="roi-value">${formatCurrency(annualSavings)}</div>
+                            <div class="roi-breakdown">potential savings</div>
+                        </div>
+
+                        ${brief.solution_level ? `
+                            <div class="level-card">
+                                <div class="level-header">
+                                    <span class="level-stars">${getLevelStars(brief.solution_level)}</span>
+                                    <span class="level-name">${brief.solution_level}</span>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${brief.suggested_approach ? `
+                            <div class="content-section">
+                                <h3 class="content-section-title">Solution Approach</h3>
+                                <div class="content-section-body">${brief.suggested_approach}</div>
+                            </div>
+                        ` : ''}
+
+                        <div style="text-align: center; padding: var(--space-8) 0;">
+                            <h3 style="font-size: var(--text-xl); margin-bottom: var(--space-4);">
+                                Ready to move forward?
+                            </h3>
+                            <a href="${SPARK_CONFIG.CALENDAR_LINK}" class="btn btn-primary btn-lg" target="_blank">
+                                Book a Call with Marcos →
+                            </a>
+                        </div>
+
+                        <div style="text-align: center; padding: var(--space-4); color: var(--color-text-light); font-size: var(--text-sm);">
+                            Spark by Marcos Bosche | Powered by Nymbl
+                        </div>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error('Error loading brief:', err);
+                document.getElementById('app').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3 class="empty-state-title">Error loading brief</h3>
+                        <p class="empty-state-text">Please try again later.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load on page ready
+        loadBrief();
+    </script>
+</body>
+
+</html>

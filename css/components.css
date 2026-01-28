@@ -328,6 +328,18 @@
 .logo-item img {
     max-height: 40px;
     width: auto;
+    filter: grayscale(100%);
+    transition: filter var(--transition-base);
+}
+
+.logo-item:hover img {
+    filter: grayscale(0%);
+}
+
+.logo-item span {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    font-weight: var(--font-medium);
 }
 
 /* --------------------------------------------------------------------------
