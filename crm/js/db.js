@@ -205,10 +205,45 @@ class CRMDB {
                     .update({ brevo_synced: true })
                     .eq('id', contact.id);
                 console.log('✅ Contact synced to Brevo:', contact.email);
+                return true;
             }
+            return false;
         } catch (error) {
             console.error('Brevo sync error:', error);
+            return false;
         }
+    }
+
+    /**
+     * Sync all unsynced contacts to Brevo
+     */
+    async syncAllToBrevo() {
+        // Get all unsynced contacts
+        const { data: contacts, error } = await this.supabase
+            .from('contacts')
+            .select('*, companies(name)')
+            .eq('brevo_synced', false);
+
+        if (error || !contacts) {
+            console.error('Error fetching unsynced contacts:', error);
+            return { synced: 0, failed: 0, total: 0 };
+        }
+
+        let synced = 0;
+        let failed = 0;
+
+        for (const contact of contacts) {
+            const success = await this.syncToBrevo(contact);
+            if (success) {
+                synced++;
+            } else {
+                failed++;
+            }
+            // Small delay to avoid rate limiting
+            await new Promise(r => setTimeout(r, 200));
+        }
+
+        return { synced, failed, total: contacts.length };
     }
 
     /**

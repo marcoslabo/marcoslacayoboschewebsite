@@ -457,6 +457,37 @@ class CRMApp {
             alert('Sync failed: ' + error.message);
         }
     }
+
+    async syncAllToBrevo() {
+        const btn = document.getElementById('syncBrevoBtn');
+        const originalText = btn.textContent;
+
+        btn.textContent = '⏳ Syncing...';
+        btn.disabled = true;
+
+        try {
+            const result = await window.crmDB.syncAllToBrevo();
+
+            if (result.total === 0) {
+                alert('All contacts are already synced to Brevo!');
+            } else {
+                alert(`Synced ${result.synced} of ${result.total} contacts to Brevo!${result.failed > 0 ? `\n\n${result.failed} failed (check console for details).` : ''}`);
+            }
+
+            // Refresh current view
+            const path = window.crmRouter.getCurrentPath();
+            if (path === '/') {
+                await this.renderDashboard();
+            } else if (path === '/contacts') {
+                await this.renderContacts();
+            }
+        } catch (error) {
+            alert('Sync failed: ' + error.message);
+        }
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
 }
 
 // Create global instance
