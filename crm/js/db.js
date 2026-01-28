@@ -1,0 +1,300 @@
+// ==========================================================================
+// CRM Database Client (Supabase)
+// ==========================================================================
+
+class CRMDB {
+    constructor() {
+        const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CRM_CONFIG;
+        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // ==========================================================================
+    // Contacts
+    // ==========================================================================
+
+    /**
+     * Get all contacts with optional filters
+     */
+    async getContacts(filters = {}) {
+        let query = this.supabase
+            .from('contacts')
+            .select(`
+                *,
+                companies (
+                    id,
+                    name,
+                    industry
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        // Apply filters
+        if (filters.source) {
+            query = query.eq('source', filters.source);
+        }
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+        if (filters.search) {
+            query = query.or(`first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Error fetching contacts:', error);
+            throw error;
+        }
+
+        return data || [];
+    }
+
+    /**
+     * Get single contact by ID
+     */
+    async getContact(id) {
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .select(`
+                *,
+                companies (
+                    id,
+                    name,
+                    industry
+                )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching contact:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
+     * Get today's actions for dashboard
+     */
+    async getTodaysActions() {
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .select(`
+                *,
+                companies (
+                    id,
+                    name
+                )
+            `)
+            .not('next_action', 'is', null)
+            .not('next_action', 'eq', 'None')
+            .lte('next_action_date', today)
+            .order('next_action_date', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching today\'s actions:', error);
+            throw error;
+        }
+
+        // Group by action type and overdue status
+        const result = {
+            calls: [],
+            emails: [],
+            followUps: [],
+            overdue: [],
+            newToday: []
+        };
+
+        const todayDate = new Date().toISOString().split('T')[0];
+
+        for (const contact of (data || [])) {
+            const isOverdue = contact.next_action_date < todayDate;
+
+            if (isOverdue) {
+                result.overdue.push(contact);
+            } else if (contact.next_action === 'Call') {
+                result.calls.push(contact);
+            } else if (contact.next_action === 'Email') {
+                result.emails.push(contact);
+            } else if (contact.next_action === 'Follow Up') {
+                result.followUps.push(contact);
+            }
+        }
+
+        // Get new contacts added today
+        const { data: newData } = await this.supabase
+            .from('contacts')
+            .select('*, companies(name)')
+            .gte('created_at', todayDate)
+            .order('created_at', { ascending: false });
+
+        result.newToday = newData || [];
+
+        return result;
+    }
+
+    /**
+     * Create new contact
+     */
+    async createContact(contactData) {
+        // Set defaults based on source
+        const source = contactData.source;
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const fiveDaysLater = new Date();
+        fiveDaysLater.setDate(fiveDaysLater.getDate() + 5);
+
+        const defaults = {
+            status: 'New',
+            next_action: 'Call',
+            next_action_date: source === 'Clay Import'
+                ? fiveDaysLater.toISOString().split('T')[0]
+                : tomorrow.toISOString().split('T')[0],
+            brevo_tag: window.CRM_CONFIG.BREVO_TAGS[source] || 'other-lead',
+            brevo_synced: false
+        };
+
+        const contact = { ...defaults, ...contactData };
+
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .insert([contact])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating contact:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
+     * Update contact
+     */
+    async updateContact(id, updates) {
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating contact:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
+     * Mark action as done
+     */
+    async markActionDone(id, note = '') {
+        const contact = await this.getContact(id);
+
+        // Add dated note
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const actionNote = `${dateStr}: Completed ${contact.next_action}. ${note}`;
+        const existingNotes = contact.notes || '';
+        const newNotes = existingNotes ? `${actionNote}\n\n${existingNotes}` : actionNote;
+
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .update({
+                next_action: null,
+                next_action_date: null,
+                notes: newNotes
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error marking action done:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
+     * Snooze action to new date
+     */
+    async snoozeAction(id, daysFromNow) {
+        const newDate = new Date();
+        newDate.setDate(newDate.getDate() + daysFromNow);
+
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .update({
+                next_action_date: newDate.toISOString().split('T')[0]
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error snoozing action:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
+     * Add note to contact
+     */
+    async addNote(id, noteText) {
+        const contact = await this.getContact(id);
+
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const newNote = `${dateStr}: ${noteText}`;
+        const existingNotes = contact.notes || '';
+        const updatedNotes = existingNotes ? `${newNote}\n\n${existingNotes}` : newNote;
+
+        return this.updateContact(id, { notes: updatedNotes });
+    }
+
+    // ==========================================================================
+    // Companies (for autocomplete)
+    // ==========================================================================
+
+    /**
+     * Find or create company
+     */
+    async findOrCreateCompany(name) {
+        if (!name) return null;
+
+        // Try to find existing company
+        const { data: existing } = await this.supabase
+            .from('companies')
+            .select('id')
+            .ilike('name', name)
+            .single();
+
+        if (existing) return existing.id;
+
+        // Create new company
+        const { data: newCompany, error } = await this.supabase
+            .from('companies')
+            .insert([{ name, status: 'Prospect' }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating company:', error);
+            return null;
+        }
+
+        return newCompany.id;
+    }
+}
+
+// Create global instance
+window.crmDB = new CRMDB();
