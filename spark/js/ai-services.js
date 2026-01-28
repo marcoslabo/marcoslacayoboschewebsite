@@ -9,41 +9,34 @@ class SparkAI {
     }
 
     /**
-     * Check if API key is configured
+     * Check if API is available (always true now with serverless proxy)
      */
     isConfigured() {
-        const { OPENAI_API_KEY } = window.SPARK_CONFIG;
-        return OPENAI_API_KEY && OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY';
+        return true; // Using serverless proxy
     }
 
     /**
-     * Call OpenAI API
+     * Call OpenAI API via serverless proxy
      */
     async callOpenAI(prompt) {
-        if (!this.isConfigured()) {
-            console.warn('OpenAI not configured. Using demo responses.');
-            return null;
-        }
-
-        const { OPENAI_API_KEY, OPENAI_MODEL } = window.SPARK_CONFIG;
+        const { OPENAI_MODEL } = window.SPARK_CONFIG;
 
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch('/api/openai', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     model: OPENAI_MODEL,
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.7,
-                    max_tokens: 500
+                    temperature: 0.7
                 })
             });
 
             if (!response.ok) {
-                throw new Error(`OpenAI API error: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `API error: ${response.status}`);
             }
 
             const data = await response.json();
