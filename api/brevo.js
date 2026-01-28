@@ -7,10 +7,22 @@ export default async function handler(req, res) {
     const apiKey = process.env.BREVO_API_KEY;
 
     if (!apiKey) {
+        console.error('BREVO_API_KEY not found in environment');
         return res.status(500).json({ error: 'Brevo API key not configured' });
     }
 
     const { action, contact } = req.body;
+
+    // Validate contact data
+    if (!contact || !contact.email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contact.email)) {
+        return res.status(400).json({ error: 'Invalid email format: ' + contact.email });
+    }
 
     try {
         if (action === 'sync') {
@@ -25,9 +37,10 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid action' });
         }
     } catch (error) {
-        console.error('Brevo API error:', error);
+        console.error('Brevo API error:', error.message, 'for email:', contact.email);
         return res.status(500).json({
-            error: error.message || 'Brevo sync failed'
+            error: error.message || 'Brevo sync failed',
+            email: contact.email
         });
     }
 }
