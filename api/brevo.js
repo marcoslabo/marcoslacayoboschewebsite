@@ -94,8 +94,16 @@ async function syncContact(apiKey, contact) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Brevo error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Brevo API response:', response.status, errorText);
+        let errorMessage = `Brevo error ${response.status}`;
+        try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorData.code || errorMessage;
+        } catch (e) {
+            errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
     }
 
     return await response.json();
