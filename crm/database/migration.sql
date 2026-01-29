@@ -90,3 +90,59 @@ ORDER BY
     CASE WHEN c.next_action_date < CURRENT_DATE THEN 0 ELSE 1 END,
     c.next_action_date ASC,
     c.next_action ASC;
+
+-- ==========================================================================
+-- Activities Table - Log every interaction with contacts
+-- ==========================================================================
+
+CREATE TABLE IF NOT EXISTS activities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+    
+    -- What type of activity
+    activity_type TEXT NOT NULL CHECK (activity_type IN (
+        'call',
+        'email', 
+        'meeting',
+        'linkedin_message',
+        'note',
+        'status_change'
+    )),
+    
+    -- Outcome of the activity
+    outcome TEXT CHECK (outcome IN (
+        -- Call outcomes
+        'no_answer',
+        'left_voicemail',
+        'connected',
+        'scheduled_meeting',
+        'not_interested',
+        -- Email outcomes
+        'sent',
+        'replied',
+        'bounced',
+        -- Meeting outcomes
+        'completed',
+        'no_show',
+        'rescheduled',
+        -- General
+        'other'
+    )),
+    
+    -- Details
+    notes TEXT,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for fast queries by contact
+CREATE INDEX IF NOT EXISTS idx_activities_contact_id ON activities(contact_id);
+CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access (same as contacts table)
+CREATE POLICY IF NOT EXISTS "Allow all access to activities" ON activities
+    FOR ALL USING (true) WITH CHECK (true);

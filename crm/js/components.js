@@ -54,6 +54,8 @@ const CRMComponents = {
             ? Math.floor((new Date() - new Date(contact.next_action_date)) / (1000 * 60 * 60 * 24))
             : 0;
         const overdueText = daysAgo > 0 ? ` • ${daysAgo} day${daysAgo > 1 ? 's' : ''} ago` : '';
+        const contactName = `${contact.first_name} ${contact.last_name}`;
+        const actionType = contact.next_action || 'Call';
 
         return `
             <div class="action-item" onclick="window.crmApp.goToContact('${contact.id}')">
@@ -66,7 +68,7 @@ const CRMComponents = {
                     </div>
                 </div>
                 <div class="action-item-actions">
-                    <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); window.crmApp.markDone('${contact.id}')">Done</button>
+                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); window.crmApp.openLogOutcome('${contact.id}', '${contactName.replace(/'/g, "\\'")}', '${actionType}')">Log</button>
                     <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.crmApp.showSnooze('${contact.id}')">Snooze</button>
                 </div>
             </div>
@@ -229,9 +231,19 @@ const CRMComponents = {
                             <input type="date" id="nextActionDate" class="filter-select" 
                                 value="${contact.next_action_date || ''}" style="flex: 1;">
                             <button class="btn btn-primary btn-sm" onclick="window.crmApp.updateNextAction('${contact.id}')">Update</button>
-                            ${contact.next_action ? `
-                                <button class="btn btn-success btn-sm" onclick="window.crmApp.markDone('${contact.id}')">Mark Done</button>
+                            ${contact.next_action && contact.next_action !== 'None' ? `
+                                <button class="btn btn-success btn-sm" onclick="window.crmApp.openLogOutcome('${contact.id}', '${contact.first_name} ${contact.last_name}', '${contact.next_action}')">Log Outcome</button>
                             ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Timeline -->
+                <div class="card">
+                    <div class="contact-section">
+                        <h4 class="contact-section-title">📅 Activity Timeline</h4>
+                        <div id="activityTimeline" style="margin-top: 16px;">
+                            <p style="color: var(--color-text-muted); font-style: italic;">Loading activities...</p>
                         </div>
                     </div>
                 </div>

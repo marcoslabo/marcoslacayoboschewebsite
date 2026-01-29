@@ -280,6 +280,67 @@
         </div>
     </div>
 
+    <!-- Log Outcome Modal -->
+    <div id="logOutcomeModal" class="modal" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="logOutcomeTitle">📝 Log Outcome</h2>
+                <button class="modal-close" onclick="window.crmApp.closeLogOutcome()">&times;</button>
+            </div>
+
+            <form id="logOutcomeForm" onsubmit="event.preventDefault(); window.crmApp.submitLogOutcome();"
+                style="padding: 20px;">
+                <input type="hidden" id="logContactId">
+                <input type="hidden" id="logActivityType">
+
+                <!-- Contact Name Display -->
+                <div style="margin-bottom: 20px; padding: 12px; background: #f8fafc; border-radius: 8px;">
+                    <span style="color: #64748b;">Logging for:</span>
+                    <strong id="logContactName"></strong>
+                </div>
+
+                <!-- Outcome Selection -->
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">What happened?</label>
+                    <div id="outcomeOptions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <!-- Populated by JS based on activity type -->
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group" style="margin-top: 16px;">
+                    <label style="font-weight: 600;">Notes (optional)</label>
+                    <textarea id="logNotes" rows="3" placeholder="Any details to remember..."
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Next Action -->
+                <div
+                    style="margin-top: 20px; padding: 16px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 12px;">📅 What's next?</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <select id="logNextAction"
+                            style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <option value="None">Done for now</option>
+                            <option value="Call">Call again</option>
+                            <option value="Email">Send email</option>
+                            <option value="Follow Up">Follow up</option>
+                        </select>
+                        <input type="date" id="logNextDate"
+                            style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px; display: flex; gap: 12px;">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="window.crmApp.closeLogOutcome()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save & Continue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>

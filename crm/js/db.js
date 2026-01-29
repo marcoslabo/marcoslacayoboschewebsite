@@ -371,6 +371,80 @@ class CRMDB {
 
         return newCompany.id;
     }
+
+    // ==========================================================================
+    // Activities (Interaction History)
+    // ==========================================================================
+
+    /**
+     * Log an activity for a contact
+     */
+    async logActivity(contactId, activity) {
+        const { data, error } = await this.supabase
+            .from('activities')
+            .insert([{
+                contact_id: contactId,
+                activity_type: activity.type,
+                outcome: activity.outcome || null,
+                notes: activity.notes || null
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error logging activity:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
+     * Get all activities for a contact (timeline)
+     */
+    async getActivities(contactId) {
+        const { data, error } = await this.supabase
+            .from('activities')
+            .select('*')
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching activities:', error);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    /**
+     * Log action completion with outcome and set next action
+     */
+    async completeAction(contactId, outcome, notes, nextAction, nextActionDate) {
+        const contact = await this.getContact(contactId);
+
+        // Log the activity
+        await this.logActivity(contactId, {
+            type: contact.next_action?.toLowerCase() || 'note',
+            outcome: outcome,
+            notes: notes
+        });
+
+        // Update contact with next action
+        const updates = {
+            next_action: nextAction || 'None',
+            next_action_date: nextActionDate || null
+        };
+
+        // If outcome indicates won/lost, update status
+        if (outcome === 'not_interested') {
+            updates.status = 'Lost';
+        } else if (outcome === 'scheduled_meeting') {
+            updates.status = 'Active';
+        }
+
+        return this.updateContact(contactId, updates);
+    }
 }
 
 // Create global instance

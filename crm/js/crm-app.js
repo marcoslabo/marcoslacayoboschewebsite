@@ -147,8 +147,74 @@ class CRMApp {
         try {
             const contact = await window.crmDB.getContact(id);
             main.innerHTML = window.CRMComponents.renderContactDetail(contact);
+
+            // Load activity timeline after render
+            await this.loadActivityTimeline(id);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    async loadActivityTimeline(contactId) {
+        const container = document.getElementById('activityTimeline');
+        if (!container) return;
+
+        try {
+            const activities = await window.crmDB.getActivities(contactId);
+
+            if (activities.length === 0) {
+                container.innerHTML = '<p style="color: var(--color-text-muted); font-style: italic;">No activities logged yet.</p>';
+                return;
+            }
+
+            container.innerHTML = activities.map(a => {
+                const date = new Date(a.created_at);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                const icons = {
+                    'call': '📞',
+                    'email': '✉️',
+                    'meeting': '🤝',
+                    'linkedin_message': '💼',
+                    'note': '📝',
+                    'status_change': '🔄'
+                };
+
+                const outcomeLabels = {
+                    'no_answer': 'No Answer',
+                    'left_voicemail': 'Left Voicemail',
+                    'connected': 'Connected',
+                    'scheduled_meeting': 'Scheduled Meeting',
+                    'not_interested': 'Not Interested',
+                    'sent': 'Sent',
+                    'replied': 'Replied',
+                    'bounced': 'Bounced',
+                    'completed': 'Completed',
+                    'no_show': 'No Show',
+                    'rescheduled': 'Rescheduled',
+                    'other': 'Other'
+                };
+
+                const icon = icons[a.activity_type] || '📝';
+                const typeLabel = a.activity_type.charAt(0).toUpperCase() + a.activity_type.slice(1).replace('_', ' ');
+                const outcomeLabel = a.outcome ? outcomeLabels[a.outcome] || a.outcome : '';
+
+                return `
+                    <div style="display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+                        <div style="font-size: 20px;">${icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 2px;">
+                                ${typeLabel}${outcomeLabel ? ` - ${outcomeLabel}` : ''}
+                            </div>
+                            ${a.notes ? `<div style="color: #64748b; font-size: 14px; margin-bottom: 4px;">${a.notes}</div>` : ''}
+                            <div style="color: #94a3b8; font-size: 12px;">${dateStr} at ${timeStr}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            container.innerHTML = '<p style="color: #dc2626;">Error loading activities.</p>';
         }
     }
 
@@ -736,6 +802,100 @@ class CRMApp {
         document.getElementById('csvStep3').style.display = 'none';
         document.getElementById('csvStep4').style.display = 'block';
         document.getElementById('csvCompleteText').textContent = `Imported ${imported} contacts!${skipped > 0 ? ` (${skipped} skipped)` : ''}`;
+    }
+
+    // ==========================================================================
+    // Log Outcome
+    // ==========================================================================
+
+    openLogOutcome(contactId, contactName, actionType) {
+        document.getElementById('logOutcomeModal').style.display = 'flex';
+        document.getElementById('logContactId').value = contactId;
+        document.getElementById('logContactName').textContent = contactName;
+        document.getElementById('logActivityType').value = actionType.toLowerCase();
+        document.getElementById('logNotes').value = '';
+
+        // Set title based on action type
+        const titles = {
+            'call': '📞 Log Call Outcome',
+            'email': '✉️ Log Email Outcome',
+            'follow up': '🔄 Log Follow Up'
+        };
+        document.getElementById('logOutcomeTitle').textContent = titles[actionType.toLowerCase()] || '📝 Log Outcome';
+
+        // Generate outcome options based on action type
+        const outcomes = this.getOutcomeOptions(actionType.toLowerCase());
+        const container = document.getElementById('outcomeOptions');
+        container.innerHTML = outcomes.map(o => `
+            <label style="display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer;">
+                <input type="radio" name="outcome" value="${o.value}" ${o.default ? 'checked' : ''}>
+                <span>${o.emoji} ${o.label}</span>
+            </label>
+        `).join('');
+
+        // Set default next action date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('logNextDate').value = tomorrow.toISOString().split('T')[0];
+    }
+
+    getOutcomeOptions(actionType) {
+        const options = {
+            'call': [
+                { value: 'no_answer', label: 'No Answer', emoji: '📵', default: true },
+                { value: 'left_voicemail', label: 'Left Voicemail', emoji: '📝' },
+                { value: 'connected', label: 'Connected', emoji: '✅' },
+                { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
+                { value: 'not_interested', label: 'Not Interested', emoji: '❌' }
+            ],
+            'email': [
+                { value: 'sent', label: 'Sent', emoji: '📤', default: true },
+                { value: 'replied', label: 'They Replied', emoji: '📬' },
+                { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
+                { value: 'not_interested', label: 'Unsubscribed/Not Interested', emoji: '❌' }
+            ],
+            'follow up': [
+                { value: 'connected', label: 'Checked In', emoji: '✅', default: true },
+                { value: 'no_answer', label: 'No Response', emoji: '📵' },
+                { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
+                { value: 'not_interested', label: 'Not Interested', emoji: '❌' }
+            ]
+        };
+        return options[actionType] || options['follow up'];
+    }
+
+    closeLogOutcome() {
+        document.getElementById('logOutcomeModal').style.display = 'none';
+    }
+
+    async submitLogOutcome() {
+        const contactId = document.getElementById('logContactId').value;
+        const outcome = document.querySelector('input[name="outcome"]:checked')?.value;
+        const notes = document.getElementById('logNotes').value.trim();
+        const nextAction = document.getElementById('logNextAction').value;
+        const nextDate = document.getElementById('logNextDate').value;
+
+        if (!outcome) {
+            alert('Please select what happened.');
+            return;
+        }
+
+        try {
+            await window.crmDB.completeAction(
+                contactId,
+                outcome,
+                notes,
+                nextAction,
+                nextAction !== 'None' ? nextDate : null
+            );
+
+            this.closeLogOutcome();
+
+            // Refresh dashboard
+            await this.renderDashboard();
+        } catch (error) {
+            alert('Error logging outcome: ' + error.message);
+        }
     }
 }
 
