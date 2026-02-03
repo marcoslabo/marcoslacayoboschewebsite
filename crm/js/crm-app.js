@@ -508,9 +508,68 @@ class CRMApp {
         }
     }
 
-    editContact(id) {
-        // For now, just alert - could open a modal later
-        alert('Edit functionality coming soon!');
+    async editContact(id) {
+        try {
+            const contact = await window.crmDB.getContact(id);
+
+            // Populate form fields
+            document.getElementById('editContactId').value = id;
+            document.getElementById('editFirstName').value = contact.first_name || '';
+            document.getElementById('editLastName').value = contact.last_name || '';
+            document.getElementById('editEmail').value = contact.email || '';
+            document.getElementById('editPhone').value = contact.phone || '';
+            document.getElementById('editCompany').value = contact.companies?.name || '';
+            document.getElementById('editJobTitle').value = contact.job_title || '';
+            document.getElementById('editLinkedIn').value = contact.linkedin_url || '';
+            document.getElementById('editStatus').value = contact.status || 'New';
+            document.getElementById('editSource').value = contact.source || 'Other';
+            document.getElementById('editIntentReason').value = contact.intent_reason || '';
+            document.getElementById('editSourceLinks').value = contact.source_links || '';
+            document.getElementById('editProblem').value = contact.problem || '';
+
+            // Show modal
+            document.getElementById('editContactModal').style.display = 'flex';
+        } catch (error) {
+            alert('Error loading contact: ' + error.message);
+        }
+    }
+
+    closeEditContact() {
+        document.getElementById('editContactModal').style.display = 'none';
+    }
+
+    async saveEditContact() {
+        const id = document.getElementById('editContactId').value;
+        const companyName = document.getElementById('editCompany').value.trim();
+
+        try {
+            // Handle company - find or create
+            let companyId = null;
+            if (companyName) {
+                companyId = await window.crmDB.findOrCreateCompany(companyName);
+            }
+
+            const updates = {
+                first_name: document.getElementById('editFirstName').value.trim(),
+                last_name: document.getElementById('editLastName').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                phone: document.getElementById('editPhone').value.trim() || null,
+                job_title: document.getElementById('editJobTitle').value.trim() || null,
+                linkedin_url: document.getElementById('editLinkedIn').value.trim() || null,
+                status: document.getElementById('editStatus').value,
+                source: document.getElementById('editSource').value,
+                intent_reason: document.getElementById('editIntentReason').value.trim() || null,
+                source_links: document.getElementById('editSourceLinks').value.trim() || null,
+                problem: document.getElementById('editProblem').value.trim() || null,
+                company_id: companyId
+            };
+
+            await window.crmDB.updateContact(id, updates);
+            this.closeEditContact();
+            await this.renderContactDetail(id);
+        } catch (error) {
+            alert('Error saving contact: ' + error.message);
+        }
     }
 
     async syncToBrevo(id) {
@@ -669,15 +728,16 @@ class CRMApp {
 
         // Auto-detect common column names (including Clay export variations)
         const patterns = {
-            email: ['email', 'emailaddress', 'mail', 'workemail', 'personalemail'],
+            email: ['email', 'emailaddress', 'mail', 'workemail', 'personalemail', 'emailwork'],
             first_name: ['firstname', 'first', 'fname', 'givenname'],
             last_name: ['lastname', 'last', 'lname', 'surname', 'familyname'],
-            company: ['company', 'companyname', 'organization', 'org', 'employer', 'companytabledata'],
-            phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone', 'mobilephone'],
-            job_title: ['title', 'jobtitle', 'position', 'role'],
-            linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile'],
-            intent_reason: ['reason', 'intentreason', 'reasoning'],
-            source_links: ['formula', 'sourcelinks', 'links']
+            company: ['company', 'companyname', 'organization', 'org', 'employer', 'companytabledata', 'companydomain'],
+            phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone', 'mobilephone', 'workphone'],
+            job_title: ['title', 'jobtitle', 'position', 'role', 'jobrole'],
+            linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile', 'linkedinlink'],
+            intent_reason: ['reason', 'intentreason', 'reasoning', 'notes', 'whyhighintent'],
+            source_links: ['formula', 'sourcelinks', 'links', 'sources', 'researchlinks'],
+            location: ['location', 'city', 'address', 'region']
         };
 
         for (const [field, keywords] of Object.entries(patterns)) {
