@@ -170,8 +170,10 @@ class CRMDB {
             throw error;
         }
 
-        // Auto-sync to Brevo
-        this.syncToBrevo(data).catch(e => console.log('Brevo sync failed (will retry):', e));
+        // Auto-sync to Brevo (only if contact has email)
+        if (data.email) {
+            this.syncToBrevo(data).catch(e => console.log('Brevo sync failed (will retry):', e));
+        }
 
         return data;
     }
