@@ -841,7 +841,11 @@ class CRMApp {
             if (!email) {
                 skipReasons.noEmail++;
                 skipped++;
-                if (i < 5) console.log(`Row ${i}: No email (column index ${columnMap.email}):`, row.slice(0, 5));
+                // Debug: Show more info about skipped rows
+                if (i < 10) {
+                    console.log(`Row ${i}: No email at column ${columnMap.email}. Row has ${row.length} columns.`);
+                    console.log(`  - Row data:`, row);
+                }
                 continue;
             }
 
