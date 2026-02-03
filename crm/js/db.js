@@ -50,6 +50,25 @@ class CRMDB {
     }
 
     /**
+     * Get unique event tags for dropdown
+     */
+    async getEventTags() {
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .select('event_tag')
+            .not('event_tag', 'is', null);
+
+        if (error) {
+            console.error('Error fetching event tags:', error);
+            return [];
+        }
+
+        // Get unique non-null tags
+        const uniqueTags = [...new Set(data.map(c => c.event_tag).filter(Boolean))];
+        return uniqueTags.sort();
+    }
+
+    /**
      * Get single contact by ID
      */
     async getContact(id) {
@@ -195,7 +214,8 @@ class CRMDB {
                         company: contact.companies?.name || '',
                         source: contact.source,
                         tag: contact.brevo_tag,
-                        problem: contact.problem
+                        problem: contact.problem,
+                        eventTag: contact.event_tag  // Used to assign to Brevo list
                     }
                 })
             });

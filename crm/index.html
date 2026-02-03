@@ -247,6 +247,19 @@
                         </select>
                     </div>
 
+                    <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Event/Campaign Tag
+                            (optional):</label>
+                        <input type="text" id="csvEventTag" list="eventTagList"
+                            placeholder="e.g., HIMSS 2024, ACR Expo, Clay Healthcare..."
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box;">
+                        <datalist id="eventTagList">
+                            <!-- Populated dynamically with existing event tags -->
+                        </datalist>
+                        <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">Contacts will be added to a
+                            matching Brevo list for targeted emails</p>
+                    </div>
+
                     <div id="csvPreviewTable" style="overflow-x: auto; margin-bottom: 20px;"></div>
 
                     <div class="form-actions" style="display: flex; gap: 12px;">
@@ -427,7 +440,8 @@
                 </div>
 
                 <div class="form-actions" style="margin-top: 20px; display: flex; gap: 12px;">
-                    <button type="button" class="btn btn-secondary" onclick="window.crmApp.closeEditContact()">Cancel</button>
+                    <button type="button" class="btn btn-secondary"
+                        onclick="window.crmApp.closeEditContact()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>

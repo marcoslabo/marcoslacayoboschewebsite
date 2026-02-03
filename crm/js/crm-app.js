@@ -618,9 +618,18 @@ class CRMApp {
     // CSV Import
     // ==========================================================================
 
-    openCsvImport() {
+    async openCsvImport() {
         document.getElementById('csvImportModal').style.display = 'flex';
         this.resetCsvImport();
+
+        // Load existing event tags for the dropdown
+        try {
+            const tags = await window.crmDB.getEventTags();
+            const datalist = document.getElementById('eventTagList');
+            datalist.innerHTML = tags.map(tag => `<option value="${tag}">`).join('');
+        } catch (e) {
+            console.log('Could not load event tags:', e);
+        }
     }
 
     closeCsvImport() {
@@ -804,6 +813,7 @@ class CRMApp {
 
         const { rows, columnMap } = this.csvData;
         const source = document.getElementById('csvImportSource').value;
+        const eventTag = document.getElementById('csvEventTag').value.trim() || null;
 
         // Show progress
         document.getElementById('csvStep2').style.display = 'none';
@@ -864,6 +874,7 @@ class CRMApp {
                 intent_reason: row[columnMap.intent_reason] || null,
                 source_links: row[columnMap.source_links] || null,
                 source: source,
+                event_tag: eventTag,
                 status: 'New',
                 brevo_tag: source === 'Clay Import' ? 'clay-lead' :
                     source === 'LinkedIn' ? 'linkedin-lead' :

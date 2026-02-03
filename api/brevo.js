@@ -49,7 +49,7 @@ export default async function handler(req, res) {
  * Sync a contact to Brevo (create or update)
  */
 async function syncContact(apiKey, contact) {
-    const { email, firstName, lastName, company, source, tag, problem } = contact;
+    const { email, firstName, lastName, company, source, tag, problem, eventTag } = contact;
 
     // Build attributes
     const attributes = {
@@ -57,7 +57,8 @@ async function syncContact(apiKey, contact) {
         LASTNAME: lastName || '',
         COMPANY: company || '',
         SOURCE: source || '',
-        CRM_PROBLEM: problem || ''
+        CRM_PROBLEM: problem || '',
+        EVENT_TAG: eventTag || ''  // Used to filter contacts by event/campaign
     };
 
     // Create contact payload
