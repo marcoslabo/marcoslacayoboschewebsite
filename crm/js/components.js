@@ -9,7 +9,7 @@ const CRMComponents = {
     // ==========================================================================
 
     renderDashboard(data) {
-        const { calls, emails, followUps, overdue, newToday } = data;
+        const { calls, emails, followUps, overdue, newToday, stats } = data;
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         return `
@@ -17,6 +17,8 @@ const CRMComponents = {
                 <h1 class="page-title">Today's Actions</h1>
                 <p class="page-subtitle">${today}</p>
             </div>
+
+            ${stats ? this.renderStatsSection(stats) : ''}
 
             ${overdue.length ? this.renderActionCard('⚠️ Overdue', overdue, 'overdue') : ''}
             ${calls.length ? this.renderActionCard('📞 Call', calls, 'call') : ''}
@@ -30,6 +32,54 @@ const CRMComponents = {
                     <div class="empty-state-icon">✨</div>
                     <h3 class="empty-state-title">All caught up!</h3>
                     <p>No actions scheduled for today.</p>
+                </div>
+            ` : ''}
+        `;
+    },
+
+    renderStatsSection(stats) {
+        const outcomeLabels = {
+            'connected': '✅ Connected',
+            'voicemail': '📞 Voicemail',
+            'no_answer': '📵 No Answer',
+            'scheduled_meeting': '📅 Meeting Set',
+            'not_interested': '❌ Not Interested',
+            'email_sent': '📧 Email Sent',
+            'email_reply': '💬 Got Reply',
+            'follow_up_needed': '🔄 Follow Up'
+        };
+
+        const outcomeSummary = Object.entries(stats.outcomeCounts || {})
+            .map(([key, count]) => `<span class="stat-outcome">${outcomeLabels[key] || key}: <strong>${count}</strong></span>`)
+            .join('');
+
+        return `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalContacts}</div>
+                    <div class="stat-label">Total Leads</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.activityCounts?.call || 0}</div>
+                    <div class="stat-label">Calls Made</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.activityCounts?.email || 0}</div>
+                    <div class="stat-label">Emails Sent</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.activityCounts?.meeting || 0}</div>
+                    <div class="stat-label">Meetings</div>
+                </div>
+            </div>
+            ${outcomeSummary ? `
+                <div class="card" style="margin-bottom: 16px;">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Outcome Summary</h3>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 0;">
+                        ${outcomeSummary}
+                    </div>
                 </div>
             ` : ''}
         `;

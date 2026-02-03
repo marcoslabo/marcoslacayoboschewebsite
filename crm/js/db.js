@@ -484,6 +484,55 @@ class CRMDB {
 
         return this.updateContact(contactId, updates);
     }
+
+    /**
+     * Get dashboard stats (total leads, activity counts, outcomes)
+     */
+    async getDashboardStats() {
+        // Get total contacts count
+        const { count: totalContacts } = await this.supabase
+            .from('contacts')
+            .select('*', { count: 'exact', head: true });
+
+        // Get contacts by status
+        const { data: statusData } = await this.supabase
+            .from('contacts')
+            .select('status');
+
+        const statusCounts = {};
+        (statusData || []).forEach(c => {
+            const status = c.status || 'New';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+
+        // Get all activities for outcome counting
+        const { data: activities } = await this.supabase
+            .from('activities')
+            .select('activity_type, outcome, created_at');
+
+        // Count activities by type
+        const activityCounts = { call: 0, email: 0, meeting: 0, note: 0 };
+        const outcomeCounts = {};
+
+        (activities || []).forEach(a => {
+            // Count by type
+            const type = a.activity_type || 'note';
+            activityCounts[type] = (activityCounts[type] || 0) + 1;
+
+            // Count by outcome
+            if (a.outcome) {
+                outcomeCounts[a.outcome] = (outcomeCounts[a.outcome] || 0) + 1;
+            }
+        });
+
+        return {
+            totalContacts: totalContacts || 0,
+            statusCounts,
+            activityCounts,
+            outcomeCounts,
+            totalActivities: activities?.length || 0
+        };
+    }
 }
 
 // Create global instance

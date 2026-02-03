@@ -121,7 +121,11 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            const data = await window.crmDB.getTodaysActions();
+            const [data, stats] = await Promise.all([
+                window.crmDB.getTodaysActions(),
+                window.crmDB.getDashboardStats()
+            ]);
+            data.stats = stats;
             main.innerHTML = window.CRMComponents.renderDashboard(data);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
