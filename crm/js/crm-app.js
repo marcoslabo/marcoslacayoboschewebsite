@@ -816,6 +816,23 @@ class CRMApp {
         // Log column mapping for debugging
         console.log('📊 Column Mapping:', columnMap);
         console.log('📋 Headers:', this.csvData.headers);
+        console.log('📋 Normalized Headers:', this.csvData.headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, '')));
+
+        // Show first row mapping
+        if (rows.length > 0) {
+            const firstRow = rows[0];
+            console.log('📌 First row sample:', {
+                email: firstRow[columnMap.email],
+                first_name: firstRow[columnMap.first_name],
+                last_name: firstRow[columnMap.last_name],
+                company: firstRow[columnMap.company],
+                phone: firstRow[columnMap.phone],
+                job_title: firstRow[columnMap.job_title],
+                linkedin_url: firstRow[columnMap.linkedin_url],
+                intent_reason: firstRow[columnMap.intent_reason],
+                source_links: firstRow[columnMap.source_links],
+            });
+        }
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
