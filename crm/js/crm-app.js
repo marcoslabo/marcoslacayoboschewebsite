@@ -836,30 +836,28 @@ class CRMApp {
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            const email = row[columnMap.email];
+            const email = row[columnMap.email] || null;
+            const firstName = row[columnMap.first_name] || '';
+            const lastName = row[columnMap.last_name] || '';
 
-            if (!email) {
-                skipReasons.noEmail++;
+            // Skip only if we have NO identifying info (no name at all)
+            if (!firstName && !lastName) {
                 skipped++;
-                // Debug: Show more info about skipped rows
-                if (i < 10) {
-                    console.log(`Row ${i}: No email at column ${columnMap.email}. Row has ${row.length} columns.`);
-                    console.log(`  - Row data:`, row);
-                }
+                if (i < 5) console.log(`Row ${i}: Skipped - no name data`);
                 continue;
             }
 
-            if (!email.includes('@')) {
+            // Validate email format if provided
+            if (email && !email.includes('@')) {
                 skipReasons.invalidEmail++;
-                skipped++;
-                if (i < 5) console.log(`Row ${i}: Invalid email "${email}"`);
-                continue;
+                // Still import but without the invalid email
+                console.log(`Row ${i}: Invalid email "${email}" - importing without email`);
             }
 
             const contact = {
-                first_name: row[columnMap.first_name] || '',
-                last_name: row[columnMap.last_name] || '',
-                email: email,
+                first_name: firstName,
+                last_name: lastName,
+                email: (email && email.includes('@')) ? email : null,
                 phone: row[columnMap.phone] || null,
                 job_title: row[columnMap.job_title] || null,
                 linkedin_url: row[columnMap.linkedin_url] || null,
@@ -887,7 +885,7 @@ class CRMApp {
                 await window.crmDB.createContact(contact);
                 imported++;
             } catch (e) {
-                console.error(`Error importing ${email}:`, e.message);
+                console.error(`Error importing ${firstName} ${lastName}:`, e.message);
                 skipReasons.dbError++;
                 skipped++;
             }
