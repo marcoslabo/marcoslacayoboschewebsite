@@ -70,7 +70,7 @@ Industry: ${industry || 'General'}
 
 Rules:
 - Be concrete, not vague
-- Mention specific technologies only if clearly appropriate (e.g., OCR, automation, AI document processing)
+- Mention specific technologies only if clearly appropriate (e.g., OCR, automation, AI document processing, backend integration, ai tools, )
 - Focus on outcomes, not features
 - If Level 3, mention that Nymbl's engineering team would build this
 

@@ -218,6 +218,28 @@ const CRMComponents = {
                     </div>
                 ` : ''}
 
+                ${contact.intent_reason ? `
+                    <div class="card">
+                        <div class="contact-section">
+                            <h4 class="contact-section-title">🎯 Intent Reason</h4>
+                            <p style="margin-bottom: 12px; line-height: 1.6;">${contact.intent_reason}</p>
+                            ${contact.source_links ? `
+                                <div style="margin-top: 12px;">
+                                    <span style="font-size: 12px; color: var(--color-text-muted); display: block; margin-bottom: 8px;">Sources:</span>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        ${contact.source_links.split(',').map((link, i) => {
+                const url = link.trim();
+                if (!url) return '';
+                const domain = url.replace(/https?:\/\//, '').split('/')[0];
+                return `<a href="${url}" target="_blank" class="badge" style="text-decoration: none; background: #f0f9ff; color: #0284c7;">${domain} ↗</a>`;
+            }).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+
                 <div class="card">
                     <div class="contact-section">
                         <h4 class="contact-section-title">Next Action</h4>

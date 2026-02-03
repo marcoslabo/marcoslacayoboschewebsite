@@ -665,17 +665,19 @@ class CRMApp {
 
     autoMapColumns(headers) {
         const map = {};
-        const normalizedHeaders = headers.map(h => h.toLowerCase().replace(/[^a-z]/g, ''));
+        const normalizedHeaders = headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-        // Auto-detect common column names
+        // Auto-detect common column names (including Clay export variations)
         const patterns = {
             email: ['email', 'emailaddress', 'mail', 'workemail', 'personalemail'],
             first_name: ['firstname', 'first', 'fname', 'givenname'],
             last_name: ['lastname', 'last', 'lname', 'surname', 'familyname'],
-            company: ['company', 'companyname', 'organization', 'org', 'employer'],
-            phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone'],
+            company: ['company', 'companyname', 'organization', 'org', 'employer', 'companytabledata'],
+            phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone', 'mobilephone'],
             job_title: ['title', 'jobtitle', 'position', 'role'],
-            linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile']
+            linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile'],
+            intent_reason: ['reason', 'intentreason', 'reasoning'],
+            source_links: ['formula', 'sourcelinks', 'links']
         };
 
         for (const [field, keywords] of Object.entries(patterns)) {
@@ -766,6 +768,8 @@ class CRMApp {
                 phone: row[columnMap.phone] || null,
                 job_title: row[columnMap.job_title] || null,
                 linkedin_url: row[columnMap.linkedin_url] || null,
+                intent_reason: row[columnMap.intent_reason] || null,
+                source_links: row[columnMap.source_links] || null,
                 source: source,
                 status: 'New',
                 brevo_tag: source === 'Clay Import' ? 'clay-lead' :
