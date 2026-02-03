@@ -179,7 +179,6 @@ const CRMComponents = {
 
     renderContactDetail(contact) {
         const companyName = contact.companies?.name || '';
-        const title = contact.job_title ? `${contact.job_title}${companyName ? ' at ' + companyName : ''}` : companyName;
 
         return `
             <div class="contact-detail">
@@ -189,17 +188,40 @@ const CRMComponents = {
                     <div class="contact-detail-header">
                         <div>
                             <h1 class="contact-detail-name">${contact.first_name} ${contact.last_name}</h1>
-                            ${title ? `<p class="contact-detail-title">${title}</p>` : ''}
-                            <div class="contact-detail-meta">
-                                ${contact.email ? `<a href="mailto:${contact.email}">${contact.email}</a>` : ''}
-                                ${contact.phone ? `<span>${contact.phone}</span>` : ''}
-                                ${contact.linkedin_url ? `<a href="${contact.linkedin_url}" target="_blank">LinkedIn ↗</a>` : ''}
-                            </div>
+                            ${contact.job_title ? `<p class="contact-detail-title">${contact.job_title}</p>` : ''}
                         </div>
                         <button class="btn btn-secondary btn-sm" onclick="window.crmApp.editContact('${contact.id}')">Edit</button>
                     </div>
 
-                    <div style="display: flex; gap: 12px; margin-bottom: 24px; align-items: center;">
+                    <!-- Contact Info Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; padding: 16px; background: #f8fafc; border-radius: 8px;">
+                        ${companyName ? `
+                            <div>
+                                <span style="font-size: 12px; color: #64748b; display: block;">Company</span>
+                                <strong style="font-size: 15px;">${companyName}</strong>
+                            </div>
+                        ` : ''}
+                        ${contact.email ? `
+                            <div>
+                                <span style="font-size: 12px; color: #64748b; display: block;">Email</span>
+                                <a href="mailto:${contact.email}" style="font-size: 15px;">${contact.email}</a>
+                            </div>
+                        ` : ''}
+                        ${contact.phone ? `
+                            <div>
+                                <span style="font-size: 12px; color: #64748b; display: block;">Phone</span>
+                                <a href="tel:${contact.phone}" style="font-size: 15px;">${contact.phone}</a>
+                            </div>
+                        ` : ''}
+                        ${contact.linkedin_url ? `
+                            <div>
+                                <span style="font-size: 12px; color: #64748b; display: block;">LinkedIn</span>
+                                <a href="${contact.linkedin_url}" target="_blank" style="font-size: 15px;">View Profile ↗</a>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: flex; gap: 12px; align-items: center;">
                         ${this.renderSourceBadge(contact.source)}
                         ${this.renderStatusBadge(contact.status)}
                         ${contact.brevo_synced
