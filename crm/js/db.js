@@ -348,23 +348,40 @@ class CRMDB {
     async findOrCreateCompany(name) {
         if (!name) return null;
 
-        // Try to find existing company
-        const { data: existing } = await this.supabase
+        // Trim and clean the name
+        const cleanName = name.trim();
+        if (!cleanName) return null;
+
+        // Try to find existing company (case-insensitive)
+        const { data: existing, error: findError } = await this.supabase
             .from('companies')
             .select('id')
-            .ilike('name', name)
-            .single();
+            .eq('name', cleanName)
+            .maybeSingle();
+
+        if (findError) {
+            console.warn('Company lookup error:', findError);
+        }
 
         if (existing) return existing.id;
 
         // Create new company
         const { data: newCompany, error } = await this.supabase
             .from('companies')
-            .insert([{ name, status: 'Prospect' }])
+            .insert([{ name: cleanName, status: 'Prospect' }])
             .select()
             .single();
 
         if (error) {
+            // Might be a unique constraint violation - try to fetch again
+            if (error.code === '23505') {
+                const { data: retry } = await this.supabase
+                    .from('companies')
+                    .select('id')
+                    .eq('name', cleanName)
+                    .maybeSingle();
+                return retry?.id || null;
+            }
             console.error('Error creating company:', error);
             return null;
         }
