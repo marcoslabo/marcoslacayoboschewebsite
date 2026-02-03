@@ -818,6 +818,7 @@ class CRMApp {
         const { rows, columnMap } = this.csvData;
         const source = document.getElementById('csvImportSource').value;
         const eventTag = document.getElementById('csvEventTag').value.trim() || null;
+        const skipBrevo = document.getElementById('csvSkipBrevo').checked;
 
         // Show progress
         document.getElementById('csvStep2').style.display = 'none';
@@ -897,7 +898,7 @@ class CRMApp {
             }
 
             try {
-                await window.crmDB.createContact(contact);
+                await window.crmDB.createContact(contact, { skipBrevo });
                 imported++;
             } catch (e) {
                 console.error(`Error importing ${firstName} ${lastName}:`, e.message);

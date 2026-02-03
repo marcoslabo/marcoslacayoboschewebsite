@@ -158,7 +158,7 @@ class CRMDB {
     /**
      * Create new contact
      */
-    async createContact(contactData) {
+    async createContact(contactData, options = {}) {
         // Set defaults based on source
         const source = contactData.source;
         const tomorrow = new Date();
@@ -189,8 +189,8 @@ class CRMDB {
             throw error;
         }
 
-        // Auto-sync to Brevo (only if contact has email)
-        if (data.email) {
+        // Auto-sync to Brevo (only if contact has email and not skipped)
+        if (data.email && !options.skipBrevo) {
             this.syncToBrevo(data).catch(e => console.log('Brevo sync failed (will retry):', e));
         }
 
