@@ -751,13 +751,27 @@ class CRMApp {
 
         let imported = 0;
         let skipped = 0;
+        let skipReasons = { noEmail: 0, invalidEmail: 0, dbError: 0 };
+
+        // Log column mapping for debugging
+        console.log('📊 Column Mapping:', columnMap);
+        console.log('📋 Headers:', this.csvData.headers);
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const email = row[columnMap.email];
 
-            if (!email || !email.includes('@')) {
+            if (!email) {
+                skipReasons.noEmail++;
                 skipped++;
+                if (i < 5) console.log(`Row ${i}: No email (column index ${columnMap.email}):`, row.slice(0, 5));
+                continue;
+            }
+
+            if (!email.includes('@')) {
+                skipReasons.invalidEmail++;
+                skipped++;
+                if (i < 5) console.log(`Row ${i}: Invalid email "${email}"`);
                 continue;
             }
 
@@ -792,7 +806,8 @@ class CRMApp {
                 await window.crmDB.createContact(contact);
                 imported++;
             } catch (e) {
-                console.error('Error importing contact:', e);
+                console.error(`Error importing ${email}:`, e.message);
+                skipReasons.dbError++;
                 skipped++;
             }
 
@@ -802,10 +817,24 @@ class CRMApp {
             document.getElementById('csvProgressText').textContent = `Importing... ${i + 1} of ${rows.length}`;
         }
 
+        // Log skip summary
+        if (skipped > 0) {
+            console.log('📉 Skip Summary:', skipReasons);
+        }
+
         // Show complete
         document.getElementById('csvStep3').style.display = 'none';
         document.getElementById('csvStep4').style.display = 'block';
-        document.getElementById('csvCompleteText').textContent = `Imported ${imported} contacts!${skipped > 0 ? ` (${skipped} skipped)` : ''}`;
+
+        let skipDetail = '';
+        if (skipped > 0) {
+            const parts = [];
+            if (skipReasons.noEmail > 0) parts.push(`${skipReasons.noEmail} missing email`);
+            if (skipReasons.invalidEmail > 0) parts.push(`${skipReasons.invalidEmail} invalid email`);
+            if (skipReasons.dbError > 0) parts.push(`${skipReasons.dbError} DB errors`);
+            skipDetail = ` (${skipped} skipped: ${parts.join(', ')})`;
+        }
+        document.getElementById('csvCompleteText').textContent = `Imported ${imported} contacts!${skipDetail}`;
     }
 
     // ==========================================================================
