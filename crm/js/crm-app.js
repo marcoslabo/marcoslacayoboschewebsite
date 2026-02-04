@@ -751,7 +751,8 @@ class CRMApp {
             linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile', 'linkedinlink'],
             intent_reason: ['reason', 'intentreason', 'reasoning', 'notes', 'whyhighintent'],
             source_links: ['formula', 'sourcelinks', 'links', 'sources', 'researchlinks'],
-            location: ['location', 'city', 'address', 'region']
+            location: ['location', 'city', 'address', 'region'],
+            event_tag: ['leadsource', 'source', 'tag', 'campaign', 'event']  // Lead Source → Event Tag
         };
 
         for (const [field, keywords] of Object.entries(patterns)) {
@@ -891,7 +892,7 @@ class CRMApp {
                 intent_reason: row[columnMap.intent_reason] || null,
                 source_links: row[columnMap.source_links] || null,
                 source: source,
-                event_tag: eventTag,
+                event_tag: row[columnMap.event_tag] || eventTag,  // CSV column takes priority, then manual input
                 status: 'New',
                 brevo_tag: source === 'Clay Import' ? 'clay-lead' :
                     source === 'LinkedIn' ? 'linkedin-lead' :
