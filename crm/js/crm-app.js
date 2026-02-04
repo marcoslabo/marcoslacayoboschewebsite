@@ -744,6 +744,7 @@ class CRMApp {
             email: ['email', 'emailaddress', 'mail', 'workemail', 'personalemail', 'emailwork'],
             first_name: ['firstname', 'first', 'fname', 'givenname'],
             last_name: ['lastname', 'last', 'lname', 'surname', 'familyname'],
+            full_name: ['name', 'fullname', 'contactname', 'personname'],  // For Notion exports
             company: ['company', 'companyname', 'organization', 'org', 'employer', 'companytabledata', 'companydomain'],
             phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone', 'mobilephone', 'workphone'],
             job_title: ['title', 'jobtitle', 'position', 'role', 'jobrole'],
@@ -852,8 +853,19 @@ class CRMApp {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const email = row[columnMap.email] || null;
-            const firstName = row[columnMap.first_name] || '';
-            const lastName = row[columnMap.last_name] || '';
+
+            // Handle full name column (for Notion exports) - split into first/last
+            let firstName = row[columnMap.first_name] || '';
+            let lastName = row[columnMap.last_name] || '';
+
+            if (!firstName && !lastName && columnMap.full_name !== undefined) {
+                const fullName = (row[columnMap.full_name] || '').trim();
+                if (fullName) {
+                    const nameParts = fullName.split(/\s+/);
+                    firstName = nameParts[0] || '';
+                    lastName = nameParts.slice(1).join(' ') || '';  // Everything after first word
+                }
+            }
 
             // Skip only if we have NO identifying info (no name at all)
             if (!firstName && !lastName) {
