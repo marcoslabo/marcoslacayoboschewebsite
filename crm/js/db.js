@@ -462,9 +462,21 @@ class CRMDB {
     async completeAction(contactId, outcome, notes, nextAction, nextActionDate) {
         const contact = await this.getContact(contactId);
 
+        // Normalize activity type to match database constraint
+        const rawType = (contact.next_action || 'note').toLowerCase();
+        const typeMap = {
+            'call': 'call',
+            'email': 'email',
+            'linkedin': 'linkedin',
+            'follow up': 'note',  // Follow up logs as note
+            'meeting': 'meeting',
+            'none': 'note'
+        };
+        const activityType = typeMap[rawType] || 'note';
+
         // Log the activity
         await this.logActivity(contactId, {
-            type: contact.next_action?.toLowerCase() || 'note',
+            type: activityType,
             outcome: outcome,
             notes: notes
         });
