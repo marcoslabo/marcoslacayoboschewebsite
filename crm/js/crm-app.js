@@ -960,6 +960,7 @@ class CRMApp {
         const titles = {
             'call': '📞 Log Call Outcome',
             'email': '✉️ Log Email Outcome',
+            'linkedin': '💼 Log LinkedIn Outcome',
             'follow up': '🔄 Log Follow Up'
         };
         document.getElementById('logOutcomeTitle').textContent = titles[actionType.toLowerCase()] || '📝 Log Outcome';
@@ -994,6 +995,13 @@ class CRMApp {
                 { value: 'replied', label: 'They Replied', emoji: '📬' },
                 { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
                 { value: 'not_interested', label: 'Unsubscribed/Not Interested', emoji: '❌' }
+            ],
+            'linkedin': [
+                { value: 'sent', label: 'Message Sent', emoji: '📤', default: true },
+                { value: 'connected', label: 'Connected', emoji: '🤝' },
+                { value: 'replied', label: 'They Replied', emoji: '💬' },
+                { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
+                { value: 'not_interested', label: 'No Response/Not Interested', emoji: '❌' }
             ],
             'follow up': [
                 { value: 'connected', label: 'Checked In', emoji: '✅', default: true },
