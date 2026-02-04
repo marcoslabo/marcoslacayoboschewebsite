@@ -953,20 +953,32 @@ class CRMApp {
         document.getElementById('logOutcomeModal').style.display = 'flex';
         document.getElementById('logContactId').value = contactId;
         document.getElementById('logContactName').textContent = contactName;
-        document.getElementById('logActivityType').value = actionType.toLowerCase();
         document.getElementById('logNotes').value = '';
 
-        // Set title based on action type
-        const titles = {
-            'call': '📞 Log Call Outcome',
-            'email': '✉️ Log Email Outcome',
-            'linkedin': '💼 Log LinkedIn Outcome',
-            'follow up': '🔄 Log Follow Up'
-        };
-        document.getElementById('logOutcomeTitle').textContent = titles[actionType.toLowerCase()] || '📝 Log Outcome';
+        // Set title
+        document.getElementById('logOutcomeTitle').textContent = '📝 Log Activity';
 
-        // Generate outcome options based on action type
-        const outcomes = this.getOutcomeOptions(actionType.toLowerCase());
+        // Pre-select the activity type based on what was scheduled (if valid)
+        const activityDropdown = document.getElementById('logActivityType');
+        const normalizedType = (actionType || 'call').toLowerCase();
+        if (['call', 'email', 'linkedin', 'meeting'].includes(normalizedType)) {
+            activityDropdown.value = normalizedType;
+        } else {
+            activityDropdown.value = 'call';  // Default to call
+        }
+
+        // Update outcome options
+        this.updateOutcomeOptions();
+
+        // Set default next action date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('logNextDate').value = tomorrow.toISOString().split('T')[0];
+    }
+
+    updateOutcomeOptions() {
+        const actionType = document.getElementById('logActivityType').value;
+        const outcomes = this.getOutcomeOptions(actionType);
         const container = document.getElementById('outcomeOptions');
         container.innerHTML = outcomes.map(o => `
             <label style="display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer;">
@@ -974,11 +986,6 @@ class CRMApp {
                 <span>${o.emoji} ${o.label}</span>
             </label>
         `).join('');
-
-        // Set default next action date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('logNextDate').value = tomorrow.toISOString().split('T')[0];
     }
 
     getOutcomeOptions(actionType) {
@@ -1003,14 +1010,15 @@ class CRMApp {
                 { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
                 { value: 'not_interested', label: 'No Response/Not Interested', emoji: '❌' }
             ],
-            'follow up': [
-                { value: 'connected', label: 'Checked In', emoji: '✅', default: true },
-                { value: 'no_answer', label: 'No Response', emoji: '📵' },
-                { value: 'scheduled_meeting', label: 'Scheduled Meeting', emoji: '📅' },
-                { value: 'not_interested', label: 'Not Interested', emoji: '❌' }
+            'meeting': [
+                { value: 'completed', label: 'Meeting Completed', emoji: '✅', default: true },
+                { value: 'no_show', label: 'They No-Showed', emoji: '❌' },
+                { value: 'rescheduled', label: 'Rescheduled', emoji: '📅' },
+                { value: 'won', label: 'Won / Closed Deal', emoji: '🎉' },
+                { value: 'not_interested', label: 'Not Moving Forward', emoji: '👎' }
             ]
         };
-        return options[actionType] || options['follow up'];
+        return options[actionType] || options['call'];
     }
 
     closeLogOutcome() {

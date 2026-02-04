@@ -314,12 +314,23 @@
             <form id="logOutcomeForm" onsubmit="event.preventDefault(); window.crmApp.submitLogOutcome();"
                 style="padding: 20px;">
                 <input type="hidden" id="logContactId">
-                <input type="hidden" id="logActivityType">
 
                 <!-- Contact Name Display -->
                 <div style="margin-bottom: 20px; padding: 12px; background: #f8fafc; border-radius: 8px;">
                     <span style="color: #64748b;">Logging for:</span>
                     <strong id="logContactName"></strong>
+                </div>
+
+                <!-- What did you do? -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">What did you do?</label>
+                    <select id="logActivityType" onchange="window.crmApp.updateOutcomeOptions()"
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <option value="call">📞 Made a Call</option>
+                        <option value="email">✉️ Sent Email</option>
+                        <option value="linkedin">💼 LinkedIn Message</option>
+                        <option value="meeting">📅 Had a Meeting</option>
+                    </select>
                 </div>
 
                 <!-- Outcome Selection -->
