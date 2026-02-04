@@ -576,6 +576,24 @@ class CRMApp {
         }
     }
 
+    async deleteContact() {
+        const id = document.getElementById('editContactId').value;
+        const name = document.getElementById('editFirstName').value + ' ' + document.getElementById('editLastName').value;
+
+        if (!confirm(`Are you sure you want to delete "${name.trim()}"?\n\nThis will also delete all their activity history. This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await window.crmDB.deleteContact(id);
+            this.closeEditContact();
+            // Go back to contacts list
+            window.crmRouter.navigate('/contacts');
+        } catch (error) {
+            alert('Error deleting contact: ' + error.message);
+        }
+    }
+
     async syncToBrevo(id) {
         try {
             const contact = await window.crmDB.getContact(id);

@@ -460,10 +460,15 @@
                     <textarea id="editProblem" rows="3" placeholder="What do they need help with?"></textarea>
                 </div>
 
-                <div class="form-actions" style="margin-top: 20px; display: flex; gap: 12px;">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="window.crmApp.closeEditContact()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div class="form-actions"
+                    style="margin-top: 20px; display: flex; gap: 12px; justify-content: space-between;">
+                    <button type="button" class="btn" style="background: #fee2e2; color: #dc2626; border: none;"
+                        onclick="window.crmApp.deleteContact()">🗑️ Delete</button>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" class="btn btn-secondary"
+                            onclick="window.crmApp.closeEditContact()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
                 </div>
             </form>
         </div>

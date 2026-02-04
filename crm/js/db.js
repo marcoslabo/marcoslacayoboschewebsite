@@ -292,6 +292,30 @@ class CRMDB {
     }
 
     /**
+     * Delete contact
+     */
+    async deleteContact(id) {
+        // First delete related activities
+        await this.supabase
+            .from('activities')
+            .delete()
+            .eq('contact_id', id);
+
+        // Then delete the contact
+        const { error } = await this.supabase
+            .from('contacts')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting contact:', error);
+            throw error;
+        }
+
+        return true;
+    }
+
+    /**
      * Mark action as done
      */
     async markActionDone(id, note = '') {
