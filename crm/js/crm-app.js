@@ -227,14 +227,17 @@ class CRMApp {
      * Load notes from the notes table (used by VoiceToCRM iOS app)
      */
     async loadNotesFromTable(contactId) {
-        // Find the notes section - look for the existing notes container
-        const notesSection = document.querySelector('.contact-notes');
-        const noNotesMessage = document.querySelector('.contact-section:last-child p[style*="italic"]');
+        const container = document.getElementById('voiceNotesContainer');
+        if (!container) {
+            console.log('voiceNotesContainer not found');
+            return;
+        }
 
         try {
             const notes = await window.crmDB.getNotesForContact(contactId);
+            console.log('Notes from table:', notes);
 
-            if (notes.length === 0) return; // No notes from table, keep existing UI
+            if (notes.length === 0) return;
 
             // Build notes HTML
             const notesHtml = notes.map(note => {
@@ -257,23 +260,7 @@ class CRMApp {
                 `;
             }).join('');
 
-            // If there's a "No notes yet" message, replace it
-            if (noNotesMessage && noNotesMessage.textContent.includes('No notes yet')) {
-                noNotesMessage.outerHTML = `<div class="contact-notes">${notesHtml}</div>`;
-            } else if (notesSection) {
-                // Prepend to existing notes
-                notesSection.insertAdjacentHTML('afterbegin', notesHtml);
-            } else {
-                // Find the notes card and insert before the form
-                const notesCard = document.querySelector('.contact-section h4.contact-section-title');
-                if (notesCard) {
-                    const parent = notesCard.closest('.contact-section');
-                    const form = parent.querySelector('form');
-                    if (form) {
-                        form.insertAdjacentHTML('beforebegin', `<div class="contact-notes">${notesHtml}</div>`);
-                    }
-                }
-            }
+            container.innerHTML = notesHtml;
         } catch (error) {
             console.error('Error loading notes from table:', error);
         }

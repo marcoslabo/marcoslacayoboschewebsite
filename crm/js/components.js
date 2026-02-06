@@ -345,6 +345,7 @@ const CRMComponents = {
                 <div class="card">
                     <div class="contact-section">
                         <h4 class="contact-section-title">Notes</h4>
+                        <div id="voiceNotesContainer"></div>
                         ${this.renderNotes(contact.notes)}
                         <form onsubmit="window.crmApp.addNote(event, '${contact.id}')" style="margin-top: 16px;">
                             <div class="form-group" style="margin-bottom: 12px;">
