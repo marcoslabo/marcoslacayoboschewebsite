@@ -481,6 +481,24 @@ class CRMDB {
     }
 
     /**
+     * Get notes for a contact (from notes table - used by VoiceToCRM iOS app)
+     */
+    async getNotesForContact(contactId) {
+        const { data, error } = await this.supabase
+            .from('notes')
+            .select('*')
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching notes:', error);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    /**
      * Log action completion with outcome and set next action
      */
     async completeAction(contactId, outcome, notes, nextAction, nextActionDate) {

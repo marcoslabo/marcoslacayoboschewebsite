@@ -152,8 +152,9 @@ class CRMApp {
             const contact = await window.crmDB.getContact(id);
             main.innerHTML = window.CRMComponents.renderContactDetail(contact);
 
-            // Load activity timeline after render
+            // Load activity timeline and notes from table after render
             await this.loadActivityTimeline(id);
+            await this.loadNotesFromTable(id);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
         }
@@ -219,6 +220,62 @@ class CRMApp {
             }).join('');
         } catch (error) {
             container.innerHTML = '<p style="color: #dc2626;">Error loading activities.</p>';
+        }
+    }
+
+    /**
+     * Load notes from the notes table (used by VoiceToCRM iOS app)
+     */
+    async loadNotesFromTable(contactId) {
+        // Find the notes section - look for the existing notes container
+        const notesSection = document.querySelector('.contact-notes');
+        const noNotesMessage = document.querySelector('.contact-section:last-child p[style*="italic"]');
+
+        try {
+            const notes = await window.crmDB.getNotesForContact(contactId);
+
+            if (notes.length === 0) return; // No notes from table, keep existing UI
+
+            // Build notes HTML
+            const notesHtml = notes.map(note => {
+                const date = new Date(note.created_at);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const typeIcon = note.note_type === 'voice_note' ? '🎙️' : '📝';
+
+                // Convert markdown-style formatting to HTML
+                let content = note.content || '';
+                content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                content = content.replace(/\n/g, '<br>');
+
+                return `
+                    <div class="note-entry" style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 8px; border-left: 3px solid ${note.note_type === 'voice_note' ? '#3b82f6' : '#94a3b8'};">
+                        <div class="note-date" style="font-size: 12px; color: #64748b; margin-bottom: 8px;">
+                            ${typeIcon} ${dateStr} ${note.note_type === 'voice_note' ? '(Voice Note)' : ''}
+                        </div>
+                        <div style="font-size: 14px; line-height: 1.6;">${content}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // If there's a "No notes yet" message, replace it
+            if (noNotesMessage && noNotesMessage.textContent.includes('No notes yet')) {
+                noNotesMessage.outerHTML = `<div class="contact-notes">${notesHtml}</div>`;
+            } else if (notesSection) {
+                // Prepend to existing notes
+                notesSection.insertAdjacentHTML('afterbegin', notesHtml);
+            } else {
+                // Find the notes card and insert before the form
+                const notesCard = document.querySelector('.contact-section h4.contact-section-title');
+                if (notesCard) {
+                    const parent = notesCard.closest('.contact-section');
+                    const form = parent.querySelector('form');
+                    if (form) {
+                        form.insertAdjacentHTML('beforebegin', `<div class="contact-notes">${notesHtml}</div>`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading notes from table:', error);
         }
     }
 
