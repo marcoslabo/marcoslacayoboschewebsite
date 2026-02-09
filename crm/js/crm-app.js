@@ -81,6 +81,21 @@ class CRMApp {
         window.crmRouter.on('/contact/:id', async (params) => {
             await this.renderContactDetail(params.id);
         });
+
+        // Blog - List
+        window.crmRouter.on('/blog', async () => {
+            await this.renderBlogList();
+        });
+
+        // Blog - New Post
+        window.crmRouter.on('/blog/new', async () => {
+            await this.renderBlogEditor();
+        });
+
+        // Blog - Edit Post
+        window.crmRouter.on('/blog/edit/:id', async (params) => {
+            await this.renderBlogEditor(params.id);
+        });
     }
 
     // ==========================================================================
@@ -1122,6 +1137,226 @@ class CRMApp {
             await this.renderDashboard();
         } catch (error) {
             alert('Error logging outcome: ' + error.message);
+        }
+    }
+
+    // ==========================================================================
+    // Blog Management
+    // ==========================================================================
+
+    async renderBlogList() {
+        const main = document.getElementById('mainContent');
+        const posts = await window.crmDB.getBlogPosts();
+
+        const published = posts.filter(p => p.status === 'published');
+        const drafts = posts.filter(p => p.status === 'draft');
+
+        main.innerHTML = `
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="margin: 0;">✍️ Blog Posts</h2>
+                    <a href="#/blog/new" class="btn btn-primary btn-sm">+ New Post</a>
+                </div>
+
+                ${drafts.length > 0 ? `
+                    <h3 style="font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Drafts</h3>
+                    ${drafts.map(post => this._renderBlogCard(post)).join('')}
+                ` : ''}
+
+                ${published.length > 0 ? `
+                    <h3 style="font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px;">Published</h3>
+                    ${published.map(post => this._renderBlogCard(post)).join('')}
+                ` : ''}
+
+                ${posts.length === 0 ? `
+                    <div class="card" style="text-align: center; padding: 48px;">
+                        <p style="font-size: 18px; margin-bottom: 8px;">No blog posts yet</p>
+                        <p style="color: #64748b; margin-bottom: 16px;">Use Claude to write your first article, then paste it here.</p>
+                        <a href="#/blog/new" class="btn btn-primary">Write Your First Post</a>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    _renderBlogCard(post) {
+        const date = post.published_at
+            ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const categoryColors = {
+            'healthcare': '#059669',
+            'private-equity': '#7c3aed',
+            'ai-strategy': '#2563eb',
+            'case-study': '#d97706'
+        };
+        const catColor = categoryColors[post.category] || '#64748b';
+        const catLabel = (post.category || 'ai-strategy').replace('-', ' ');
+
+        return `
+            <div class="card" style="margin-bottom: 12px; cursor: pointer;" onclick="window.crmRouter.navigate('/blog/edit/${post.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                            <span class="badge" style="background: ${post.status === 'published' ? '#d1fae5' : '#fef3c7'}; color: ${post.status === 'published' ? '#047857' : '#92400e'}; font-size: 11px;">
+                                ${post.status === 'published' ? '🟢 Published' : '📝 Draft'}
+                            </span>
+                            <span class="badge" style="background: ${catColor}15; color: ${catColor}; font-size: 11px; text-transform: capitalize;">${catLabel}</span>
+                        </div>
+                        <h3 style="margin: 0 0 4px; font-size: 16px;">${post.title}</h3>
+                        ${post.excerpt ? `<p style="color: #64748b; font-size: 13px; margin: 0;">${post.excerpt}</p>` : ''}
+                    </div>
+                    <div style="text-align: right; font-size: 12px; color: #94a3b8; min-width: 80px;">
+                        <div>${date}</div>
+                        <div>${post.read_time || 5} min read</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async renderBlogEditor(postId = null) {
+        const main = document.getElementById('mainContent');
+        let post = { title: '', excerpt: '', content: '', category: 'ai-strategy', status: 'draft' };
+
+        if (postId) {
+            try {
+                post = await window.crmDB.getBlogPost(postId);
+            } catch (e) {
+                main.innerHTML = '<div class="card"><p>Post not found.</p></div>';
+                return;
+            }
+        }
+
+        const isEdit = !!postId;
+        const siteUrl = 'https://marcoslacayobosche.com';
+
+        main.innerHTML = `
+            <div style="max-width: 800px; margin: 0 auto;">
+                <a href="#/blog" class="btn btn-ghost btn-sm" style="margin-bottom: 16px;">← Back to Posts</a>
+                
+                <div class="card">
+                    <h2 style="margin: 0 0 20px;">${isEdit ? 'Edit Post' : 'New Post'}</h2>
+                    
+                    <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                        <div style="flex: 2;">
+                            <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">Title *</label>
+                            <input type="text" id="blogTitle" class="filter-select" style="width: 100%; font-size: 16px; padding: 10px;" 
+                                   value="${post.title}" placeholder="e.g. Why 87% of AI Projects Fail in Healthcare">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">Category</label>
+                            <select id="blogCategory" class="filter-select" style="width: 100%; padding: 10px;">
+                                <option value="healthcare" ${post.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
+                                <option value="private-equity" ${post.category === 'private-equity' ? 'selected' : ''}>Private Equity</option>
+                                <option value="ai-strategy" ${post.category === 'ai-strategy' ? 'selected' : ''}>AI Strategy</option>
+                                <option value="case-study" ${post.category === 'case-study' ? 'selected' : ''}>Case Study</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">Excerpt (short preview for blog listing)</label>
+                        <input type="text" id="blogExcerpt" class="filter-select" style="width: 100%; padding: 10px;" 
+                               value="${post.excerpt || ''}" placeholder="One sentence that hooks the reader...">
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">Content (paste HTML from Claude) *</label>
+                        <textarea id="blogContent" style="width: 100%; min-height: 400px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; resize: vertical;"
+                                  placeholder="Paste your blog content here (HTML from Claude)...">${post.content || ''}</textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" onclick="window.crmApp.saveBlogPost('${postId || ''}')">
+                                💾 Save ${isEdit ? '' : 'Draft'}
+                            </button>
+                            ${isEdit && post.status === 'draft' ? `
+                                <button class="btn btn-secondary" onclick="window.crmApp.publishBlogPost('${postId}')">
+                                    🚀 Publish
+                                </button>
+                            ` : ''}
+                            ${isEdit && post.status === 'published' ? `
+                                <button class="btn btn-ghost" onclick="window.crmApp.unpublishBlogPost('${postId}')">
+                                    📝 Unpublish
+                                </button>
+                                <a href="${siteUrl}/blog/#${post.slug}" target="_blank" class="btn btn-ghost">
+                                    🔗 View Live
+                                </a>
+                            ` : ''}
+                        </div>
+                        ${isEdit ? `
+                            <button class="btn btn-ghost" style="color: #ef4444;" onclick="window.crmApp.deleteBlogPost('${postId}')">
+                                🗑️ Delete
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                ${isEdit && post.content ? `
+                    <div class="card" style="margin-top: 16px;">
+                        <h3 style="margin: 0 0 12px; font-size: 14px; color: #64748b;">Preview</h3>
+                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; background: #fff;">
+                            <h1 style="font-size: 28px; margin: 0 0 16px;">${post.title}</h1>
+                            <div style="line-height: 1.8; font-size: 15px;">${post.content}</div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    async saveBlogPost(postId) {
+        const title = document.getElementById('blogTitle').value.trim();
+        const content = document.getElementById('blogContent').value.trim();
+        const excerpt = document.getElementById('blogExcerpt').value.trim();
+        const category = document.getElementById('blogCategory').value;
+
+        if (!title || !content) {
+            alert('Title and content are required.');
+            return;
+        }
+
+        try {
+            if (postId) {
+                await window.crmDB.updateBlogPost(postId, { title, content, excerpt, category });
+                await this.renderBlogEditor(postId);
+            } else {
+                const post = await window.crmDB.createBlogPost({ title, content, excerpt, category });
+                window.crmRouter.navigate(`/blog/edit/${post.id}`);
+            }
+        } catch (error) {
+            alert('Error saving post: ' + error.message);
+        }
+    }
+
+    async publishBlogPost(postId) {
+        if (!confirm('Publish this post? It will be visible on your website.')) return;
+        try {
+            await window.crmDB.publishBlogPost(postId);
+            await this.renderBlogEditor(postId);
+        } catch (error) {
+            alert('Error publishing: ' + error.message);
+        }
+    }
+
+    async unpublishBlogPost(postId) {
+        try {
+            await window.crmDB.unpublishBlogPost(postId);
+            await this.renderBlogEditor(postId);
+        } catch (error) {
+            alert('Error unpublishing: ' + error.message);
+        }
+    }
+
+    async deleteBlogPost(postId) {
+        if (!confirm('Delete this post permanently?')) return;
+        try {
+            await window.crmDB.deleteBlogPost(postId);
+            window.crmRouter.navigate('/blog');
+        } catch (error) {
+            alert('Error deleting: ' + error.message);
         }
     }
 }

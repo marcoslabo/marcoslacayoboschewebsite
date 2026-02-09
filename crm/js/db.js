@@ -585,6 +585,151 @@ class CRMDB {
             totalActivities: activities?.length || 0
         };
     }
+
+    // ==========================================================================
+    // Blog Post Functions
+    // ==========================================================================
+
+    /**
+     * Get all blog posts (optionally filtered by status)
+     */
+    async getBlogPosts(status = null) {
+        let query = this.supabase
+            .from('blog_posts')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (status) {
+            query = query.eq('status', status);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            console.error('Error fetching blog posts:', error);
+            return [];
+        }
+        return data || [];
+    }
+
+    /**
+     * Get a single blog post by ID
+     */
+    async getBlogPost(id) {
+        const { data, error } = await this.supabase
+            .from('blog_posts')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching blog post:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    /**
+     * Create a new blog post
+     */
+    async createBlogPost(postData) {
+        // Auto-generate slug from title
+        const slug = postData.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+
+        const post = {
+            title: postData.title,
+            slug: slug,
+            excerpt: postData.excerpt || '',
+            content: postData.content,
+            category: postData.category || 'ai-strategy',
+            status: 'draft',
+            author: 'Marcos Bosche',
+            read_time: Math.max(1, Math.ceil((postData.content || '').split(/\s+/).length / 200))
+        };
+
+        const { data, error } = await this.supabase
+            .from('blog_posts')
+            .insert([post])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating blog post:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    /**
+     * Update a blog post
+     */
+    async updateBlogPost(id, updates) {
+        updates.updated_at = new Date().toISOString();
+
+        // Recalculate read time if content changed
+        if (updates.content) {
+            updates.read_time = Math.max(1, Math.ceil(updates.content.split(/\s+/).length / 200));
+        }
+
+        // Regenerate slug if title changed
+        if (updates.title) {
+            updates.slug = updates.title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
+        }
+
+        const { data, error } = await this.supabase
+            .from('blog_posts')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating blog post:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    /**
+     * Publish a blog post
+     */
+    async publishBlogPost(id) {
+        return this.updateBlogPost(id, {
+            status: 'published',
+            published_at: new Date().toISOString()
+        });
+    }
+
+    /**
+     * Unpublish a blog post
+     */
+    async unpublishBlogPost(id) {
+        return this.updateBlogPost(id, {
+            status: 'draft',
+            published_at: null
+        });
+    }
+
+    /**
+     * Delete a blog post
+     */
+    async deleteBlogPost(id) {
+        const { error } = await this.supabase
+            .from('blog_posts')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting blog post:', error);
+            throw error;
+        }
+        return true;
+    }
 }
 
 // Create global instance

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Insights | Marcos Bosche - AI Transformation</title>
+    <meta name="description"
+        content="Actionable insights on AI transformation for Healthcare and Private Equity. No fluff, just results.">
+    <meta name="author" content="Marcos Bosche">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- RSS Feed -->
+    <link rel="alternate" type="application/rss+xml" title="Marcos Bosche Insights" href="/api/rss">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <style>
+        .blog-hero {
+            padding: 120px 0 60px;
+            text-align: center;
+        }
+
+        .blog-hero h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 12px;
+        }
+
+        .blog-hero p {
+            color: var(--color-text-secondary, #64748b);
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .blog-filters {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .blog-filter {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .blog-filter:hover,
+        .blog-filter.active {
+            background: var(--color-primary, #7c3aed);
+            color: white;
+            border-color: var(--color-primary, #7c3aed);
+        }
+
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+            padding: 40px 0 80px;
+        }
+
+        .blog-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .blog-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .blog-card-body {
+            padding: 24px;
+        }
+
+        .blog-card-meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .blog-card-category {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .blog-card-date {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .blog-card h2 {
+            font-size: 20px;
+            margin: 0 0 8px;
+            line-height: 1.3;
+        }
+
+        .blog-card p {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .blog-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .blog-card-read {
+            color: var(--color-primary, #7c3aed);
+            font-weight: 600;
+        }
+
+        /* Article view */
+        .article-view {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 120px 20px 80px;
+        }
+
+        .article-back {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .article-back:hover {
+            color: var(--color-primary, #7c3aed);
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .article-view h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            line-height: 1.2;
+            margin-bottom: 24px;
+        }
+
+        .article-content {
+            font-size: 17px;
+            line-height: 1.9;
+            color: #1e293b;
+        }
+
+        .article-content h2 {
+            margin: 40px 0 16px;
+            font-size: 24px;
+        }
+
+        .article-content h3 {
+            margin: 32px 0 12px;
+            font-size: 20px;
+        }
+
+        .article-content p {
+            margin-bottom: 20px;
+        }
+
+        .article-content ul,
+        .article-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .article-content li {
+            margin-bottom: 8px;
+        }
+
+        .article-content blockquote {
+            border-left: 3px solid var(--color-primary, #7c3aed);
+            padding: 12px 20px;
+            margin: 24px 0;
+            background: #f8f7ff;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        .article-content strong {
+            color: #0f172a;
+        }
+
+        .article-cta {
+            margin-top: 48px;
+            padding: 32px;
+            background: linear-gradient(135deg, #f8f7ff 0%, #f0f4ff 100%);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .article-cta h3 {
+            margin: 0 0 8px;
+            font-size: 20px;
+        }
+
+        .article-cta p {
+            color: #64748b;
+            margin-bottom: 16px;
+        }
+
+        .blog-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: #64748b;
+        }
+
+        .blog-loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 768px) {
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation (same as main site) -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="/" class="nav-brand">
+                <span class="nav-brand-name">Marcos Bosche</span>
+                <span class="nav-brand-divider">|</span>
+                <span class="nav-brand-tagline">AI Transformation</span>
+            </a>
+
+            <div class="nav-links" id="nav-links">
+                <a href="/#problem" class="nav-link">The Problem</a>
+                <a href="/#how-work" class="nav-link">How I Work</a>
+                <a href="/#services" class="nav-link">Services</a>
+                <a href="/#results" class="nav-link">Results</a>
+                <a href="/blog/" class="nav-link" style="color: var(--color-primary, #7c3aed);">Insights</a>
+                <a href="/#contact" class="nav-link">Contact</a>
+                <div class="nav-cta">
+                    <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer"
+                        class="btn btn-primary btn-sm">Book a Call</a>
+                </div>
+            </div>
+
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div id="blogApp">
+        <div class="blog-loading">Loading insights...</div>
+    </div>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Supabase config (same as CRM — public anon key, RLS-protected)
+        const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const categoryColors = {
+            'healthcare': { bg: '#d1fae5', color: '#059669' },
+            'private-equity': { bg: '#ede9fe', color: '#7c3aed' },
+            'ai-strategy': { bg: '#dbeafe', color: '#2563eb' },
+            'case-study': { bg: '#fef3c7', color: '#d97706' }
+        };
+
+        // Check if viewing a specific article
+        async function init() {
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                await renderArticle(hash);
+            } else {
+                await renderBlogList();
+            }
+        }
+
+        async function renderBlogList(filterCategory = null) {
+            let query = sb.from('blog_posts').select('*').eq('status', 'published').order('published_at', { ascending: false });
+            if (filterCategory) {
+                query = query.eq('category', filterCategory);
+            }
+            const { data: posts, error } = await query;
+
+            if (error || !posts) {
+                document.getElementById('blogApp').innerHTML = '<div class="blog-empty"><p>No insights available yet. Check back soon!</p></div>';
+                return;
+            }
+
+            const app = document.getElementById('blogApp');
+            app.innerHTML = `
+        <div class="container">
+          <div class="blog-hero">
+            <h1>Insights</h1>
+            <p>Actionable ideas on AI transformation for Healthcare and Private Equity. No fluff.</p>
+            <div class="blog-filters">
+              <button class="blog-filter ${!filterCategory ? 'active' : ''}" onclick="renderBlogList()">All</button>
+              <button class="blog-filter ${filterCategory === 'healthcare' ? 'active' : ''}" onclick="renderBlogList('healthcare')">Healthcare</button>
+              <button class="blog-filter ${filterCategory === 'private-equity' ? 'active' : ''}" onclick="renderBlogList('private-equity')">Private Equity</button>
+              <button class="blog-filter ${filterCategory === 'ai-strategy' ? 'active' : ''}" onclick="renderBlogList('ai-strategy')">AI Strategy</button>
+              <button class="blog-filter ${filterCategory === 'case-study' ? 'active' : ''}" onclick="renderBlogList('case-study')">Case Studies</button>
+            </div>
+          </div>
+
+          ${posts.length > 0 ? `
+            <div class="blog-grid">
+              ${posts.map(post => renderCard(post)).join('')}
+            </div>
+          ` : `
+            <div class="blog-empty">
+              <p>No articles in this category yet.</p>
+            </div>
+          `}
+        </div>
+      `;
+        }
+
+        function renderCard(post) {
+            const date = new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const cat = categoryColors[post.category] || categoryColors['ai-strategy'];
+            const catLabel = (post.category || 'ai-strategy').replace(/-/g, ' ');
+
+            return `
+        <div class="blog-card" onclick="window.location.hash='${post.slug}'">
+          <div class="blog-card-body">
+            <div class="blog-card-meta">
+              <span class="blog-card-category" style="background: ${cat.bg}; color: ${cat.color};">${catLabel}</span>
+              <span class="blog-card-date">${date}</span>
+            </div>
+            <h2>${post.title}</h2>
+            ${post.excerpt ? `<p>${post.excerpt}</p>` : ''}
+          </div>
+          <div class="blog-card-footer">
+            <span>${post.read_time || 5} min read</span>
+            <span class="blog-card-read">Read →</span>
+          </div>
+        </div>
+      `;
+        }
+
+        async function renderArticle(slug) {
+            const { data: post, error } = await sb.from('blog_posts').select('*').eq('slug', slug).eq('status', 'published').single();
+
+            if (error || !post) {
+                document.getElementById('blogApp').innerHTML = `
+          <div class="article-view">
+            <a href="/blog/" class="article-back">← Back to Insights</a>
+            <h1>Article not found</h1>
+            <p>This article may have been moved or removed.</p>
+          </div>
+        `;
+                return;
+            }
+
+            const date = new Date(post.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            const cat = categoryColors[post.category] || categoryColors['ai-strategy'];
+            const catLabel = (post.category || 'ai-strategy').replace(/-/g, ' ');
+
+            document.title = `${post.title} | Marcos Bosche`;
+
+            document.getElementById('blogApp').innerHTML = `
+        <div class="article-view">
+          <a href="/blog/" class="article-back">← Back to Insights</a>
+          
+          <div class="article-meta">
+            <span class="blog-card-category" style="background: ${cat.bg}; color: ${cat.color};">${catLabel}</span>
+            <span style="color: #94a3b8; font-size: 14px;">${date} · ${post.read_time || 5} min read</span>
+          </div>
+          
+          <h1>${post.title}</h1>
+          
+          <div class="article-content">
+            ${post.content}
+          </div>
+
+          <div class="article-cta">
+            <h3>Want to discuss this further?</h3>
+            <p>Let's talk about how these ideas apply to your organization.</p>
+            <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Book a Free Consultation</a>
+          </div>
+        </div>
+      `;
+        }
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                renderArticle(hash);
+            } else {
+                renderBlogList();
+            }
+        });
+
+        // Mobile nav toggle
+        document.getElementById('nav-toggle')?.addEventListener('click', () => {
+            document.getElementById('nav-links')?.classList.toggle('active');
+        });
+
+        // Init
+        init();
+    </script>
+</body>
+
+</html>

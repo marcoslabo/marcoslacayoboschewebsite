@@ -51,6 +51,10 @@ class CRMRouter {
                 link.classList.add('active');
             } else if (path.startsWith('/contacts') && route === 'contacts') {
                 link.classList.add('active');
+            } else if (path.startsWith('/contact/') && route === 'contacts') {
+                link.classList.add('active');
+            } else if (path.startsWith('/blog') && route === 'blog') {
+                link.classList.add('active');
             } else {
                 link.classList.remove('active');
             }
