@@ -1515,6 +1515,26 @@ class CRMApp {
                         </div>
                     </div>
                 ` : ''}
+
+                ${isEdit && post.status === 'published' ? `
+                    <div class="card" style="margin-top: 16px; border: 1px solid #7c3aed20;">
+                        <h3 style="margin: 0 0 12px; font-size: 14px; color: #7c3aed;">📧 Send to Brevo</h3>
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Email this blog post to a Brevo list. Select the list(s) below:</p>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <select id="brevoSendList" class="filter-select" style="padding: 8px 12px; min-width: 180px;">
+                                <option value="all">📋 All Lists</option>
+                                <option value="7">Met in Person</option>
+                                <option value="8">Direct Call</option>
+                                <option value="9">LinkedIn</option>
+                                <option value="10">Referral</option>
+                                <option value="3">Spark Lead</option>
+                            </select>
+                            <button class="btn btn-primary btn-sm" onclick="window.crmApp.sendBlogToBrevo('${postId}')">
+                                📧 Send Now
+                            </button>
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
     }
@@ -1569,6 +1589,46 @@ class CRMApp {
             window.crmRouter.navigate('/blog');
         } catch (error) {
             alert('Error deleting: ' + error.message);
+        }
+    }
+
+    async sendBlogToBrevo(postId) {
+        const select = document.getElementById('brevoSendList');
+        const selectedValue = select.value;
+
+        // Determine list IDs
+        let listIds;
+        if (selectedValue === 'all') {
+            listIds = [3, 7, 8, 9, 10]; // All lists
+        } else {
+            listIds = [parseInt(selectedValue)];
+        }
+
+        const listName = select.options[select.selectedIndex].text;
+        if (!confirm(`Send this blog post as an email to "${listName}"? This will email everyone on that list.`)) return;
+
+        try {
+            const post = await window.crmDB.getBlogPost(postId);
+            const blogUrl = `https://marcoslacayobosche.com/blog/#${post.slug}`;
+
+            const res = await fetch('/api/send-blog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: post.title,
+                    content: post.content,
+                    excerpt: post.excerpt,
+                    listIds: listIds,
+                    blogUrl: blogUrl
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            alert(`✅ Blog emailed to "${listName}" successfully!`);
+        } catch (error) {
+            alert('Error sending to Brevo: ' + error.message);
         }
     }
 }
