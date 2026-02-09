@@ -278,11 +278,11 @@ const CRMComponents = {
                 ? `<span class="badge" style="background: #d1fae5; color: #047857;">✓ In Brevo (${contact.brevo_tag || 'synced'})</span>`
                 : `<div style="display: flex; gap: 8px; align-items: center;">
                         <select id="brevoListSelect" class="filter-select" style="font-size: 13px; padding: 4px 8px;">
-                            <option value="7">Met in Person</option>
-                            <option value="8">Direct Call</option>
-                            <option value="9">LinkedIn</option>
-                            <option value="10">Referral</option>
-                            <option value="3">Spark Lead</option>
+                            <option value="15">Met in Person</option>
+                            <option value="16">Direct Call</option>
+                            <option value="17">LinkedIn</option>
+                            <option value="18">Referral</option>
+                            <option value="14">Spark Lead</option>
                         </select>
                         <button class="btn btn-sm btn-secondary" onclick="window.crmApp.pushToBrevo('${contact.id}')">Push to Brevo →</button>
                     </div>`

@@ -1523,11 +1523,11 @@ class CRMApp {
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             <select id="brevoSendList" class="filter-select" style="padding: 8px 12px; min-width: 180px;">
                                 <option value="all">📋 All Lists</option>
-                                <option value="7">Met in Person</option>
-                                <option value="8">Direct Call</option>
-                                <option value="9">LinkedIn</option>
-                                <option value="10">Referral</option>
-                                <option value="3">Spark Lead</option>
+                                <option value="15">Met in Person</option>
+                                <option value="16">Direct Call</option>
+                                <option value="17">LinkedIn</option>
+                                <option value="18">Referral</option>
+                                <option value="14">Spark Lead</option>
                             </select>
                             <button class="btn btn-primary btn-sm" onclick="window.crmApp.sendBlogToBrevo('${postId}')">
                                 📧 Send Now
@@ -1599,7 +1599,7 @@ class CRMApp {
         // Determine list IDs
         let listIds;
         if (selectedValue === 'all') {
-            listIds = [3, 7, 8, 9, 10]; // All lists
+            listIds = [14, 15, 16, 17, 18]; // All lists
         } else {
             listIds = [parseInt(selectedValue)];
         }
