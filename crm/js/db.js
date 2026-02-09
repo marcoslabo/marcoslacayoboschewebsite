@@ -730,6 +730,71 @@ class CRMDB {
         }
         return true;
     }
+
+    // ==========================================================================
+    // Spark Brief Functions
+    // ==========================================================================
+
+    /**
+     * Get all Spark briefs with ROI data
+     */
+    async getSparkBriefs() {
+        const { data, error } = await this.supabase
+            .from('briefs_with_roi')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching briefs:', error);
+            // Fallback to briefs table if view doesn't exist
+            const { data: fallback, error: fallbackError } = await this.supabase
+                .from('briefs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            return fallback || [];
+        }
+        return data || [];
+    }
+
+    /**
+     * Get a single Spark brief by ID
+     */
+    async getSparkBrief(id) {
+        const { data, error } = await this.supabase
+            .from('briefs_with_roi')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            // Fallback
+            const { data: fallback } = await this.supabase
+                .from('briefs')
+                .select('*')
+                .eq('id', id)
+                .single();
+            return fallback;
+        }
+        return data;
+    }
+
+    /**
+     * Update a Spark brief status
+     */
+    async updateBriefStatus(id, status) {
+        const { data, error } = await this.supabase
+            .from('briefs')
+            .update({ status })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating brief status:', error);
+            throw error;
+        }
+        return data;
+    }
 }
 
 // Create global instance

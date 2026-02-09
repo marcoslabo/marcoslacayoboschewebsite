@@ -96,6 +96,16 @@ class CRMApp {
         window.crmRouter.on('/blog/edit/:id', async (params) => {
             await this.renderBlogEditor(params.id);
         });
+
+        // Spark - List
+        window.crmRouter.on('/spark', async () => {
+            await this.renderSparkList();
+        });
+
+        // Spark - Detail
+        window.crmRouter.on('/spark/:id', async (params) => {
+            await this.renderSparkDetail(params.id);
+        });
     }
 
     // ==========================================================================
@@ -1137,6 +1147,208 @@ class CRMApp {
             await this.renderDashboard();
         } catch (error) {
             alert('Error logging outcome: ' + error.message);
+        }
+    }
+
+    // ==========================================================================
+    // Spark CNC (Cost of No Change) Management
+    // ==========================================================================
+
+    async renderSparkList() {
+        const main = document.getElementById('mainContent');
+        const briefs = await window.crmDB.getSparkBriefs();
+
+        const statusGroups = {
+            'New': briefs.filter(b => b.status === 'Draft'),
+            'Shared': briefs.filter(b => b.status === 'Shared'),
+            'Qualified': briefs.filter(b => b.status === 'Qualified'),
+            'In Progress': briefs.filter(b => b.status === 'In Progress'),
+            'Deployed': briefs.filter(b => ['Deployed', 'Measuring'].includes(b.status)),
+            'Closed': briefs.filter(b => b.status === 'Closed Lost')
+        };
+
+        main.innerHTML = `
+            <div style="max-width: 900px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="margin: 0;">⚡ Spark — CNC Submissions</h2>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Cost of No Change calculator submissions</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="badge" style="background: #f0fdf4; color: #047857;">${briefs.length} total</span>
+                        <a href="/spark/new" target="_blank" class="btn btn-secondary btn-sm">Open CNC Calculator ↗</a>
+                    </div>
+                </div>
+
+                ${briefs.length === 0 ? `
+                    <div class="card" style="text-align: center; padding: 48px;">
+                        <p style="font-size: 18px; margin-bottom: 8px;">No CNC submissions yet</p>
+                        <p style="color: #64748b;">When prospects use the CNC Calculator on your website, their submissions will appear here.</p>
+                    </div>
+                ` : ''}
+
+                ${Object.entries(statusGroups)
+                .filter(([_, items]) => items.length > 0)
+                .map(([status, items]) => `
+                        <h3 style="font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px;">
+                            ${status} (${items.length})
+                        </h3>
+                        ${items.map(brief => this._renderSparkCard(brief)).join('')}
+                    `).join('')}
+            </div>
+        `;
+    }
+
+    _renderSparkCard(brief) {
+        const date = new Date(brief.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const annualCost = brief.annual_current_cost ? `$${Math.round(brief.annual_current_cost).toLocaleString()}` : '—';
+        const savings = brief.annual_potential_savings ? `$${Math.round(brief.annual_potential_savings).toLocaleString()}` : '—';
+
+        const statusColors = {
+            'Draft': { bg: '#f1f5f9', color: '#475569' },
+            'Shared': { bg: '#dbeafe', color: '#1d4ed8' },
+            'Qualified': { bg: '#fef3c7', color: '#92400e' },
+            'In Progress': { bg: '#ede9fe', color: '#6d28d9' },
+            'Deployed': { bg: '#d1fae5', color: '#047857' },
+            'Measuring': { bg: '#d1fae5', color: '#047857' },
+            'Closed Lost': { bg: '#fef2f2', color: '#991b1b' }
+        };
+        const sc = statusColors[brief.status] || statusColors['Draft'];
+
+        return `
+            <div class="card" style="margin-bottom: 10px; cursor: pointer;" onclick="window.crmRouter.navigate('/spark/${brief.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                            <span class="badge" style="background: ${sc.bg}; color: ${sc.color}; font-size: 11px;">${brief.status}</span>
+                            ${brief.solution_level ? `<span class="badge" style="font-size: 11px;">${brief.solution_level.split(' - ')[0]}</span>` : ''}
+                            ${brief.created_by === 'Website (Public)' ? '<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 11px;">🌐 Website</span>' : ''}
+                        </div>
+                        <h3 style="margin: 0 0 4px; font-size: 16px;">${brief.title || 'Untitled Brief'}</h3>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">
+                            ${brief.company_name ? `${brief.company_name} · ` : ''}${brief.contact_name || 'No contact'}
+                        </p>
+                    </div>
+                    <div style="text-align: right; min-width: 120px;">
+                        <div style="font-size: 12px; color: #94a3b8;">${date}</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #059669; margin-top: 4px;">${savings}/yr</div>
+                        <div style="font-size: 11px; color: #94a3b8;">CNC: ${annualCost}/yr</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async renderSparkDetail(id) {
+        const main = document.getElementById('mainContent');
+        let brief;
+        try {
+            brief = await window.crmDB.getSparkBrief(id);
+        } catch (e) {
+            main.innerHTML = '<div class="card"><p>Brief not found.</p></div>';
+            return;
+        }
+
+        if (!brief) {
+            main.innerHTML = '<div class="card"><p>Brief not found.</p></div>';
+            return;
+        }
+
+        const annualCost = brief.annual_current_cost ? `$${Math.round(brief.annual_current_cost).toLocaleString()}` : '—';
+        const savings = brief.annual_potential_savings ? `$${Math.round(brief.annual_potential_savings).toLocaleString()}` : '—';
+        const statuses = ['Draft', 'Shared', 'Qualified', 'In Progress', 'Deployed', 'Measuring', 'Closed Lost'];
+
+        main.innerHTML = `
+            <div style="max-width: 800px; margin: 0 auto;">
+                <a href="#/spark" class="btn btn-ghost btn-sm" style="margin-bottom: 16px;">← Back to Spark</a>
+
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div>
+                            <h2 style="margin: 0 0 4px;">${brief.title || 'Untitled Brief'}</h2>
+                            <p style="color: #64748b; margin: 0;">
+                                ${brief.company_name ? `${brief.company_name} · ` : ''}${brief.contact_name || 'No contact'}
+                                ${brief.contact_email ? ` · ${brief.contact_email}` : ''}
+                            </p>
+                        </div>
+                        ${brief.share_id ? `<a href="/spark/s/${brief.share_id}" target="_blank" class="btn btn-ghost btn-sm">View Share Link ↗</a>` : ''}
+                    </div>
+
+                    <!-- Status Selector -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 20px;">
+                        <label style="font-size: 13px; color: #64748b;">Status:</label>
+                        <select id="sparkStatusSelect" class="filter-select" style="padding: 6px 12px;">
+                            ${statuses.map(s => `<option value="${s}" ${brief.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                        <button class="btn btn-sm btn-secondary" onclick="window.crmApp.updateSparkStatus('${brief.id}')">Update</button>
+                    </div>
+
+                    <!-- CNC Numbers -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+                        <div>
+                            <span style="font-size: 12px; color: #64748b; display: block;">Hours/Week</span>
+                            <strong style="font-size: 18px;">${brief.hours_per_week || '—'}</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: #64748b; display: block;">People</span>
+                            <strong style="font-size: 18px;">${brief.people_involved || '—'}</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: #64748b; display: block;">Cost of No Change</span>
+                            <strong style="font-size: 18px; color: #dc2626;">${annualCost}/yr</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: #64748b; display: block;">Potential Savings</span>
+                            <strong style="font-size: 18px; color: #059669;">${savings}/yr</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Problem -->
+                ${brief.problem_clean || brief.problem_raw ? `
+                    <div class="card">
+                        <h4 style="margin: 0 0 12px; color: #64748b; font-size: 13px; text-transform: uppercase;">The Problem</h4>
+                        <p style="line-height: 1.7;">${brief.problem_clean || brief.problem_raw}</p>
+                        ${brief.problem_raw && brief.problem_clean ? `
+                            <details style="margin-top: 12px;">
+                                <summary style="cursor: pointer; font-size: 13px; color: #94a3b8;">Original input</summary>
+                                <p style="font-style: italic; color: #64748b; margin-top: 8px;">"${brief.problem_raw}"</p>
+                            </details>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                <!-- AI Solution -->
+                ${brief.solution_level || brief.suggested_approach ? `
+                    <div class="card">
+                        <h4 style="margin: 0 0 12px; color: #64748b; font-size: 13px; text-transform: uppercase;">AI Recommendation</h4>
+                        ${brief.solution_level ? `<p style="margin-bottom: 8px;"><strong>${brief.solution_level}</strong></p>` : ''}
+                        ${brief.level_reasoning ? `<p style="color: #64748b; margin-bottom: 12px;">${brief.level_reasoning}</p>` : ''}
+                        ${brief.suggested_approach ? `<p style="line-height: 1.7;">${brief.suggested_approach}</p>` : ''}
+                    </div>
+                ` : ''}
+
+                <!-- Metadata -->
+                <div class="card" style="font-size: 13px; color: #94a3b8;">
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        ${brief.department ? `<span>Dept: ${brief.department}</span>` : ''}
+                        ${brief.created_by ? `<span>Source: ${brief.created_by}</span>` : ''}
+                        <span>Created: ${new Date(brief.created_at).toLocaleDateString()}</span>
+                        ${brief.share_link_views ? `<span>Share views: ${brief.share_link_views}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async updateSparkStatus(id) {
+        const select = document.getElementById('sparkStatusSelect');
+        const newStatus = select.value;
+        try {
+            await window.crmDB.updateBriefStatus(id, newStatus);
+            await this.renderSparkDetail(id);
+        } catch (error) {
+            alert('Error updating status: ' + error.message);
         }
     }
 
