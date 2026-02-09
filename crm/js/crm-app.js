@@ -638,14 +638,22 @@ class CRMApp {
         }
     }
 
-    async syncToBrevo(id) {
+    async pushToBrevo(id) {
+        const listSelect = document.getElementById('brevoListSelect');
+        const listId = listSelect ? parseInt(listSelect.value) : 7;
+        const listName = listSelect ? listSelect.options[listSelect.selectedIndex].text : 'Met in Person';
+
+        if (!confirm(`Push this contact to Brevo list "${listName}"?`)) return;
+
         try {
             const contact = await window.crmDB.getContact(id);
+            // Override the tag based on selected list
+            const listToTag = { 7: 'met-lead', 8: 'direct-lead', 9: 'linkedin-lead', 10: 'referral-lead', 3: 'spark-lead' };
+            contact.brevo_tag = listToTag[listId] || 'met-lead';
             await window.crmDB.syncToBrevo(contact);
             await this.renderContactDetail(id);
-            alert('Contact synced to Brevo!');
         } catch (error) {
-            alert('Sync failed: ' + error.message);
+            alert('Push failed: ' + error.message);
         }
     }
 

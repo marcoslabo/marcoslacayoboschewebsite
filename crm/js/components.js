@@ -271,12 +271,21 @@ const CRMComponents = {
                         ` : ''}
                     </div>
 
-                    <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                         ${this.renderSourceBadge(contact.source)}
                         ${this.renderStatusBadge(contact.status)}
                         ${contact.brevo_synced
-                ? '<span class="badge" style="background: #d1fae5; color: #047857;">✓ Synced to Brevo</span>'
-                : `<button class="btn btn-sm btn-secondary" onclick="window.crmApp.syncToBrevo('${contact.id}')">Sync to Brevo</button>`
+                ? `<span class="badge" style="background: #d1fae5; color: #047857;">✓ In Brevo (${contact.brevo_tag || 'synced'})</span>`
+                : `<div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="brevoListSelect" class="filter-select" style="font-size: 13px; padding: 4px 8px;">
+                            <option value="7">Met in Person</option>
+                            <option value="8">Direct Call</option>
+                            <option value="9">LinkedIn</option>
+                            <option value="10">Referral</option>
+                            <option value="3">Spark Lead</option>
+                        </select>
+                        <button class="btn btn-sm btn-secondary" onclick="window.crmApp.pushToBrevo('${contact.id}')">Push to Brevo →</button>
+                    </div>`
             }
                     </div>
                 </div>

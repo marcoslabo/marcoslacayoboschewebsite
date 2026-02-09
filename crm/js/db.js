@@ -189,10 +189,8 @@ class CRMDB {
             throw error;
         }
 
-        // Auto-sync to Brevo (only if contact has email and not skipped)
-        if (data.email && !options.skipBrevo) {
-            this.syncToBrevo(data).catch(e => console.log('Brevo sync failed (will retry):', e));
-        }
+        // Brevo sync is now MANUAL ONLY — no auto-sync on create
+        // Use pushToBrevo() to explicitly push a contact to a specific list
 
         return data;
     }
