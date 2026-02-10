@@ -15,7 +15,27 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Create and send a Brevo email campaign
+        // Create a Brevo email campaign
+        const campaignPayload = {
+            name: `Blog: ${title} - ${new Date().toISOString().slice(0, 10)}`,
+            subject: title,
+            sender: {
+                name: 'Marcos Bosche',
+                email: 'marcos@marcoslacayobosche.com'
+            },
+            replyTo: {
+                name: 'Marcos Bosche',
+                email: 'marcos.bosche@nymbl.app'
+            },
+            type: 'classic',
+            htmlContent: buildEmailHtml(title, content, excerpt, blogUrl),
+            recipients: {
+                listIds: listIds.map(Number)
+            }
+        };
+
+        console.log('Creating campaign with payload:', JSON.stringify({ ...campaignPayload, htmlContent: '[HTML]' }));
+
         const campaignRes = await fetch('https://api.brevo.com/v3/emailCampaigns', {
             method: 'POST',
             headers: {
@@ -23,30 +43,18 @@ export default async function handler(req, res) {
                 'content-type': 'application/json',
                 'api-key': apiKey
             },
-            body: JSON.stringify({
-                name: `Blog: ${title} - ${new Date().toISOString().slice(0, 10)}`,
-                subject: title,
-                sender: {
-                    name: 'Marcos Bosche',
-                    email: 'marcos@marcoslacayobosche.com'
-                },
-                replyTo: {
-                    name: 'Marcos Bosche',
-                    email: 'marcos.bosche@nymbl.app'
-                },
-                type: 'classic',
-                htmlContent: buildEmailHtml(title, content, excerpt, blogUrl),
-                recipients: {
-                    listIds: listIds.map(Number)
-                }
-            })
+            body: JSON.stringify(campaignPayload)
         });
 
-        const campaignData = await campaignRes.json();
+        const campaignText = await campaignRes.text();
+        console.log('Campaign create response:', campaignRes.status, campaignText);
 
         if (!campaignRes.ok) {
-            throw new Error(campaignData.message || 'Failed to create campaign');
+            const errorData = JSON.parse(campaignText);
+            throw new Error(errorData.message || `Campaign create failed: ${campaignRes.status}`);
         }
+
+        const campaignData = JSON.parse(campaignText);
 
         // Send the campaign immediately
         const sendRes = await fetch(`https://api.brevo.com/v3/emailCampaigns/${campaignData.id}/sendNow`, {
@@ -58,8 +66,10 @@ export default async function handler(req, res) {
         });
 
         if (!sendRes.ok) {
-            const sendData = await sendRes.json();
-            throw new Error(sendData.message || 'Failed to send campaign');
+            const sendText = await sendRes.text();
+            console.log('Campaign send response:', sendRes.status, sendText);
+            const sendData = JSON.parse(sendText);
+            throw new Error(sendData.message || `Send failed: ${sendRes.status}`);
         }
 
         return res.status(200).json({ success: true, campaignId: campaignData.id });
