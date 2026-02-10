@@ -673,7 +673,7 @@ class CRMApp {
         try {
             const contact = await window.crmDB.getContact(id);
             // Override the tag based on selected list
-            const listToTag = { 7: 'met-lead', 8: 'direct-lead', 9: 'linkedin-lead', 10: 'referral-lead', 3: 'spark-lead' };
+            const listToTag = { 15: 'met-lead', 16: 'direct-lead', 17: 'linkedin-lead', 18: 'referral-lead', 14: 'spark-lead' };
             contact.brevo_tag = listToTag[listId] || 'met-lead';
             await window.crmDB.syncToBrevo(contact);
             await this.renderContactDetail(id);

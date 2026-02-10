@@ -68,20 +68,20 @@ async function syncContact(apiKey, contact) {
         updateEnabled: true // Update if exists
     };
 
-    // Add list IDs based on tag (from user's Brevo Spark CRM folder)
+    // Add list IDs based on tag (MarcosLacayoBosche folder in Brevo)
     const listMap = {
-        'met-lead': 7,         // MeetinPerson#1
-        'direct-lead': 8,      // Directcall#2
-        'linkedin-lead': 9,    // LinkedinSM#3
-        'referral-lead': 10,   // ReferralImport#4
-        'spark-lead': 3,       // Spark leads (original list)
-        'event-lead': 7,       // Events go to Met In Person
-        'clay-lead': 10,       // Clay imports go to Referral
-        'other-lead': 7        // Default to Met In Person
+        'met-lead': 15,        // Met in Person
+        'direct-lead': 16,     // Direct Call
+        'linkedin-lead': 17,   // LinkedIn
+        'referral-lead': 18,   // Referral
+        'spark-lead': 14,      // Spark
+        'event-lead': 15,      // Events go to Met In Person
+        'clay-lead': 18,       // Clay imports go to Referral
+        'other-lead': 15       // Default to Met In Person
     };
 
-    // Always add to a list - default to Met In Person (7) if no tag match
-    const listId = (tag && listMap[tag]) ? listMap[tag] : 7;
+    // Always add to a list - default to Met In Person (15) if no tag match
+    const listId = (tag && listMap[tag]) ? listMap[tag] : 15;
     payload.listIds = [listId];
 
     const response = await fetch('https://api.brevo.com/v3/contacts', {
