@@ -1151,7 +1151,7 @@ class CRMApp {
     }
 
     // ==========================================================================
-    // Spark CNC (Cost of No Change) Management
+    // Spark — Price of Doing Nothing Management
     // ==========================================================================
 
     async renderSparkList() {
@@ -1171,19 +1171,19 @@ class CRMApp {
             <div style="max-width: 900px; margin: 0 auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
-                        <h2 style="margin: 0;">⚡ Spark — CNC Submissions</h2>
-                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Cost of No Change calculator submissions</p>
+                        <h2 style="margin: 0;">⚡ Spark — Submissions</h2>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">"Price of Doing Nothing" calculator submissions</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <span class="badge" style="background: #f0fdf4; color: #047857;">${briefs.length} total</span>
-                        <a href="/spark/new" target="_blank" class="btn btn-secondary btn-sm">Open CNC Calculator ↗</a>
+                        <a href="/spark/new" target="_blank" class="btn btn-secondary btn-sm">Open Calculator ↗</a>
                     </div>
                 </div>
 
                 ${briefs.length === 0 ? `
                     <div class="card" style="text-align: center; padding: 48px;">
-                        <p style="font-size: 18px; margin-bottom: 8px;">No CNC submissions yet</p>
-                        <p style="color: #64748b;">When prospects use the CNC Calculator on your website, their submissions will appear here.</p>
+                        <p style="font-size: 18px; margin-bottom: 8px;">No submissions yet</p>
+                        <p style="color: #64748b;">When prospects use the Price of Doing Nothing Calculator on your website, their submissions will appear here.</p>
                     </div>
                 ` : ''}
 
@@ -1232,7 +1232,7 @@ class CRMApp {
                     <div style="text-align: right; min-width: 120px;">
                         <div style="font-size: 12px; color: #94a3b8;">${date}</div>
                         <div style="font-size: 15px; font-weight: 600; color: #059669; margin-top: 4px;">${savings}/yr</div>
-                        <div style="font-size: 11px; color: #94a3b8;">CNC: ${annualCost}/yr</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Cost: ${annualCost}/yr</div>
                     </div>
                 </div>
             </div>
@@ -1294,7 +1294,7 @@ class CRMApp {
                             <strong style="font-size: 18px;">${brief.people_involved || '—'}</strong>
                         </div>
                         <div>
-                            <span style="font-size: 12px; color: #64748b; display: block;">Cost of No Change</span>
+                            <span style="font-size: 12px; color: #64748b; display: block;">Price of Doing Nothing</span>
                             <strong style="font-size: 18px; color: #dc2626;">${annualCost}/yr</strong>
                         </div>
                         <div>
