@@ -1474,7 +1474,16 @@ class CRMApp {
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">Content (paste HTML from Claude) *</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label style="font-size: 12px; color: #64748b;">Content (paste HTML from Claude) *</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span id="imageUploadStatus" style="font-size: 12px; color: #64748b;"></span>
+                                <input type="file" id="blogImageInput" accept="image/*" style="display: none;" onchange="window.crmApp.handleBlogImageUpload(event)">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('blogImageInput').click()" style="font-size: 13px;">
+                                    📷 Insert Image
+                                </button>
+                            </div>
+                        </div>
                         <textarea id="blogContent" style="width: 100%; min-height: 400px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; resize: vertical;"
                                   placeholder="Paste your blog content here (HTML from Claude)...">${post.content || ''}</textarea>
                     </div>
@@ -1537,6 +1546,39 @@ class CRMApp {
                 ` : ''}
             </div>
         `;
+    }
+
+    async handleBlogImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const status = document.getElementById('imageUploadStatus');
+        const textarea = document.getElementById('blogContent');
+
+        try {
+            status.textContent = '⏳ Compressing & uploading...';
+            status.style.color = '#7c3aed';
+
+            const url = await window.crmDB.uploadBlogImage(file);
+
+            // Insert img tag at cursor position (or end if no cursor)
+            const imgTag = `\n<img src="${url}" alt="" style="width: 100%; max-width: 100%; border-radius: 8px; margin: 24px 0;">\n`;
+            const cursorPos = textarea.selectionStart;
+            const before = textarea.value.substring(0, cursorPos);
+            const after = textarea.value.substring(cursorPos);
+            textarea.value = before + imgTag + after;
+
+            status.textContent = '✅ Image inserted!';
+            status.style.color = '#059669';
+            setTimeout(() => { status.textContent = ''; }, 3000);
+        } catch (error) {
+            status.textContent = '❌ Upload failed: ' + error.message;
+            status.style.color = '#dc2626';
+            console.error('Image upload error:', error);
+        }
+
+        // Reset file input so same file can be re-selected
+        event.target.value = '';
     }
 
     async saveBlogPost(postId) {

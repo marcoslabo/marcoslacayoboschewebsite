@@ -795,6 +795,93 @@ class CRMDB {
         }
         return data;
     }
+
+    // ==========================================================================
+    // Blog Image Upload
+    // ==========================================================================
+
+    /**
+     * Compress an image file client-side using Canvas API
+     * Returns a Blob of the compressed image
+     */
+    async compressImage(file, maxWidth = 1200, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Only resize if larger than maxWidth
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                console.log(`📷 Compressed: ${(file.size / 1024).toFixed(0)}KB → ${(blob.size / 1024).toFixed(0)}KB (${width}x${height})`);
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Canvas compression failed'));
+                            }
+                        },
+                        'image/jpeg',
+                        quality
+                    );
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /**
+     * Upload a blog image to Supabase Storage
+     * Returns the public URL of the uploaded image
+     */
+    async uploadBlogImage(file) {
+        // Compress the image first
+        const compressed = await this.compressImage(file);
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_').toLowerCase();
+        const fileName = `${timestamp}_${safeName.replace(/\.\w+$/, '')}.jpg`;
+
+        // Upload to Supabase Storage
+        const { data, error } = await this.supabase.storage
+            .from('blog-images')
+            .upload(fileName, compressed, {
+                contentType: 'image/jpeg',
+                cacheControl: '31536000' // Cache for 1 year
+            });
+
+        if (error) {
+            console.error('Upload error:', error);
+            throw new Error(error.message || 'Upload failed');
+        }
+
+        // Get public URL
+        const { data: urlData } = this.supabase.storage
+            .from('blog-images')
+            .getPublicUrl(fileName);
+
+        console.log('✅ Image uploaded:', urlData.publicUrl);
+        return urlData.publicUrl;
+    }
 }
 
 // Create global instance
