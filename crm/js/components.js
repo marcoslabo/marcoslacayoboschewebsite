@@ -101,7 +101,7 @@ const CRMComponents = {
     renderActionItem(contact, type) {
         const companyName = contact.companies?.name || contact.company || '';
         const daysAgo = contact.next_action_date
-            ? Math.floor((new Date() - new Date(contact.next_action_date)) / (1000 * 60 * 60 * 24))
+            ? Math.floor((new Date() - new Date(contact.next_action_date + 'T12:00:00')) / (1000 * 60 * 60 * 24))
             : 0;
         const overdueText = daysAgo > 0 ? ` • ${daysAgo} day${daysAgo > 1 ? 's' : ''} ago` : '';
         const contactName = `${contact.first_name} ${contact.last_name}`;
@@ -208,7 +208,7 @@ const CRMComponents = {
         const companyName = contact.companies?.name || '';
         const added = new Date(contact.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const nextAction = contact.next_action && contact.next_action !== 'None'
-            ? `${contact.next_action}${contact.next_action_date ? ' - ' + new Date(contact.next_action_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
+            ? `${contact.next_action}${contact.next_action_date ? ' - ' + new Date(contact.next_action_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
             : '—';
 
         return `
