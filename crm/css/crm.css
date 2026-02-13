@@ -418,6 +418,11 @@ body {
     color: #b45309;
 }
 
+.badge-notafit {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
 .badge-spark {
     background: var(--color-primary-soft);
     color: var(--color-primary);

@@ -417,7 +417,8 @@ const CRMComponents = {
             'Active': 'badge-active',
             'Won': 'badge-won',
             'Lost': 'badge-lost',
-            'Nurture': 'badge-nurture'
+            'Nurture': 'badge-nurture',
+            'Not a Fit': 'badge-notafit'
         };
         return `<span class="badge ${classes[status] || ''}">${status}</span>`;
     },

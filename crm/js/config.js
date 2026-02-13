@@ -28,7 +28,8 @@ const CRM_CONFIG = {
         'Active',
         'Won',
         'Lost',
-        'Nurture'
+        'Nurture',
+        'Not a Fit'
     ],
 
     // Next Actions
