@@ -239,26 +239,44 @@
         font-size: var(--text-4xl);
     }
 
-    .hero-dashboard {
-        padding: var(--space-4);
-        border-radius: var(--radius-xl);
-    }
-
-    .hero-dashboard-title {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 150px;
-        font-size: 12px;
-    }
-
-    .hero-metric-row {
-        grid-template-columns: 1fr;
-    }
-
     .hero-visual {
         padding-inline: 0;
         overflow: hidden;
+    }
+
+    .hero-dashboard {
+        padding: var(--space-3);
+        border-radius: var(--radius-xl);
+    }
+
+    .hero-dashboard-header {
+        padding-bottom: var(--space-2);
+        margin-bottom: var(--space-2);
+    }
+
+    .hero-dashboard-title {
+        font-size: 11px;
+    }
+
+    .hero-metric-row {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-2);
+    }
+
+    .hero-metric {
+        padding: var(--space-3);
+    }
+
+    .hero-metric-value {
+        font-size: var(--text-xl);
+    }
+
+    .hero-metric-label {
+        font-size: 10px;
+    }
+
+    .hero-metric-change {
+        font-size: 10px;
     }
 
     /* Spark CTA */
@@ -271,12 +289,17 @@
         font-size: var(--text-2xl);
     }
 
+    .spark-cta-text {
+        font-size: var(--text-base);
+    }
+
     .spark-cta .btn-primary {
         max-width: 100%;
         white-space: normal;
         word-wrap: break-word;
-        padding: var(--space-3) var(--space-6);
+        padding: var(--space-3) var(--space-5);
         font-size: var(--text-sm);
+        line-height: 1.4;
     }
 
     /* Stats */
