@@ -140,7 +140,7 @@
 
 .hero-container {
     display: grid;
-    grid-template-columns: 1fr 1.1fr;
+    grid-template-columns: 1fr 1.4fr;
     gap: var(--space-16);
     align-items: center;
     position: relative;
@@ -157,9 +157,9 @@
 
 .hero-title {
     margin-bottom: var(--space-6);
-    font-size: var(--text-4xl);
+    font-size: var(--text-3xl);
     font-weight: var(--font-extrabold);
-    line-height: 1.15;
+    line-height: 1.2;
 }
 
 .hero-title .text-accent {
