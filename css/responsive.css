@@ -261,10 +261,15 @@
     .hero-visual {
         padding-inline: 0;
         overflow: hidden;
+        margin-bottom: var(--space-6);
     }
 
     .hero-visual-container {
         max-width: 100%;
+    }
+
+    .stats-bar {
+        padding-top: var(--space-8);
     }
 
     .hero-dashboard {
