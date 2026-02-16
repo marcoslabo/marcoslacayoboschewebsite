@@ -245,6 +245,15 @@
 
     .hero-dashboard {
         padding: var(--space-4);
+        border-radius: var(--radius-xl);
+    }
+
+    .hero-dashboard-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 150px;
+        font-size: 12px;
     }
 
     .hero-metric-row {
@@ -254,6 +263,24 @@
     .hero-visual {
         padding-inline: 0;
         overflow: hidden;
+    }
+
+    /* Spark CTA */
+    .spark-cta-card {
+        padding: var(--space-6);
+        border-radius: var(--radius-xl);
+    }
+
+    .spark-cta-title {
+        font-size: var(--text-2xl);
+    }
+
+    .spark-cta .btn-primary {
+        max-width: 100%;
+        white-space: normal;
+        word-wrap: break-word;
+        padding: var(--space-3) var(--space-6);
+        font-size: var(--text-sm);
     }
 
     /* Stats */
