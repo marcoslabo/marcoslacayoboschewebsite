@@ -31,11 +31,16 @@
     .hero-visual {
         order: 2;
         padding-inline: var(--space-8);
+        overflow: hidden;
     }
 
     .hero-visual-container {
         max-width: 500px;
         margin-inline: auto;
+    }
+
+    .hero-dashboard {
+        max-width: 100%;
     }
 
     .hero-float-card {
