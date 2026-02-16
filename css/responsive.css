@@ -239,10 +239,6 @@
         font-size: var(--text-4xl);
     }
 
-    .hero-visual {
-        padding-inline: 0;
-    }
-
     .hero-float-card {
         display: none;
     }
@@ -253,6 +249,11 @@
 
     .hero-metric-row {
         grid-template-columns: 1fr;
+    }
+
+    .hero-visual {
+        padding-inline: 0;
+        overflow: hidden;
     }
 
     /* Stats */
