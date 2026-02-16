@@ -213,7 +213,7 @@ const CRMComponents = {
 
         return `
             <tr onclick="window.crmApp.goToContact('${contact.id}')">
-                <td class="contact-name">${contact.first_name} ${contact.last_name}</td>
+                <td class="contact-name">${contact.first_name} ${contact.last_name}${contact.brevo_synced ? ' <span style="color: #059669; font-size: 11px;" title="In Brevo">✓ Brevo</span>' : ''}</td>
                 <td>${companyName}</td>
                 <td>${this.renderSourceBadge(contact.source)}</td>
                 <td>${this.renderStatusBadge(contact.status)}</td>
