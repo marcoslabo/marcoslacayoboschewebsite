@@ -1538,6 +1538,16 @@ class CRMApp {
                         </div>
                     </div>
                 ` : ''}
+
+                <div class="card" style="margin-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; font-size: 14px; color: #64748b;">👁️ Live Preview</h3>
+                    </div>
+                    <div id="blogPreview" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; background: #fff; min-height: 100px;">
+                        <h1 style="font-size: 28px; margin: 0 0 16px;">${post.title || 'Untitled'}</h1>
+                        <div id="blogPreviewContent" style="line-height: 1.8; font-size: 15px;">${post.content || '<p style="color: #94a3b8; font-style: italic;">Start writing to see preview...</p>'}</div>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -1555,6 +1565,22 @@ class CRMApp {
                 ]
             }
         });
+
+        // Live preview: update as user types
+        const previewContent = document.getElementById('blogPreviewContent');
+        const previewTitle = document.getElementById('blogPreview')?.querySelector('h1');
+        const titleInput = document.getElementById('blogTitle');
+
+        if (previewContent) {
+            this.quillEditor.on('text-change', () => {
+                previewContent.innerHTML = this.quillEditor.root.innerHTML;
+            });
+        }
+        if (titleInput && previewTitle) {
+            titleInput.addEventListener('input', () => {
+                previewTitle.textContent = titleInput.value || 'Untitled';
+            });
+        }
     }
 
     async handleBlogImageUpload(event) {

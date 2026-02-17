@@ -999,3 +999,21 @@ body {
     border-radius: 8px;
     margin: 16px 0;
 }
+
+/* Blog Preview */
+#blogPreviewContent img {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 16px 0;
+}
+
+#blogPreviewContent h1,
+#blogPreviewContent h2,
+#blogPreviewContent h3 {
+    margin: 24px 0 12px;
+}
+
+#blogPreviewContent p {
+    margin-bottom: 16px;
+}
