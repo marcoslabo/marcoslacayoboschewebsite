@@ -27,6 +27,11 @@ export default async function handler(req, res) {
             password: teamPassword,
             role: 'team',
             owner: 'joy'
+        },
+        'kevin.slayden@nymbl.app': {
+            password: teamPassword,
+            role: 'team',
+            owner: 'kevin'
         }
     };
 
