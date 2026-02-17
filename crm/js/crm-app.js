@@ -1732,9 +1732,11 @@ class CRMApp {
 
             // Log activity for all contacts that have been synced to Brevo
             try {
+                const owner = window.crmAuth.getOwner();
                 const { data: contacts } = await window.crmDB.supabase
                     .from('contacts')
                     .select('id')
+                    .eq('owner', owner)
                     .eq('brevo_synced', true);
 
                 if (contacts && contacts.length > 0) {
