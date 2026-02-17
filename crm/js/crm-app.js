@@ -1480,7 +1480,7 @@ class CRMApp {
 
                     <div style="margin-bottom: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <label style="font-size: 12px; color: #64748b;">Content (paste HTML from Claude) *</label>
+                            <label style="font-size: 12px; color: #64748b;">Content *</label>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <span id="imageUploadStatus" style="font-size: 12px; color: #64748b;"></span>
                                 <input type="file" id="blogImageInput" accept="image/*" style="display: none;" onchange="window.crmApp.handleBlogImageUpload(event)">
@@ -1489,8 +1489,7 @@ class CRMApp {
                                 </button>
                             </div>
                         </div>
-                        <textarea id="blogContent" style="width: 100%; min-height: 400px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; resize: vertical;"
-                                  placeholder="Paste your blog content here (HTML from Claude)...">${post.content || ''}</textarea>
+                        <div id="blogContent">${post.content || ''}</div>
                     </div>
 
                     <div style="display: flex; gap: 12px; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px;">
@@ -1520,16 +1519,6 @@ class CRMApp {
                     </div>
                 </div>
 
-                ${isEdit && post.content ? `
-                    <div class="card" style="margin-top: 16px;">
-                        <h3 style="margin: 0 0 12px; font-size: 14px; color: #64748b;">Preview</h3>
-                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; background: #fff;">
-                            <h1 style="font-size: 28px; margin: 0 0 16px;">${post.title}</h1>
-                            <div style="line-height: 1.8; font-size: 15px;">${post.content}</div>
-                        </div>
-                    </div>
-                ` : ''}
-
                 ${isEdit && post.status === 'published' ? `
                     <div class="card" style="margin-top: 16px; border: 1px solid #7c3aed20;">
                         <h3 style="margin: 0 0 12px; font-size: 14px; color: #7c3aed;">📧 Send to Brevo</h3>
@@ -1551,6 +1540,21 @@ class CRMApp {
                 ` : ''}
             </div>
         `;
+
+        // Initialize Quill rich text editor
+        this.quillEditor = new Quill('#blogContent', {
+            theme: 'snow',
+            placeholder: 'Start writing your blog post...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['blockquote', 'link', 'image'],
+                    ['clean']
+                ]
+            }
+        });
     }
 
     async handleBlogImageUpload(event) {
@@ -1558,7 +1562,6 @@ class CRMApp {
         if (!file) return;
 
         const status = document.getElementById('imageUploadStatus');
-        const textarea = document.getElementById('blogContent');
 
         try {
             status.textContent = '⏳ Compressing & uploading...';
@@ -1566,12 +1569,12 @@ class CRMApp {
 
             const url = await window.crmDB.uploadBlogImage(file);
 
-            // Insert img tag at cursor position (or end if no cursor)
-            const imgTag = `\n<img src="${url}" alt="" style="width: 100%; max-width: 100%; border-radius: 8px; margin: 24px 0;">\n`;
-            const cursorPos = textarea.selectionStart;
-            const before = textarea.value.substring(0, cursorPos);
-            const after = textarea.value.substring(cursorPos);
-            textarea.value = before + imgTag + after;
+            // Insert image into Quill editor at cursor position
+            if (this.quillEditor) {
+                const range = this.quillEditor.getSelection(true);
+                this.quillEditor.insertEmbed(range.index, 'image', url);
+                this.quillEditor.setSelection(range.index + 1);
+            }
 
             status.textContent = '✅ Image inserted!';
             status.style.color = '#059669';
@@ -1588,11 +1591,14 @@ class CRMApp {
 
     async saveBlogPost(postId) {
         const title = document.getElementById('blogTitle').value.trim();
-        const content = document.getElementById('blogContent').value.trim();
+        const content = this.quillEditor ? this.quillEditor.root.innerHTML.trim() : '';
         const excerpt = document.getElementById('blogExcerpt').value.trim();
         const category = document.getElementById('blogCategory').value;
 
-        if (!title || !content) {
+        // Quill's empty state is '<p><br></p>'
+        const isEmpty = !content || content === '<p><br></p>';
+
+        if (!title || isEmpty) {
             alert('Title and content are required.');
             return;
         }
