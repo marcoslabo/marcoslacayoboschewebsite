@@ -550,7 +550,9 @@ class CRMDB {
                         id,
                         first_name,
                         last_name,
-                        company
+                        companies:company_id (
+                            name
+                        )
                     )
                 `)
                 .order('created_at', { ascending: false });
@@ -575,7 +577,7 @@ class CRMDB {
             return (data || []).map(a => ({
                 ...a,
                 contact_name: a.contacts ? `${a.contacts.first_name || ''} ${a.contacts.last_name || ''}`.trim() : 'Unknown',
-                contact_company: a.contacts?.company || '',
+                contact_company: a.contacts?.companies?.name || '',
                 contact_id: a.contact_id
             }));
         } catch (err) {
