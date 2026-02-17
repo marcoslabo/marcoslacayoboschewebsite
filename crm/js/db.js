@@ -548,7 +548,8 @@ class CRMDB {
                     *,
                     contacts:contact_id (
                         id,
-                        name,
+                        first_name,
+                        last_name,
                         company
                     )
                 `)
@@ -573,7 +574,7 @@ class CRMDB {
 
             return (data || []).map(a => ({
                 ...a,
-                contact_name: a.contacts?.name || 'Unknown',
+                contact_name: a.contacts ? `${a.contacts.first_name || ''} ${a.contacts.last_name || ''}`.trim() : 'Unknown',
                 contact_company: a.contacts?.company || '',
                 contact_id: a.contact_id
             }));
