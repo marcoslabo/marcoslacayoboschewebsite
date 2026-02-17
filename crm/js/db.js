@@ -16,6 +16,7 @@ class CRMDB {
      * Get all contacts with optional filters
      */
     async getContacts(filters = {}) {
+        const owner = window.crmAuth.getOwner();
         let query = this.supabase
             .from('contacts')
             .select(`
@@ -26,6 +27,7 @@ class CRMDB {
                     industry
                 )
             `)
+            .eq('owner', owner)
             .order('created_at', { ascending: false });
 
         // Apply filters
@@ -99,6 +101,7 @@ class CRMDB {
     async getTodaysActions() {
         const today = new Date().toISOString().split('T')[0];
 
+        const owner = window.crmAuth.getOwner();
         const { data, error } = await this.supabase
             .from('contacts')
             .select(`
@@ -108,6 +111,7 @@ class CRMDB {
                     name
                 )
             `)
+            .eq('owner', owner)
             .not('next_action', 'is', null)
             .not('next_action', 'eq', 'None')
             .lte('next_action_date', today)
@@ -147,6 +151,7 @@ class CRMDB {
         const { data: newData } = await this.supabase
             .from('contacts')
             .select('*, companies(name)')
+            .eq('owner', owner)
             .gte('created_at', todayDate)
             .order('created_at', { ascending: false });
 
@@ -176,7 +181,8 @@ class CRMDB {
             brevo_synced: false
         };
 
-        const contact = { ...defaults, ...contactData };
+        const owner = window.crmAuth.getOwner();
+        const contact = { ...defaults, ...contactData, owner };
 
         const { data, error } = await this.supabase
             .from('contacts')
@@ -242,10 +248,12 @@ class CRMDB {
      * Sync all unsynced contacts to Brevo
      */
     async syncAllToBrevo() {
+        const owner = window.crmAuth.getOwner();
         // Get all unsynced contacts
         const { data: contacts, error } = await this.supabase
             .from('contacts')
             .select('*, companies(name)')
+            .eq('owner', owner)
             .eq('brevo_synced', false);
 
         if (error || !contacts) {
@@ -441,13 +449,15 @@ class CRMDB {
      * Log an activity for a contact
      */
     async logActivity(contactId, activity) {
+        const owner = window.crmAuth.getOwner();
         const { data, error } = await this.supabase
             .from('activities')
             .insert([{
                 contact_id: contactId,
                 activity_type: activity.type,
                 outcome: activity.outcome || null,
-                notes: activity.notes || null
+                notes: activity.notes || null,
+                owner: owner
             }])
             .select()
             .single();
@@ -542,6 +552,7 @@ class CRMDB {
      */
     async getAllActivities(dateFrom = null, dateTo = null) {
         try {
+            const owner = window.crmAuth.getOwner();
             let query = this.supabase
                 .from('activities')
                 .select(`
@@ -555,6 +566,7 @@ class CRMDB {
                         )
                     )
                 `)
+                .eq('owner', owner)
                 .order('created_at', { ascending: false });
 
             if (dateFrom) {
@@ -590,15 +602,19 @@ class CRMDB {
      * Get dashboard stats (total leads, activity counts, outcomes)
      */
     async getDashboardStats() {
+        const owner = window.crmAuth.getOwner();
+
         // Get total contacts count
         const { count: totalContacts } = await this.supabase
             .from('contacts')
-            .select('*', { count: 'exact', head: true });
+            .select('*', { count: 'exact', head: true })
+            .eq('owner', owner);
 
         // Get contacts by status
         const { data: statusData } = await this.supabase
             .from('contacts')
-            .select('status');
+            .select('status')
+            .eq('owner', owner);
 
         const statusCounts = {};
         (statusData || []).forEach(c => {
@@ -609,7 +625,8 @@ class CRMDB {
         // Get all activities for outcome counting
         const { data: activities } = await this.supabase
             .from('activities')
-            .select('activity_type, outcome, created_at');
+            .select('activity_type, outcome, created_at')
+            .eq('owner', owner);
 
         // Count activities by type
         const activityCounts = { call: 0, email: 0, meeting: 0, note: 0 };

@@ -19,6 +19,7 @@ export default async function handler(req, res) {
             success: true,
             token,
             role: 'admin',
+            owner: 'marcos',
             message: 'Login successful'
         });
     }
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
             success: true,
             token,
             role: 'team',
+            owner: 'joy',
             message: 'Login successful'
         });
     }

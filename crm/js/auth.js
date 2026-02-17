@@ -6,6 +6,7 @@ class CRMAuth {
     constructor() {
         this.sessionKey = window.CRM_CONFIG.SESSION_KEY;
         this.roleKey = 'crm_user_role';
+        this.ownerKey = 'crm_user_owner';
     }
 
     /**
@@ -28,6 +29,13 @@ class CRMAuth {
      */
     isAdmin() {
         return this.getRole() === 'admin';
+    }
+
+    /**
+     * Get current owner identifier (e.g. 'marcos', 'joy')
+     */
+    getOwner() {
+        return localStorage.getItem(this.ownerKey) || 'marcos';
     }
 
     /**
@@ -55,6 +63,7 @@ class CRMAuth {
             if (data.success && data.token) {
                 localStorage.setItem(this.sessionKey, data.token);
                 localStorage.setItem(this.roleKey, data.role || 'admin');
+                localStorage.setItem(this.ownerKey, data.owner || 'marcos');
                 return { success: true };
             }
 
@@ -71,6 +80,7 @@ class CRMAuth {
     logout() {
         localStorage.removeItem(this.sessionKey);
         localStorage.removeItem(this.roleKey);
+        localStorage.removeItem(this.ownerKey);
     }
 }
 
