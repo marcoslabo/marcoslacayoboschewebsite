@@ -5,6 +5,7 @@
 class CRMAuth {
     constructor() {
         this.sessionKey = window.CRM_CONFIG.SESSION_KEY;
+        this.roleKey = 'crm_user_role';
     }
 
     /**
@@ -13,6 +14,20 @@ class CRMAuth {
     isLoggedIn() {
         const token = localStorage.getItem(this.sessionKey);
         return token && token.startsWith('crm_');
+    }
+
+    /**
+     * Get current user role ('admin' or 'team')
+     */
+    getRole() {
+        return localStorage.getItem(this.roleKey) || 'team';
+    }
+
+    /**
+     * Check if current user is admin
+     */
+    isAdmin() {
+        return this.getRole() === 'admin';
     }
 
     /**
@@ -39,6 +54,7 @@ class CRMAuth {
 
             if (data.success && data.token) {
                 localStorage.setItem(this.sessionKey, data.token);
+                localStorage.setItem(this.roleKey, data.role || 'admin');
                 return { success: true };
             }
 
@@ -54,6 +70,7 @@ class CRMAuth {
      */
     logout() {
         localStorage.removeItem(this.sessionKey);
+        localStorage.removeItem(this.roleKey);
     }
 }
 

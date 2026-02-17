@@ -5,19 +5,31 @@ export default async function handler(req, res) {
     }
 
     const { password } = req.body;
-    const correctPassword = process.env.CRM_PASSWORD;
+    const adminPassword = process.env.CRM_PASSWORD;
+    const teamPassword = process.env.CRM_TEAM_PASSWORD;
 
-    if (!correctPassword) {
+    if (!adminPassword) {
         return res.status(500).json({ error: 'CRM password not configured' });
     }
 
-    if (password === correctPassword) {
-        // Generate a simple session token (timestamp + random)
+    // Admin login (Marcos) — full access
+    if (password === adminPassword) {
         const token = `crm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         return res.status(200).json({
             success: true,
             token,
+            role: 'admin',
+            message: 'Login successful'
+        });
+    }
+
+    // Team login (Joy) — contacts & activity only
+    if (teamPassword && password === teamPassword) {
+        const token = `crm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return res.status(200).json({
+            success: true,
+            token,
+            role: 'team',
             message: 'Login successful'
         });
     }

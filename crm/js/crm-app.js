@@ -37,6 +37,17 @@ class CRMApp {
     showApp() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('app').style.display = 'block';
+        this.applyRoleVisibility();
+    }
+
+    /**
+     * Hide/show UI elements based on user role
+     */
+    applyRoleVisibility() {
+        const isAdmin = window.crmAuth.isAdmin();
+        document.querySelectorAll('[data-admin-only]').forEach(el => {
+            el.style.display = isAdmin ? '' : 'none';
+        });
     }
 
     setupLoginHandler() {
@@ -82,28 +93,33 @@ class CRMApp {
             await this.renderContactDetail(params.id);
         });
 
-        // Blog - List
+        // Blog - List (admin only)
         window.crmRouter.on('/blog', async () => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
             await this.renderBlogList();
         });
 
-        // Blog - New Post
+        // Blog - New Post (admin only)
         window.crmRouter.on('/blog/new', async () => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
             await this.renderBlogEditor();
         });
 
-        // Blog - Edit Post
+        // Blog - Edit Post (admin only)
         window.crmRouter.on('/blog/edit/:id', async (params) => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
             await this.renderBlogEditor(params.id);
         });
 
-        // Spark - List
+        // Spark - List (admin only)
         window.crmRouter.on('/spark', async () => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
             await this.renderSparkList();
         });
 
-        // Spark - Detail
+        // Spark - Detail (admin only)
         window.crmRouter.on('/spark/:id', async (params) => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
             await this.renderSparkDetail(params.id);
         });
 
@@ -681,6 +697,14 @@ class CRMApp {
             const listToTag = { 15: 'met-lead', 16: 'direct-lead', 17: 'linkedin-lead', 18: 'referral-lead', 14: 'spark-lead' };
             contact.brevo_tag = listToTag[listId] || 'met-lead';
             await window.crmDB.syncToBrevo(contact);
+
+            // Log activity: contact added to Brevo
+            await window.crmDB.logActivity(id, {
+                type: 'email',
+                outcome: 'sent',
+                notes: `Added to Brevo list: ${listName}`
+            });
+
             await this.renderContactDetail(id);
         } catch (error) {
             alert('Push failed: ' + error.message);
@@ -1704,6 +1728,27 @@ class CRMApp {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
+
+            // Log activity for all contacts that have been synced to Brevo
+            try {
+                const { data: contacts } = await window.crmDB.supabase
+                    .from('contacts')
+                    .select('id')
+                    .eq('brevo_synced', true);
+
+                if (contacts && contacts.length > 0) {
+                    const activityPromises = contacts.map(c =>
+                        window.crmDB.logActivity(c.id, {
+                            type: 'email',
+                            outcome: 'sent',
+                            notes: `Blog campaign sent: "${post.title}" (List: ${listName})`
+                        }).catch(err => console.warn('Activity log failed for', c.id, err))
+                    );
+                    await Promise.all(activityPromises);
+                }
+            } catch (logErr) {
+                console.warn('Campaign activity logging failed:', logErr);
+            }
 
             alert(`✅ Blog emailed to "${listName}" successfully!`);
         } catch (error) {

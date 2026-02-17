@@ -51,14 +51,14 @@
                 <a href="#/" class="nav-link" data-route="dashboard">Today</a>
                 <a href="#/contacts" class="nav-link" data-route="contacts">All Contacts</a>
                 <a href="#/activity-log" class="nav-link" data-route="activity-log">📋 Activity Log</a>
-                <a href="#/spark" class="nav-link" data-route="spark">⚡ Spark</a>
-                <a href="#/blog" class="nav-link" data-route="blog">✍️ Blog</a>
+                <a href="#/spark" class="nav-link" data-route="spark" data-admin-only>⚡ Spark</a>
+                <a href="#/blog" class="nav-link" data-route="blog" data-admin-only>✍️ Blog</a>
             </nav>
             <div class="header-right">
                 <button id="importCsvBtn" class="btn btn-ghost btn-sm" onclick="window.crmApp.openCsvImport()"
-                    title="Import contacts from CSV">📥 Import</button>
+                    title="Import contacts from CSV" data-admin-only>📥 Import</button>
                 <button id="syncBrevoBtn" class="btn btn-ghost btn-sm" onclick="window.crmApp.syncAllToBrevo()"
-                    title="Sync unsynced contacts to Brevo">🔄 Brevo</button>
+                    title="Sync unsynced contacts to Brevo" data-admin-only>🔄 Brevo</button>
                 <button id="quickAddBtn" class="btn btn-primary btn-sm">+ Quick Add</button>
                 <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
             </div>
