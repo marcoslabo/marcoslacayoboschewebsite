@@ -23,6 +23,10 @@ export default async function handler(req, res) {
                 name: 'Marcos Bosche',
                 email: 'marcos@marcoslacayobosche.com'
             },
+            replyTo: {
+                name: 'Marcos Bosche',
+                email: 'marcos.bosche@nymbl.app'
+            },
             type: 'classic',
             htmlContent: buildEmailHtml(title, content, excerpt, blogUrl),
             recipients: {
