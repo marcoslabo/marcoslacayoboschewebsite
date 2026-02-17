@@ -541,41 +541,46 @@ class CRMDB {
      * Returns activities joined with contact name/company
      */
     async getAllActivities(dateFrom = null, dateTo = null) {
-        let query = this.supabase
-            .from('activities')
-            .select(`
-                *,
-                contacts:contact_id (
-                    id,
-                    name,
-                    company
-                )
-            `)
-            .order('created_at', { ascending: false });
+        try {
+            let query = this.supabase
+                .from('activities')
+                .select(`
+                    *,
+                    contacts:contact_id (
+                        id,
+                        name,
+                        company
+                    )
+                `)
+                .order('created_at', { ascending: false });
 
-        if (dateFrom) {
-            query = query.gte('created_at', dateFrom);
+            if (dateFrom) {
+                query = query.gte('created_at', dateFrom);
+            }
+            if (dateTo) {
+                // Add 1 day to dateTo to include the full end date
+                const endDate = new Date(dateTo);
+                endDate.setDate(endDate.getDate() + 1);
+                query = query.lt('created_at', endDate.toISOString().split('T')[0]);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('Error fetching all activities:', error);
+                throw new Error(error.message || 'Failed to fetch activities');
+            }
+
+            return (data || []).map(a => ({
+                ...a,
+                contact_name: a.contacts?.name || 'Unknown',
+                contact_company: a.contacts?.company || '',
+                contact_id: a.contact_id
+            }));
+        } catch (err) {
+            console.error('getAllActivities error:', err);
+            throw err;
         }
-        if (dateTo) {
-            // Add 1 day to dateTo to include the full end date
-            const endDate = new Date(dateTo);
-            endDate.setDate(endDate.getDate() + 1);
-            query = query.lt('created_at', endDate.toISOString().split('T')[0]);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-            console.error('Error fetching all activities:', error);
-            return [];
-        }
-
-        return (data || []).map(a => ({
-            ...a,
-            contact_name: a.contacts?.name || 'Unknown',
-            contact_company: a.contacts?.company || '',
-            contact_id: a.contact_id
-        }));
     }
 
     /**
