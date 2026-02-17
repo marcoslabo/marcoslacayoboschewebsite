@@ -56,11 +56,12 @@ class CRMApp {
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const email = document.getElementById('emailInput').value;
             const password = document.getElementById('passwordInput').value;
 
             errorEl.textContent = '';
 
-            const result = await window.crmAuth.login(password);
+            const result = await window.crmAuth.login(email, password);
 
             if (result.success) {
                 this.showApp();
