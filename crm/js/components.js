@@ -439,6 +439,120 @@ const CRMComponents = {
                 <p>${message}</p>
             </div>
         `;
+    },
+
+    // ==========================================================================
+    // Activity Log
+    // ==========================================================================
+
+    renderActivityLog(activities, filters = {}) {
+        const activePreset = filters.preset || 'all';
+        const dateFrom = filters.dateFrom || '';
+        const dateTo = filters.dateTo || '';
+
+        // Summary stats
+        const stats = { call: 0, email: 0, meeting: 0, linkedin_message: 0, note: 0, status_change: 0 };
+        (activities || []).forEach(a => {
+            const type = a.activity_type || 'note';
+            stats[type] = (stats[type] || 0) + 1;
+        });
+
+        // Group by date
+        const grouped = {};
+        (activities || []).forEach(a => {
+            const date = new Date(a.created_at).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+            if (!grouped[date]) grouped[date] = [];
+            grouped[date].push(a);
+        });
+
+        const icons = {
+            'call': '📞', 'email': '✉️', 'meeting': '🤝',
+            'linkedin_message': '💼', 'note': '📝', 'status_change': '🔄'
+        };
+
+        const outcomeLabels = {
+            'no_answer': 'No Answer', 'left_voicemail': 'Left Voicemail',
+            'connected': 'Connected', 'scheduled_meeting': 'Scheduled Meeting',
+            'not_interested': 'Not Interested', 'sent': 'Sent',
+            'replied': 'Replied', 'bounced': 'Bounced',
+            'completed': 'Completed', 'no_show': 'No Show',
+            'rescheduled': 'Rescheduled', 'other': 'Other'
+        };
+
+        const activityRows = Object.entries(grouped).map(([date, items]) => `
+            <div class="activity-log-date-group">
+                <div class="activity-log-date-header">${date}</div>
+                ${items.map(a => {
+            const time = new Date(a.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const icon = icons[a.activity_type] || '📝';
+            const typeLabel = (a.activity_type || 'note').charAt(0).toUpperCase() + (a.activity_type || 'note').slice(1).replace('_', ' ');
+            const outcomeLabel = a.outcome ? outcomeLabels[a.outcome] || a.outcome : '';
+            return `
+                        <div class="activity-log-item">
+                            <div class="activity-log-icon">${icon}</div>
+                            <div class="activity-log-content">
+                                <div class="activity-log-header">
+                                    <span class="activity-log-type">${typeLabel}${outcomeLabel ? ` — ${outcomeLabel}` : ''}</span>
+                                    <span class="activity-log-time">${time}</span>
+                                </div>
+                                <a href="#/contact/${a.contact_id}" class="activity-log-contact">${a.contact_name}${a.contact_company ? ` · ${a.contact_company}` : ''}</a>
+                                ${a.notes ? `<div class="activity-log-notes">${a.notes}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+        }).join('')}
+            </div>
+        `).join('');
+
+        return `
+            <div class="page-header">
+                <h1 class="page-title">📋 Activity Log</h1>
+                <p class="page-subtitle">Everything you've done, filterable by date</p>
+            </div>
+
+            <div class="activity-log-filters">
+                <div class="activity-log-presets">
+                    <button class="activity-preset-btn ${activePreset === 'today' ? 'active' : ''}" onclick="window.crmApp.filterActivities('today')">Today</button>
+                    <button class="activity-preset-btn ${activePreset === 'week' ? 'active' : ''}" onclick="window.crmApp.filterActivities('week')">This Week</button>
+                    <button class="activity-preset-btn ${activePreset === 'month' ? 'active' : ''}" onclick="window.crmApp.filterActivities('month')">This Month</button>
+                    <button class="activity-preset-btn ${activePreset === 'all' ? 'active' : ''}" onclick="window.crmApp.filterActivities('all')">All Time</button>
+                </div>
+                <div class="activity-log-custom">
+                    <input type="date" id="activityDateFrom" value="${dateFrom}" onchange="window.crmApp.filterActivitiesCustom()">
+                    <span style="color: var(--color-text-muted);">to</span>
+                    <input type="date" id="activityDateTo" value="${dateTo}" onchange="window.crmApp.filterActivitiesCustom()">
+                </div>
+            </div>
+
+            <div class="stats-grid" style="margin-bottom: 16px;">
+                <div class="stat-card">
+                    <div class="stat-number">${activities.length}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.call}</div>
+                    <div class="stat-label">Calls</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.email}</div>
+                    <div class="stat-label">Emails</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.meeting}</div>
+                    <div class="stat-label">Meetings</div>
+                </div>
+            </div>
+
+            <div class="card">
+                ${activities.length === 0 ? `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <h3 class="empty-state-title">No activities found</h3>
+                        <p>Try a different date range.</p>
+                    </div>
+                ` : activityRows}
+            </div>
+        `;
     }
 };
 

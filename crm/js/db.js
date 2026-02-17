@@ -536,6 +536,47 @@ class CRMDB {
 
         return this.updateContact(contactId, updates);
     }
+    /**
+     * Get all activities across all contacts, with optional date range filter
+     * Returns activities joined with contact name/company
+     */
+    async getAllActivities(dateFrom = null, dateTo = null) {
+        let query = this.supabase
+            .from('activities')
+            .select(`
+                *,
+                contacts:contact_id (
+                    id,
+                    name,
+                    company
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (dateFrom) {
+            query = query.gte('created_at', dateFrom);
+        }
+        if (dateTo) {
+            // Add 1 day to dateTo to include the full end date
+            const endDate = new Date(dateTo);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.lt('created_at', endDate.toISOString().split('T')[0]);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Error fetching all activities:', error);
+            return [];
+        }
+
+        return (data || []).map(a => ({
+            ...a,
+            contact_name: a.contacts?.name || 'Unknown',
+            contact_company: a.contacts?.company || '',
+            contact_id: a.contact_id
+        }));
+    }
 
     /**
      * Get dashboard stats (total leads, activity counts, outcomes)

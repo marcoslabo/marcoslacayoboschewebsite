@@ -106,6 +106,11 @@ class CRMApp {
         window.crmRouter.on('/spark/:id', async (params) => {
             await this.renderSparkDetail(params.id);
         });
+
+        // Activity Log
+        window.crmRouter.on('/activity-log', async () => {
+            await this.renderActivityLog();
+        });
     }
 
     // ==========================================================================
@@ -1671,6 +1676,68 @@ class CRMApp {
             alert(`✅ Blog emailed to "${listName}" successfully!`);
         } catch (error) {
             alert('Error sending to Brevo: ' + error.message);
+        }
+    }
+
+    // ==========================================================================
+    // Activity Log
+    // ==========================================================================
+
+    async renderActivityLog(preset = 'all', dateFrom = null, dateTo = null) {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = window.CRMComponents.renderLoading();
+
+        try {
+            // Calculate date range from preset
+            const today = new Date();
+            let from = dateFrom;
+            let to = dateTo;
+
+            if (!from && !to) {
+                switch (preset) {
+                    case 'today':
+                        from = today.toISOString().split('T')[0];
+                        to = from;
+                        break;
+                    case 'week': {
+                        const weekStart = new Date(today);
+                        weekStart.setDate(today.getDate() - today.getDay());
+                        from = weekStart.toISOString().split('T')[0];
+                        to = today.toISOString().split('T')[0];
+                        break;
+                    }
+                    case 'month':
+                        from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                        to = today.toISOString().split('T')[0];
+                        break;
+                    case 'all':
+                    default:
+                        from = null;
+                        to = null;
+                        break;
+                }
+            }
+
+            const activities = await window.crmDB.getAllActivities(from, to);
+            main.innerHTML = window.CRMComponents.renderActivityLog(activities, {
+                preset: (dateFrom || dateTo) ? 'custom' : preset,
+                dateFrom: from || '',
+                dateTo: to || ''
+            });
+        } catch (error) {
+            main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    filterActivities(preset) {
+        this.renderActivityLog(preset);
+    }
+
+    filterActivitiesCustom() {
+        const from = document.getElementById('activityDateFrom')?.value;
+        const to = document.getElementById('activityDateTo')?.value;
+        if (from && to) {
+            this.renderActivityLog('custom', from, to);
         }
     }
 }

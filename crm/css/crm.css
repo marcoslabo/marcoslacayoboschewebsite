@@ -808,3 +808,162 @@ body {
 .stat-outcome strong {
     color: var(--color-text);
 }
+
+/* ==========================================================================
+   Activity Log
+   ========================================================================== */
+
+.activity-log-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.activity-log-presets {
+    display: flex;
+    gap: 6px;
+}
+
+.activity-preset-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 13px;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.activity-preset-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.activity-preset-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+
+.activity-log-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.activity-log-custom input[type="date"] {
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+
+.activity-log-date-group {
+    margin-bottom: 4px;
+}
+
+.activity-log-date-header {
+    padding: 10px 16px;
+    background: var(--color-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.activity-log-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.1s ease;
+}
+
+.activity-log-item:hover {
+    background: #fafbfc;
+}
+
+.activity-log-item:last-child {
+    border-bottom: none;
+}
+
+.activity-log-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+.activity-log-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.activity-log-type {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+.activity-log-time {
+    font-size: 12px;
+    color: var(--color-text-light);
+    flex-shrink: 0;
+}
+
+.activity-log-contact {
+    font-size: 13px;
+    color: var(--color-primary);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.activity-log-contact:hover {
+    text-decoration: underline;
+}
+
+.activity-log-notes {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+    .activity-log-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .activity-log-custom {
+        margin-left: 0;
+    }
+
+    .activity-log-presets {
+        flex-wrap: wrap;
+    }
+}
