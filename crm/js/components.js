@@ -64,6 +64,10 @@ const CRMComponents = {
                     <div class="stat-label">Calls Made</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-number">${stats.activityCounts?.linkedin || 0}</div>
+                    <div class="stat-label">LinkedIn</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-number">${stats.activityCounts?.email || 0}</div>
                     <div class="stat-label">Emails Sent</div>
                 </div>
@@ -481,7 +485,7 @@ const CRMComponents = {
 
         const icons = {
             'call': '📞', 'email': '✉️', 'meeting': '🤝',
-            'linkedin_message': '💼', 'note': '📝', 'status_change': '🔄'
+            'linkedin': '🔗', 'note': '📝', 'status_change': '🔄'
         };
 
         const outcomeLabels = {

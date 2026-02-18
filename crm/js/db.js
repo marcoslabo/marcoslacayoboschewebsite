@@ -632,7 +632,7 @@ class CRMDB {
             .eq('owner', owner);
 
         // Count activities by type
-        const activityCounts = { call: 0, email: 0, meeting: 0, note: 0 };
+        const activityCounts = { call: 0, email: 0, meeting: 0, linkedin: 0, note: 0 };
         const outcomeCounts = {};
 
         (activities || []).forEach(a => {

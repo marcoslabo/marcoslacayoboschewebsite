@@ -231,7 +231,7 @@ class CRMApp {
                     'call': '📞',
                     'email': '✉️',
                     'meeting': '🤝',
-                    'linkedin_message': '💼',
+                    'linkedin': '🔗',
                     'note': '📝',
                     'status_change': '🔄'
                 };
