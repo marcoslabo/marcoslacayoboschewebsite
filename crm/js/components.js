@@ -469,7 +469,7 @@ const CRMComponents = {
         const dateTo = filters.dateTo || '';
 
         // Summary stats
-        const stats = { call: 0, email: 0, meeting: 0, linkedin_message: 0, note: 0, status_change: 0 };
+        const stats = { call: 0, email: 0, meeting: 0, linkedin: 0, note: 0, status_change: 0 };
         (activities || []).forEach(a => {
             const type = a.activity_type || 'note';
             stats[type] = (stats[type] || 0) + 1;
@@ -550,6 +550,10 @@ const CRMComponents = {
                 <div class="stat-card">
                     <div class="stat-number">${stats.call}</div>
                     <div class="stat-label">Calls</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.linkedin}</div>
+                    <div class="stat-label">LinkedIn</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${stats.email}</div>
