@@ -866,31 +866,66 @@ class CRMApp {
 
     handleCsvDrop(event) {
         const file = event.dataTransfer.files[0];
-        if (file && file.name.endsWith('.csv')) {
+        if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
             this.parseCsvFile(file);
         }
     }
 
     parseCsvFile(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target.result;
-            const rows = this.parseCSV(text);
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
-            if (rows.length < 2) {
-                alert('CSV file is empty or has no data rows.');
-                return;
-            }
+        if (isExcel) {
+            // Parse Excel with SheetJS
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
 
-            this.csvData = {
-                headers: rows[0],
-                rows: rows.slice(1),
-                columnMap: this.autoMapColumns(rows[0])
+                    if (rows.length < 2) {
+                        alert('Excel file is empty or has no data rows.');
+                        return;
+                    }
+
+                    // Convert all values to strings for consistency
+                    const stringRows = rows.map(row => row.map(cell => String(cell || '')));
+
+                    this.csvData = {
+                        headers: stringRows[0],
+                        rows: stringRows.slice(1).filter(row => row.some(cell => cell.trim())), // Remove empty rows
+                        columnMap: this.autoMapColumns(stringRows[0])
+                    };
+
+                    this.showCsvPreview();
+                } catch (err) {
+                    alert('Error parsing Excel file: ' + err.message);
+                }
             };
+            reader.readAsArrayBuffer(file);
+        } else {
+            // Parse CSV as before
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const rows = this.parseCSV(text);
 
-            this.showCsvPreview();
-        };
-        reader.readAsText(file);
+                if (rows.length < 2) {
+                    alert('CSV file is empty or has no data rows.');
+                    return;
+                }
+
+                this.csvData = {
+                    headers: rows[0],
+                    rows: rows.slice(1),
+                    columnMap: this.autoMapColumns(rows[0])
+                };
+
+                this.showCsvPreview();
+            };
+            reader.readAsText(file);
+        }
     }
 
     parseCSV(text) {

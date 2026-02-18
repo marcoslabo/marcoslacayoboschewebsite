@@ -211,7 +211,7 @@
         <div class="modal-backdrop"></div>
         <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
             <div class="modal-header">
-                <h2>📥 Import Contacts from CSV</h2>
+                <h2>📥 Import Contacts</h2>
                 <button class="modal-close" onclick="window.crmApp.closeCsvImport()">&times;</button>
             </div>
 
@@ -227,10 +227,10 @@
                         ondragleave="this.style.borderColor='#cbd5e1'; this.style.background='white';"
                         ondrop="event.preventDefault(); this.style.borderColor='#cbd5e1'; this.style.background='white'; window.crmApp.handleCsvDrop(event);">
                         <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-                        <p style="font-weight: 600; margin-bottom: 4px;">Drop CSV file here or click to browse</p>
-                        <p style="font-size: 14px; color: #94a3b8;">Supports .csv files</p>
+                        <p style="font-weight: 600; margin-bottom: 4px;">Drop file here or click to browse</p>
+                        <p style="font-size: 14px; color: #94a3b8;">Supports .csv, .xlsx, and .xls files</p>
                     </div>
-                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
+                    <input type="file" id="csvFileInput" accept=".csv,.xlsx,.xls" style="display: none;"
                         onchange="window.crmApp.handleCsvSelect(event)">
                 </div>
 
@@ -489,6 +489,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
