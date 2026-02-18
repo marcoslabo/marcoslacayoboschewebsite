@@ -296,6 +296,7 @@ const CRMComponents = {
                 ? `<span class="badge" style="background: #d1fae5; color: #047857;">✓ In Brevo (${contact.brevo_tag || 'synced'})</span>`
                 : (window.crmAuth?.isAdmin() ? `<div style="display: flex; gap: 8px; align-items: center;">
                         <select id="brevoListSelect" class="filter-select" style="font-size: 13px; padding: 4px 8px;">
+                            <option value="19">🏥 HIMSS 26</option>
                             <option value="15">Met in Person</option>
                             <option value="16">Direct Call</option>
                             <option value="17">LinkedIn</option>
