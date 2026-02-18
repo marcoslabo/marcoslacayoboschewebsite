@@ -361,8 +361,8 @@
                     style="margin-top: 20px; padding: 16px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
                     <label style="font-weight: 600; display: block; margin-bottom: 12px;">📅 What's next?</label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <select id="logNextAction"
-                            style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <select id="logNextAction" style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;"
+                            onchange="document.getElementById('logNextDate').style.display = this.value === 'None' ? 'none' : 'block'">
                             <option value="None">Done for now</option>
                             <option value="Call">Call</option>
                             <option value="Email">Email</option>
@@ -370,7 +370,7 @@
                             <option value="Follow Up">Follow up</option>
                         </select>
                         <input type="date" id="logNextDate"
-                            style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; display: none;">
                     </div>
                 </div>
 
