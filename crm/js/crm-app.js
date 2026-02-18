@@ -1628,6 +1628,7 @@ class CRMApp {
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             <select id="brevoSendList" class="filter-select" style="padding: 8px 12px; min-width: 180px;">
                                 <option value="all">📋 All Lists</option>
+                                <option value="19">🏥 HIMSS 26</option>
                                 <option value="15">Met in Person</option>
                                 <option value="16">Direct Call</option>
                                 <option value="17">LinkedIn</option>
@@ -1780,7 +1781,7 @@ class CRMApp {
         // Determine list IDs
         let listIds;
         if (selectedValue === 'all') {
-            listIds = [14, 15, 16, 17, 18]; // All lists
+            listIds = [14, 15, 16, 17, 18, 19]; // All lists including HIMSS 26
         } else {
             listIds = [parseInt(selectedValue)];
         }
