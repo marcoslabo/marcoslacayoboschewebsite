@@ -37,6 +37,9 @@ class CRMDB {
         if (filters.status) {
             query = query.eq('status', filters.status);
         }
+        if (filters.event_tag) {
+            query = query.eq('event_tag', filters.event_tag);
+        }
         if (filters.search) {
             query = query.or(`first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
         }

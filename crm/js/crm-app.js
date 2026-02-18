@@ -7,7 +7,8 @@ class CRMApp {
         this.filters = {
             search: '',
             source: '',
-            status: ''
+            status: '',
+            event_tag: ''
         };
         this.searchTimeout = null;
     }
@@ -186,6 +187,8 @@ class CRMApp {
         try {
             const contacts = await window.crmDB.getContacts(this.filters);
             main.innerHTML = window.CRMComponents.renderContactsList(contacts, this.filters);
+            // Load event tag options into the filter dropdown
+            await this.loadEventTagFilter();
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
         }
@@ -531,6 +534,69 @@ class CRMApp {
         this.renderContacts();
     }
 
+    handleEventTagFilter(value) {
+        this.filters.event_tag = value;
+        this.renderContacts();
+    }
+
+    async loadEventTagFilter() {
+        try {
+            const tags = await window.crmDB.getEventTags();
+            const select = document.getElementById('eventTagFilter');
+            if (select && tags.length > 0) {
+                select.innerHTML = '<option value="">All Campaigns</option>' +
+                    tags.map(t => `<option value="${t}" ${this.filters.event_tag === t ? 'selected' : ''}>${t}</option>`).join('');
+            }
+        } catch (e) {
+            console.log('Could not load event tags:', e);
+        }
+    }
+
+    async pushTaggedToBrevo() {
+        const tag = this.filters.event_tag;
+        if (!tag) return;
+
+        if (!confirm(`Push all "${tag}" contacts to Brevo? They'll be synced to the Brevo list for this campaign.`)) return;
+
+        try {
+            const contacts = await window.crmDB.getContacts({ event_tag: tag });
+            const withEmail = contacts.filter(c => c.email);
+
+            if (withEmail.length === 0) {
+                alert('No contacts with email addresses found for this tag.');
+                return;
+            }
+
+            let synced = 0;
+            let failed = 0;
+
+            for (const contact of withEmail) {
+                try {
+                    const success = await window.crmDB.syncToBrevo(contact);
+                    if (success) {
+                        synced++;
+                        // Log the activity
+                        await window.crmDB.logActivity(contact.id, {
+                            type: 'email',
+                            outcome: 'sent',
+                            notes: `Synced to Brevo for ${tag} campaign`
+                        });
+                    } else {
+                        failed++;
+                    }
+                } catch (e) {
+                    failed++;
+                    console.error('Sync error for', contact.email, e);
+                }
+            }
+
+            alert(`✅ Done! ${synced} contacts synced to Brevo. ${failed ? failed + ' failed.' : ''}`);
+            this.renderContacts();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
     // ==========================================================================
     // Actions
     // ==========================================================================
@@ -620,7 +686,17 @@ class CRMApp {
             document.getElementById('editSource').value = contact.source || 'Other';
             document.getElementById('editIntentReason').value = contact.intent_reason || '';
             document.getElementById('editSourceLinks').value = contact.source_links || '';
+            document.getElementById('editEventTag').value = contact.event_tag || '';
             document.getElementById('editProblem').value = contact.problem || '';
+
+            // Load event tag suggestions
+            try {
+                const tags = await window.crmDB.getEventTags();
+                const datalist = document.getElementById('editEventTagList');
+                datalist.innerHTML = tags.map(tag => `<option value="${tag}">`).join('');
+            } catch (e) {
+                console.log('Could not load event tags:', e);
+            }
 
             // Show modal
             document.getElementById('editContactModal').style.display = 'flex';
@@ -655,6 +731,7 @@ class CRMApp {
                 source: document.getElementById('editSource').value,
                 intent_reason: document.getElementById('editIntentReason').value.trim() || null,
                 source_links: document.getElementById('editSourceLinks').value.trim() || null,
+                event_tag: document.getElementById('editEventTag').value.trim() || null,
                 problem: document.getElementById('editProblem').value.trim() || null,
                 company_id: companyId
             };

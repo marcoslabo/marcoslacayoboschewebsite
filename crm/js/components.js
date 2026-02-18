@@ -174,7 +174,21 @@ const CRMComponents = {
                         <option value="${s}" ${filters.status === s ? 'selected' : ''}>${s}</option>
                     `).join('')}
                 </select>
+                <select class="filter-select" id="eventTagFilter" onchange="window.crmApp.handleEventTagFilter(this.value)">
+                    <option value="">All Campaigns</option>
+                </select>
             </div>
+
+            ${filters.event_tag ? `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 16px; background: #f5f3ff; border-radius: 8px; border: 1px solid #ddd6fe;">
+                    <span style="font-size: 14px; color: #7c3aed; font-weight: 600;">🏷️ Showing: ${filters.event_tag}</span>
+                    <span style="font-size: 13px; color: #6b7280;">${contacts.length} contacts</span>
+                    <button onclick="window.crmApp.pushTaggedToBrevo()" 
+                        style="margin-left: auto; background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        📤 Push All to Brevo List
+                    </button>
+                </div>
+            ` : ''}
 
             <div class="card">
                 ${contacts.length ? `
@@ -213,7 +227,7 @@ const CRMComponents = {
 
         return `
             <tr onclick="window.crmApp.goToContact('${contact.id}')">
-                <td class="contact-name">${contact.first_name} ${contact.last_name}${contact.brevo_synced ? ' <span style="color: #059669; font-size: 11px;" title="In Brevo">✓ Brevo</span>' : ''}</td>
+                <td class="contact-name">${contact.first_name} ${contact.last_name}${contact.brevo_synced ? ' <span style="color: #059669; font-size: 11px;" title="In Brevo">✓ Brevo</span>' : ''}${contact.event_tag ? ` <span style="background: #f5f3ff; color: #7c3aed; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${contact.event_tag}</span>` : ''}</td>
                 <td>${companyName}</td>
                 <td>${this.renderSourceBadge(contact.source)}</td>
                 <td>${this.renderStatusBadge(contact.status)}</td>
