@@ -512,11 +512,11 @@ class CRMDB {
     /**
      * Log action completion with outcome and set next action
      */
-    async completeAction(contactId, outcome, notes, nextAction, nextActionDate) {
+    async completeAction(contactId, outcome, notes, nextAction, nextActionDate, overrideType) {
         const contact = await this.getContact(contactId);
 
-        // Normalize activity type to match database constraint
-        const rawType = (contact.next_action || 'note').toLowerCase();
+        // Use override type from dropdown if provided, otherwise fall back to contact's next_action
+        const rawType = (overrideType || contact.next_action || 'note').toLowerCase();
         const typeMap = {
             'call': 'call',
             'email': 'email',

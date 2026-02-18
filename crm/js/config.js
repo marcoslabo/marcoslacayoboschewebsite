@@ -36,6 +36,7 @@ const CRM_CONFIG = {
     NEXT_ACTIONS: [
         'Call',
         'Email',
+        'LinkedIn',
         'Follow Up',
         'None'
     ],

@@ -1264,6 +1264,7 @@ class CRMApp {
 
     async submitLogOutcome() {
         const contactId = document.getElementById('logContactId').value;
+        const activityType = document.getElementById('logActivityType').value; // User's actual selection
         const outcome = document.querySelector('input[name="outcome"]:checked')?.value;
         const notes = document.getElementById('logNotes').value.trim();
         const nextAction = document.getElementById('logNextAction').value;
@@ -1280,7 +1281,8 @@ class CRMApp {
                 outcome,
                 notes,
                 nextAction,
-                nextAction !== 'None' ? nextDate : null
+                nextAction !== 'None' ? nextDate : null,
+                activityType  // Pass the actual selected type
             );
 
             this.closeLogOutcome();
