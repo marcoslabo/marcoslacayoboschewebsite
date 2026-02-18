@@ -80,9 +80,19 @@ async function syncContact(apiKey, contact) {
         'other-lead': 15       // Default to Met In Person
     };
 
-    // Always add to a list - default to Met In Person (15) if no tag match
+    // Event tag → Brevo list mapping (for campaign-specific lists)
+    const eventListMap = {
+        'HIMSS 26': 19
+    };
+
+    // Always add to source-based list
     const listId = (tag && listMap[tag]) ? listMap[tag] : 15;
     payload.listIds = [listId];
+
+    // If contact has an event tag with a dedicated list, add to that list too
+    if (eventTag && eventListMap[eventTag]) {
+        payload.listIds.push(eventListMap[eventTag]);
+    }
 
     const response = await fetch('https://api.brevo.com/v3/contacts', {
         method: 'POST',
