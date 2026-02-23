@@ -25,6 +25,7 @@ export default async function handler(req, res) {
             },
 
             type: 'classic',
+            sendAtBestTime: true,
             htmlContent: buildEmailHtml(title, content, excerpt, blogUrl),
             recipients: {
                 listIds: listIds.map(Number)
