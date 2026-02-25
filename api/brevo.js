@@ -85,13 +85,13 @@ async function syncContact(apiKey, contact) {
         'HIMSS 26': 19
     };
 
-    // Always add to source-based list
-    const listId = (tag && listMap[tag]) ? listMap[tag] : 15;
-    payload.listIds = [listId];
-
-    // If contact has an event tag with a dedicated list, add to that list too
+    // If contact has a dedicated event list, use ONLY that list (avoid double-sending)
+    // Otherwise, fall back to source-based list
     if (eventTag && eventListMap[eventTag]) {
-        payload.listIds.push(eventListMap[eventTag]);
+        payload.listIds = [eventListMap[eventTag]];
+    } else {
+        const listId = (tag && listMap[tag]) ? listMap[tag] : 15;
+        payload.listIds = [listId];
     }
 
     const response = await fetch('https://api.brevo.com/v3/contacts', {
