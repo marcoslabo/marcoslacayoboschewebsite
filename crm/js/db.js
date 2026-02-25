@@ -169,17 +169,9 @@ class CRMDB {
     async createContact(contactData, options = {}) {
         // Set defaults based on source
         const source = contactData.source;
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const fiveDaysLater = new Date();
-        fiveDaysLater.setDate(fiveDaysLater.getDate() + 5);
 
         const defaults = {
             status: 'New',
-            next_action: 'Call',
-            next_action_date: source === 'Clay Import'
-                ? fiveDaysLater.toISOString().split('T')[0]
-                : tomorrow.toISOString().split('T')[0],
             brevo_tag: window.CRM_CONFIG.BREVO_TAGS[source] || 'other-lead',
             brevo_synced: false
         };
