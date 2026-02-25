@@ -136,6 +136,10 @@ class CRMApp {
     // ==========================================================================
 
     setupEventListeners() {
+        // Prevent duplicate listeners if called multiple times
+        if (this._listenersSetup) return;
+        this._listenersSetup = true;
+
         // Quick Add button
         document.getElementById('quickAddBtn').addEventListener('click', () => {
             this.openQuickAdd();
@@ -339,6 +343,10 @@ class CRMApp {
     }
 
     async handleQuickAdd(form) {
+        // Prevent double submissions
+        if (this._savingQuickAdd) return;
+        this._savingQuickAdd = true;
+
         const formData = new FormData(form);
         const name = formData.get('name').trim();
         const nameParts = name.split(' ');
@@ -375,6 +383,8 @@ class CRMApp {
             }
         } catch (error) {
             alert('Error creating contact: ' + error.message);
+        } finally {
+            this._savingQuickAdd = false;
         }
     }
 
