@@ -571,16 +571,24 @@ class CRMApp {
         try {
             const contacts = await window.crmDB.getContacts({ event_tag: tag });
             const withEmail = contacts.filter(c => c.email);
+            // Skip contacts already synced to Brevo to prevent duplicates
+            const unsynced = withEmail.filter(c => !c.brevo_synced);
+            const alreadySynced = withEmail.length - unsynced.length;
 
             if (withEmail.length === 0) {
                 alert('No contacts with email addresses found for this tag.');
                 return;
             }
 
+            if (unsynced.length === 0) {
+                alert(`All ${alreadySynced} contacts with email are already synced to Brevo.`);
+                return;
+            }
+
             let synced = 0;
             let failed = 0;
 
-            for (const contact of withEmail) {
+            for (const contact of unsynced) {
                 try {
                     const success = await window.crmDB.syncToBrevo(contact);
                     if (success) {
@@ -600,7 +608,8 @@ class CRMApp {
                 }
             }
 
-            alert(`✅ Done! ${synced} contacts synced to Brevo. ${failed ? failed + ' failed.' : ''}`);
+            const skippedMsg = alreadySynced > 0 ? ` (${alreadySynced} already synced, skipped)` : '';
+            alert(`✅ Done! ${synced} contacts synced to Brevo.${skippedMsg} ${failed ? failed + ' failed.' : ''}`);
             this.renderContacts();
         } catch (error) {
             alert('Error: ' + error.message);
@@ -774,17 +783,22 @@ class CRMApp {
 
     async pushToBrevo(id) {
         const listSelect = document.getElementById('brevoListSelect');
-        const listId = listSelect ? parseInt(listSelect.value) : 7;
+        const listId = listSelect ? parseInt(listSelect.value) : 15;
         const listName = listSelect ? listSelect.options[listSelect.selectedIndex].text : 'Met in Person';
 
         if (!confirm(`Push this contact to Brevo list "${listName}"?`)) return;
 
         try {
             const contact = await window.crmDB.getContact(id);
-            // Override the tag based on selected list
-            const listToTag = { 15: 'met-lead', 16: 'direct-lead', 17: 'linkedin-lead', 18: 'referral-lead', 14: 'spark-lead' };
-            contact.brevo_tag = listToTag[listId] || 'met-lead';
-            await window.crmDB.syncToBrevo(contact);
+
+            // Guard: require email
+            if (!contact.email) {
+                alert('This contact has no email address. Add an email before pushing to Brevo.');
+                return;
+            }
+
+            // Pass the selected list ID directly to the API — no tag-based routing
+            await window.crmDB.syncToBrevo(contact, listId);
 
             // Log activity: contact added to Brevo
             await window.crmDB.logActivity(id, {

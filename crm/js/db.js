@@ -199,7 +199,13 @@ class CRMDB {
     /**
      * Sync contact to Brevo
      */
-    async syncToBrevo(contact) {
+    async syncToBrevo(contact, overrideListId = null) {
+        // Guard: no email means no Brevo sync
+        if (!contact.email) {
+            console.log('⏭️ Skipping Brevo sync — no email for:', contact.first_name, contact.last_name);
+            return false;
+        }
+
         try {
             const response = await fetch('/api/brevo', {
                 method: 'POST',
@@ -214,7 +220,8 @@ class CRMDB {
                         source: contact.source,
                         tag: contact.brevo_tag,
                         problem: contact.problem,
-                        eventTag: contact.event_tag  // Used to assign to Brevo list
+                        eventTag: contact.event_tag,
+                        listId: overrideListId  // When set, API uses this list directly
                     }
                 })
             });

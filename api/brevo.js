@@ -49,7 +49,7 @@ export default async function handler(req, res) {
  * Sync a contact to Brevo (create or update)
  */
 async function syncContact(apiKey, contact) {
-    const { email, firstName, lastName, company, source, tag, problem, eventTag } = contact;
+    const { email, firstName, lastName, company, source, tag, problem, eventTag, listId } = contact;
 
     // Build attributes
     const attributes = {
@@ -68,7 +68,7 @@ async function syncContact(apiKey, contact) {
         updateEnabled: true // Update if exists
     };
 
-    // Add list IDs based on tag (MarcosLacayoBosche folder in Brevo)
+    // List IDs based on tag (MarcosLacayoBosche folder in Brevo)
     const listMap = {
         'met-lead': 15,        // Met in Person
         'direct-lead': 16,     // Direct Call
@@ -85,13 +85,17 @@ async function syncContact(apiKey, contact) {
         'HIMSS 26': 19
     };
 
-    // If contact has a dedicated event list, use ONLY that list (avoid double-sending)
-    // Otherwise, fall back to source-based list
-    if (eventTag && eventListMap[eventTag]) {
+    // List assignment priority:
+    // 1. Explicit listId override (from dropdown selection) — user chose exactly this list
+    // 2. Event tag mapping (for campaign-specific lists)
+    // 3. Source tag mapping (fallback)
+    if (listId) {
+        payload.listIds = [listId];
+    } else if (eventTag && eventListMap[eventTag]) {
         payload.listIds = [eventListMap[eventTag]];
     } else {
-        const listId = (tag && listMap[tag]) ? listMap[tag] : 15;
-        payload.listIds = [listId];
+        const mappedListId = (tag && listMap[tag]) ? listMap[tag] : 15;
+        payload.listIds = [mappedListId];
     }
 
     const response = await fetch('https://api.brevo.com/v3/contacts', {

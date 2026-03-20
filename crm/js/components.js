@@ -294,17 +294,21 @@ const CRMComponents = {
                         ${this.renderStatusBadge(contact.status)}
                         ${contact.brevo_synced
                 ? `<span class="badge" style="background: #d1fae5; color: #047857;">✓ In Brevo (${contact.brevo_tag || 'synced'})</span>`
-                : (window.crmAuth?.isAdmin() ? `<div style="display: flex; gap: 8px; align-items: center;">
-                        <select id="brevoListSelect" class="filter-select" style="font-size: 13px; padding: 4px 8px;">
-                            <option value="19">🏥 HIMSS 26</option>
-                            <option value="15">Met in Person</option>
-                            <option value="16">Direct Call</option>
-                            <option value="17">LinkedIn</option>
-                            <option value="18">Referral</option>
-                            <option value="14">Spark Lead</option>
-                        </select>
-                        <button class="btn btn-sm btn-secondary" onclick="window.crmApp.pushToBrevo('${contact.id}')">Push to Brevo →</button>
-                    </div>` : '')
+                : (window.crmAuth?.isAdmin()
+                    ? (contact.email
+                        ? `<div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="brevoListSelect" class="filter-select" style="font-size: 13px; padding: 4px 8px;">
+                                <option value="19">🏥 HIMSS 26</option>
+                                <option value="15">Met in Person</option>
+                                <option value="16">Direct Call</option>
+                                <option value="17">LinkedIn</option>
+                                <option value="18">Referral</option>
+                                <option value="14">Spark Lead</option>
+                            </select>
+                            <button class="btn btn-sm btn-secondary" onclick="window.crmApp.pushToBrevo('${contact.id}')">Push to Brevo →</button>
+                        </div>`
+                        : `<span style="font-size: 12px; color: #94a3b8; font-style: italic;">Add email to sync to Brevo</span>`)
+                    : '')
             }
                     </div>
                 </div>
