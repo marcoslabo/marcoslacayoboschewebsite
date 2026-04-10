@@ -466,17 +466,22 @@ const CRMComponents = {
     // Activity Log
     // ==========================================================================
 
-    renderActivityLog(activities, filters = {}) {
+    renderActivityLog(activities, filters = {}, totalCounts = null) {
         const activePreset = filters.preset || 'all';
         const dateFrom = filters.dateFrom || '';
         const dateTo = filters.dateTo || '';
 
-        // Summary stats
-        const stats = { call: 0, email: 0, meeting: 0, linkedin: 0, note: 0, status_change: 0 };
-        (activities || []).forEach(a => {
-            const type = a.activity_type || 'note';
-            stats[type] = (stats[type] || 0) + 1;
-        });
+        // Use server-side counts if provided (bypasses 1000-row limit), else fall back to array count
+        let stats;
+        if (totalCounts) {
+            stats = totalCounts;
+        } else {
+            stats = { call: 0, email: 0, meeting: 0, linkedin: 0 };
+            (activities || []).forEach(a => {
+                const type = a.activity_type || 'note';
+                if (stats[type] !== undefined) stats[type]++;
+            });
+        }
 
         // Group by date
         const grouped = {};

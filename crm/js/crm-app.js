@@ -1907,7 +1907,6 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            // Calculate date range from preset
             const today = new Date();
             let from = dateFrom;
             let to = dateTo;
@@ -1937,12 +1936,17 @@ class CRMApp {
                 }
             }
 
-            const activities = await window.crmDB.getAllActivities(from, to);
+            // Fetch activities + server-side counts in parallel
+            const [activities, totalCounts] = await Promise.all([
+                window.crmDB.getAllActivities(from, to),
+                window.crmDB.getActivityCounts(from, to)
+            ]);
+
             main.innerHTML = window.CRMComponents.renderActivityLog(activities, {
                 preset: (dateFrom || dateTo) ? 'custom' : preset,
                 dateFrom: from || '',
                 dateTo: to || ''
-            });
+            }, totalCounts);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
         }

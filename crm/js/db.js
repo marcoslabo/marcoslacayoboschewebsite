@@ -604,6 +604,40 @@ class CRMDB {
     }
 
     /**
+     * Get server-side activity counts by type (bypasses row limit)
+     */
+    async getActivityCounts(dateFrom = null, dateTo = null) {
+        const owner = window.crmAuth.getOwner();
+
+        const buildQuery = (type) => {
+            let q = this.supabase
+                .from('activities')
+                .select('*', { count: 'exact', head: true })
+                .eq('owner', owner)
+                .eq('activity_type', type);
+            if (dateFrom) q = q.gte('created_at', dateFrom);
+            if (dateTo) {
+                const end = new Date(dateTo);
+                end.setDate(end.getDate() + 1);
+                q = q.lt('created_at', end.toISOString().split('T')[0]);
+            }
+            return q;
+        };
+
+        const [callRes, emailRes, linkedinRes, meetingRes] = await Promise.all([
+            buildQuery('call'), buildQuery('email'),
+            buildQuery('linkedin'), buildQuery('meeting')
+        ]);
+
+        return {
+            call: callRes.count || 0,
+            email: emailRes.count || 0,
+            linkedin: linkedinRes.count || 0,
+            meeting: meetingRes.count || 0
+        };
+    }
+
+    /**
      * Get dashboard stats (total leads, activity counts, outcomes)
      */
     async getDashboardStats() {
