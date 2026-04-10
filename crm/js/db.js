@@ -542,7 +542,7 @@ class CRMDB {
         // If outcome indicates won/lost/meeting, update status
         if (outcome === 'not_interested') {
             updates.status = 'Lost';
-        } else if (outcome === 'scheduled_meeting') {
+        } else if (outcome === 'scheduled_meeting' || outcome === 'completed') {
             updates.status = 'Active';
         } else if (outcome === 'won') {
             updates.status = 'Won';
