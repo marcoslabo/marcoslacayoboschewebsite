@@ -571,7 +571,8 @@ class CRMDB {
                     )
                 `)
                 .eq('owner', owner)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(10000);
 
             if (dateFrom) {
                 query = query.gte('created_at', dateFrom);
@@ -630,7 +631,8 @@ class CRMDB {
         const { data: activities } = await this.supabase
             .from('activities')
             .select('activity_type, outcome, created_at')
-            .eq('owner', owner);
+            .eq('owner', owner)
+            .limit(10000);
 
         // Count activities by type
         const activityCounts = { call: 0, email: 0, meeting: 0, linkedin: 0, note: 0 };
