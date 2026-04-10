@@ -627,34 +627,29 @@ class CRMDB {
             statusCounts[status] = (statusCounts[status] || 0) + 1;
         });
 
-        // Get all activities for outcome counting
-        const { data: activities } = await this.supabase
-            .from('activities')
-            .select('activity_type, outcome, created_at')
-            .eq('owner', owner)
-            .limit(10000);
+        // Count each activity type server-side (avoids Supabase row limit)
+        const [callRes, emailRes, linkedinRes, meetingRes, noteRes] = await Promise.all([
+            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'call'),
+            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'email'),
+            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'linkedin'),
+            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'meeting'),
+            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'note'),
+        ]);
 
-        // Count activities by type
-        const activityCounts = { call: 0, email: 0, meeting: 0, linkedin: 0, note: 0 };
-        const outcomeCounts = {};
-
-        (activities || []).forEach(a => {
-            // Count by type
-            const type = a.activity_type || 'note';
-            activityCounts[type] = (activityCounts[type] || 0) + 1;
-
-            // Count by outcome
-            if (a.outcome) {
-                outcomeCounts[a.outcome] = (outcomeCounts[a.outcome] || 0) + 1;
-            }
-        });
+        const activityCounts = {
+            call: callRes.count || 0,
+            email: emailRes.count || 0,
+            linkedin: linkedinRes.count || 0,
+            meeting: meetingRes.count || 0,
+            note: noteRes.count || 0
+        };
 
         return {
             totalContacts: totalContacts || 0,
             statusCounts,
             activityCounts,
-            outcomeCounts,
-            totalActivities: activities?.length || 0
+            outcomeCounts: {},
+            totalActivities: Object.values(activityCounts).reduce((a, b) => a + b, 0)
         };
     }
 
