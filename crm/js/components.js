@@ -357,9 +357,7 @@ const CRMComponents = {
                             <input type="date" id="nextActionDate" class="filter-select" 
                                 value="${contact.next_action_date || ''}" style="flex: 1;">
                             <button class="btn btn-primary btn-sm" onclick="window.crmApp.updateNextAction('${contact.id}')">Update</button>
-                            ${contact.next_action && contact.next_action !== 'None' ? `
-                                <button class="btn btn-success btn-sm" onclick="window.crmApp.openLogOutcome('${contact.id}', '${contact.first_name} ${contact.last_name}', '${contact.next_action}')">Log Outcome</button>
-                            ` : ''}
+                            <button class="btn btn-success btn-sm" onclick="window.crmApp.openLogOutcome('${contact.id}', '${contact.first_name} ${contact.last_name}', '${contact.next_action || 'meeting'}')">Log Activity</button>
                         </div>
                     </div>
                 </div>

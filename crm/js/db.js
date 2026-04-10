@@ -539,11 +539,13 @@ class CRMDB {
             next_action_date: nextActionDate || null
         };
 
-        // If outcome indicates won/lost, update status
+        // If outcome indicates won/lost/meeting, update status
         if (outcome === 'not_interested') {
             updates.status = 'Lost';
         } else if (outcome === 'scheduled_meeting') {
             updates.status = 'Active';
+        } else if (outcome === 'won') {
+            updates.status = 'Won';
         }
 
         return this.updateContact(contactId, updates);

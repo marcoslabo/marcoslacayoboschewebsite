@@ -1311,8 +1311,13 @@ class CRMApp {
 
             this.closeLogOutcome();
 
-            // Refresh dashboard
-            await this.renderDashboard();
+            // Refresh the right view
+            const path = window.crmRouter.getCurrentPath();
+            if (path.startsWith('/contact/')) {
+                await this.renderContactDetail(contactId);
+            } else {
+                await this.renderDashboard();
+            }
         } catch (error) {
             alert('Error logging outcome: ' + error.message);
         }
