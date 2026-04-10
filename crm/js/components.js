@@ -552,10 +552,6 @@ const CRMComponents = {
 
             <div class="stats-grid" style="margin-bottom: 16px;">
                 <div class="stat-card">
-                    <div class="stat-number">${activities.length}</div>
-                    <div class="stat-label">Total</div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-number">${stats.call}</div>
                     <div class="stat-label">Calls</div>
                 </div>
@@ -580,7 +576,14 @@ const CRMComponents = {
                         <h3 class="empty-state-title">No activities found</h3>
                         <p>Try a different date range.</p>
                     </div>
-                ` : activityRows}
+                ` : `
+                    ${activities.length >= 100 && activePreset === 'all' ? `
+                        <div style="padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">
+                            Showing most recent 100 of ${(stats.call||0)+(stats.email||0)+(stats.linkedin||0)+(stats.meeting||0)} activities. Use date filters to see specific periods.
+                        </div>
+                    ` : ''}
+                    ${activityRows}
+                `}
             </div>
         `;
     }

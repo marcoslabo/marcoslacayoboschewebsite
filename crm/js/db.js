@@ -572,7 +572,7 @@ class CRMDB {
                 `)
                 .eq('owner', owner)
                 .order('created_at', { ascending: false })
-                .limit(10000);
+                .limit(dateFrom || dateTo ? 5000 : 100);
 
             if (dateFrom) {
                 query = query.gte('created_at', dateFrom);
