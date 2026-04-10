@@ -343,7 +343,6 @@ class CRMApp {
     }
 
     async handleQuickAdd(form) {
-        // Prevent double submissions
         if (this._savingQuickAdd) return;
         this._savingQuickAdd = true;
 
@@ -354,7 +353,6 @@ class CRMApp {
         const lastName = nameParts.slice(1).join(' ') || '';
 
         try {
-            // Find or create company
             const companyName = formData.get('company');
             const companyId = await window.crmDB.findOrCreateCompany(companyName);
 
@@ -370,16 +368,39 @@ class CRMApp {
                 problem: formData.get('problem') || null
             };
 
-            await window.crmDB.createContact(contactData);
+            // Read initial activity fields
+            const activityType = document.getElementById('qaActivityType')?.value;
+            const activityOutcome = document.getElementById('qaActivityOutcome')?.value;
+            const activityNotes = document.getElementById('qaActivityNotes')?.value?.trim();
+            const nextAction = document.getElementById('qaNextAction')?.value || 'None';
+            const nextActionDate = document.getElementById('qaNextActionDate')?.value || null;
+            const eventTag = document.getElementById('qaEventTag')?.value?.trim();
+
+            // Set next action and event tag on contact if provided
+            if (nextAction && nextAction !== 'None') contactData.next_action = nextAction;
+            if (nextActionDate) contactData.next_action_date = nextActionDate;
+            if (eventTag) contactData.event_tag = eventTag;
+
+            const contact = await window.crmDB.createContact(contactData);
+
+            // Log initial activity if selected
+            if (activityType && contact?.id) {
+                await window.crmDB.logActivity(contact.id, {
+                    type: activityType,
+                    outcome: activityOutcome || 'completed',
+                    notes: activityNotes || null
+                });
+            }
 
             this.closeQuickAdd();
 
-            // Refresh current view
-            const path = window.crmRouter.getCurrentPath();
-            if (path === '/') {
-                await this.renderDashboard();
-            } else if (path === '/contacts') {
-                await this.renderContacts();
+            // Navigate to the new contact's detail page
+            if (contact?.id) {
+                window.crmRouter.navigate(`/contact/${contact.id}`);
+            } else {
+                const path = window.crmRouter.getCurrentPath();
+                if (path === '/') await this.renderDashboard();
+                else if (path === '/contacts') await this.renderContacts();
             }
         } catch (error) {
             alert('Error creating contact: ' + error.message);
