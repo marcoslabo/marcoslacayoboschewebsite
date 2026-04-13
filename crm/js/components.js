@@ -82,9 +82,9 @@ const CRMComponents = {
                     font-size: 13px;
                 ">
                     <span style="font-weight: 700; color: #1e293b; letter-spacing: 0.02em">🔥 HIGH INTENT &nbsp;<span style="color:#94a3b8; font-weight:400;">${contacts.length} prospects</span></span>
-                    <span id="hiArrow" style="font-size: 18px; color: #94a3b8; line-height:1;">⌄</span>
+                    <span id="hiArrow" style="font-size: 18px; color: #94a3b8; line-height:1;">›</span>
                 </button>
-                <div id="hiBody" style="border-top: 1px solid #f1f5f9; padding: 4px 4px;">
+                <div id="hiBody" style="display:none; border-top: 1px solid #f1f5f9; padding: 4px 4px;">
                     ${rows}
                 </div>
             </div>
