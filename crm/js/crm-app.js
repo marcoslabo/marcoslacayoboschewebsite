@@ -173,11 +173,13 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            const [data, stats] = await Promise.all([
+            const [data, stats, highIntent] = await Promise.all([
                 window.crmDB.getTodaysActions(),
-                window.crmDB.getDashboardStats()
+                window.crmDB.getDashboardStats(),
+                window.crmDB.getHighIntentContacts()
             ]);
             data.stats = stats;
+            data.highIntent = highIntent;
             main.innerHTML = window.CRMComponents.renderDashboard(data);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
@@ -688,6 +690,15 @@ class CRMApp {
                 next_action: action || null,
                 next_action_date: date || null
             });
+            await this.renderContactDetail(id);
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async toggleHighIntent(id, value) {
+        try {
+            await window.crmDB.toggleHighIntent(id, value);
             await this.renderContactDetail(id);
         } catch (error) {
             alert('Error: ' + error.message);

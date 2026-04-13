@@ -154,11 +154,8 @@ const SparkComponents = {
         return `
             <div class="form-page fade-in">
                 <div class="form-header">
-                    <a href="#" class="back-link" onclick="event.preventDefault(); window.sparkRouter.navigate('/spark/admin')">
-                        ← Back to Dashboard
-                    </a>
-                    <h1 class="form-title">New AI Opportunity Brief</h1>
-                    <p class="form-subtitle">Tell us about your challenge and we'll show you the potential ROI.</p>
+                    <h1 class="form-title">💸 The Price of Doing Nothing</h1>
+                    <p class="form-subtitle">Every manual process has a hidden cost. Tell us what's slowing you down — our AI will calculate exactly what it's costing you.</p>
                 </div>
 
                 <form id="briefForm" class="form-card">
@@ -189,28 +186,25 @@ const SparkComponents = {
 
                     <!-- Problem Description -->
                     <div class="form-section">
-                        <h3 class="form-section-title">The Challenge</h3>
+                        <h3 class="form-section-title">What's Costing You?</h3>
                         <div class="form-group full-width">
-                            <label class="form-label">Describe the problem you're facing *</label>
-                            <textarea class="form-textarea large" id="problemRaw" name="problem_raw" required placeholder="Tell us about the challenge you're facing:
+                            <label class="form-label">Describe the manual process or bottleneck *</label>
+                            <textarea class="form-textarea large" id="problemRaw" name="problem_raw" required placeholder="Tell us about the process that's eating your time and money:
 
-• What's the problem or bottleneck?
-• How are you handling it today?
-• How many people are involved?
-• How much time does it take?
+• What manual work are you doing?
+• How many people does it take?
+• How much time does it eat up per week?
+• What happens when it goes wrong?
 
 Example: 'We receive hundreds of faxes daily with patient orders. Our team of 5 nurses spends about 3 hours each day manually typing this data into Epic EMR. It's slow, error-prone, and everyone hates it.'"></textarea>
-                            <span class="form-hint">Don't worry about formatting – our AI will analyze your description and calculate the potential ROI.</span>
+                            <span class="form-hint">Don't worry about formatting — our AI will analyze your description and calculate the true cost of doing nothing.</span>
                         </div>
                     </div>
 
                     <!-- Actions -->
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="window.sparkRouter.navigate('/spark/admin')">
-                            Cancel
-                        </button>
                         <button type="submit" class="btn btn-primary btn-lg">
-                            ⚡ Calculate My ROI
+                            💸 Calculate My Cost
                         </button>
                     </div>
                 </form>
@@ -256,10 +250,17 @@ Example: 'We receive hundreds of faxes daily with patient orders. Our team of 5 
 
                 <!-- ROI Card -->
                 <div class="roi-card">
-                    <div class="roi-label">Potential Annual Value</div>
-                    <div class="roi-value">${this.formatCurrency(annualSavings)}</div>
+                    <div class="roi-label">💸 Annual Cost of Doing Nothing</div>
+                    <div class="roi-value">${this.formatCurrency(annualCost)}</div>
                     <div class="roi-breakdown">
-                        ${hoursPerWeek} hrs × ${people} people × $${rate}/hr × ${improvement}% improvement
+                        ${hoursPerWeek} hrs/wk × ${people} people × $${rate}/hr × 52 weeks
+                    </div>
+                </div>
+                <div class="roi-card" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-color: #6ee7b7;">
+                    <div class="roi-label" style="color: #047857;">✅ Potential Annual Savings</div>
+                    <div class="roi-value" style="color: #047857;">${this.formatCurrency(annualSavings)}</div>
+                    <div class="roi-breakdown" style="color: #059669;">
+                        with ${improvement}% automation improvement
                     </div>
                 </div>
 
@@ -337,9 +338,9 @@ Example: 'We receive hundreds of faxes daily with patient orders. Our team of 5 
         return `
             <div class="form-page fade-in" style="padding-top: var(--space-8);">
                 <div style="text-align: center; margin-bottom: var(--space-8);">
-                    <div style="font-size: 2rem; margin-bottom: var(--space-2);">⚡</div>
+                    <div style="font-size: 2rem; margin-bottom: var(--space-2);">💸</div>
                     <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-1);">
-                        AI Opportunity Assessment
+                        The Price of Doing Nothing
                     </h1>
                     <p style="color: var(--color-text-muted);">
                         Prepared for ${brief.company_name || 'Your Organization'}
@@ -356,9 +357,9 @@ Example: 'We receive hundreds of faxes daily with patient orders. Our team of 5 
 
                 <!-- ROI Card -->
                 <div class="roi-card">
-                    <div class="roi-label">Estimated Annual Value</div>
+                    <div class="roi-label">💸 Annual Cost of Doing Nothing</div>
                     <div class="roi-value">${this.formatCurrency(annualSavings)}</div>
-                    <div class="roi-breakdown">potential savings</div>
+                    <div class="roi-breakdown">estimated annual waste from this manual process</div>
                 </div>
 
                 <!-- Level & Approach -->

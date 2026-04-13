@@ -164,6 +164,69 @@ class CRMDB {
     }
 
     /**
+     * Get high intent prospects (manually flagged OR had a meeting)
+     * Returns contacts with their last activity date for urgency calculation
+     */
+    async getHighIntentContacts() {
+        const owner = window.crmAuth.getOwner();
+
+        // Fetch manually flagged high intent contacts
+        const { data: flagged } = await this.supabase
+            .from('contacts')
+            .select('*, companies(name)')
+            .eq('owner', owner)
+            .eq('high_intent', true)
+            .neq('status', 'Lost')
+            .neq('status', 'Won')
+            .order('updated_at', { ascending: false });
+
+        // Fetch contacts that had a meeting (status = Active and met)
+        const { data: meetingContacts } = await this.supabase
+            .from('contacts')
+            .select('*, companies(name)')
+            .eq('owner', owner)
+            .eq('status', 'Active')
+            .neq('high_intent', true) // avoid duplicates
+            .order('updated_at', { ascending: false })
+            .limit(50);
+
+        // Filter meeting contacts to those with an actual meeting activity
+        const { data: meetingActivities } = await this.supabase
+            .from('activities')
+            .select('contact_id, created_at')
+            .eq('owner', owner)
+            .eq('activity_type', 'meeting')
+            .order('created_at', { ascending: false });
+
+        const contactsWithMeetings = new Set((meetingActivities || []).map(a => a.contact_id));
+        const lastMeetingDate = {};
+        (meetingActivities || []).forEach(a => {
+            if (!lastMeetingDate[a.contact_id]) lastMeetingDate[a.contact_id] = a.created_at;
+        });
+
+        const fromMeetings = (meetingContacts || []).filter(c => contactsWithMeetings.has(c.id));
+
+        // Merge, deduplicate, attach last meeting date
+        const all = [...(flagged || []), ...fromMeetings];
+        const seen = new Set();
+        const unique = all.filter(c => {
+            if (seen.has(c.id)) return false;
+            seen.add(c.id);
+            c.last_meeting = lastMeetingDate[c.id] || null;
+            return true;
+        });
+
+        return unique;
+    }
+
+    /**
+     * Toggle high intent flag on a contact
+     */
+    async toggleHighIntent(contactId, value) {
+        return this.updateContact(contactId, { high_intent: value });
+    }
+
+    /**
      * Create new contact
      */
     async createContact(contactData, options = {}) {

@@ -10,8 +10,12 @@ ALTER TABLE contacts ADD COLUMN IF NOT EXISTS source_links TEXT;
 -- Add event tag column for grouping contacts by event/campaign
 ALTER TABLE contacts ADD COLUMN IF NOT EXISTS event_tag TEXT;
 
+-- Add high intent flag for priority prospects
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS high_intent BOOLEAN DEFAULT false;
+
 -- Optional: Create index for faster event filtering
 CREATE INDEX IF NOT EXISTS idx_contacts_event_tag ON contacts(event_tag);
+CREATE INDEX IF NOT EXISTS idx_contacts_high_intent ON contacts(high_intent);
 
 -- Update activity type constraint to include 'linkedin'
 ALTER TABLE activities DROP CONSTRAINT IF EXISTS activities_activity_type_check;

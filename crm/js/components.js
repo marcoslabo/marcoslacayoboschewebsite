@@ -9,7 +9,7 @@ const CRMComponents = {
     // ==========================================================================
 
     renderDashboard(data) {
-        const { calls, emails, followUps, overdue, newToday, stats } = data;
+        const { calls, emails, followUps, overdue, newToday, stats, highIntent } = data;
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         return `
@@ -17,6 +17,8 @@ const CRMComponents = {
                 <h1 class="page-title">Today's Actions</h1>
                 <p class="page-subtitle">${today}</p>
             </div>
+
+            ${highIntent && highIntent.length ? this.renderHighIntentStrip(highIntent) : ''}
 
             ${stats ? this.renderStatsSection(stats) : ''}
 
@@ -34,6 +36,74 @@ const CRMComponents = {
                     <p>No actions scheduled for today.</p>
                 </div>
             ` : ''}
+        `;
+    },
+
+    renderHighIntentStrip(contacts) {
+        const now = new Date();
+
+        const cards = contacts.map(c => {
+            const name = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+            const company = c.companies?.name || '';
+            const initials = (c.first_name?.[0] || '') + (c.last_name?.[0] || '');
+
+            // Urgency: days since last update
+            const lastTouch = new Date(c.updated_at || c.created_at);
+            const daysSince = Math.floor((now - lastTouch) / (1000 * 60 * 60 * 24));
+            const urgencyColor = daysSince === 0 ? '#10b981' : daysSince <= 3 ? '#f59e0b' : '#ef4444';
+            const urgencyLabel = daysSince === 0 ? 'Today' : daysSince === 1 ? '1d ago' : `${daysSince}d ago`;
+
+            return `
+                <a href="#/contact/${c.id}" class="hi-card" style="
+                    display: flex; flex-direction: column; gap: 6px;
+                    min-width: 160px; max-width: 160px;
+                    background: white; border-radius: 12px;
+                    padding: 14px 14px 12px;
+                    border: 1.5px solid #e2e8f0;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+                    text-decoration: none; color: inherit;
+                    transition: box-shadow 0.15s, transform 0.15s;
+                    cursor: pointer;
+                    flex-shrink: 0;
+                    position: relative;
+                " onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
+                   onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.06)';this.style.transform=''"
+                >
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <div style="
+                            width:36px; height:36px; border-radius:50%;
+                            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+                            color: white; font-size: 13px; font-weight: 700;
+                            display:flex; align-items:center; justify-content:center;
+                            flex-shrink:0;
+                        ">${initials.toUpperCase()}</div>
+                        <div style="
+                            width: 8px; height: 8px; border-radius: 50%;
+                            background: ${urgencyColor};
+                            box-shadow: 0 0 0 3px ${urgencyColor}22;
+                        " title="Last touch: ${urgencyLabel}"></div>
+                    </div>
+                    <div style="margin-top:4px;">
+                        <div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                        <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${company}</div>
+                    </div>
+                    <div style="font-size:11px; color:${urgencyColor}; font-weight:500;">${urgencyLabel}</div>
+                </a>
+            `;
+        }).join('');
+
+        return `
+            <div style="margin-bottom: 20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <span style="font-size:13px; font-weight:700; color:#1e293b; letter-spacing:0.02em;">🔥 HIGH INTENT</span>
+                    <span style="font-size:12px; color:#94a3b8;">${contacts.length} prospect${contacts.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div style="
+                    display: flex; gap: 10px;
+                    overflow-x: auto; padding-bottom: 6px;
+                    scrollbar-width: none;
+                ">${cards}</div>
+            </div>
         `;
     },
 
@@ -258,7 +328,23 @@ const CRMComponents = {
                             <h1 class="contact-detail-name">${contact.first_name} ${contact.last_name}</h1>
                             ${contact.job_title ? `<p class="contact-detail-title">${contact.job_title}</p>` : ''}
                         </div>
-                        <button class="btn btn-secondary btn-sm" onclick="window.crmApp.editContact('${contact.id}')">Edit</button>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button
+                                id="highIntentBtn"
+                                onclick="window.crmApp.toggleHighIntent('${contact.id}', ${!contact.high_intent})"
+                                title="${contact.high_intent ? 'Remove from High Intent' : 'Mark as High Intent'}"
+                                style="
+                                    background: ${contact.high_intent ? '#fff7ed' : 'white'};
+                                    border: 1.5px solid ${contact.high_intent ? '#f97316' : '#e2e8f0'};
+                                    border-radius: 8px; padding: 6px 12px;
+                                    font-size: 14px; cursor: pointer;
+                                    transition: all 0.15s;
+                                    color: ${contact.high_intent ? '#ea580c' : '#94a3b8'};
+                                    font-weight: 600;
+                                "
+                            >${contact.high_intent ? '🔥 High Intent' : '☆ Mark Priority'}</button>
+                            <button class="btn btn-secondary btn-sm" onclick="window.crmApp.editContact('${contact.id}')">Edit</button>
+                        </div>
                     </div>
 
                     <!-- Contact Info Grid -->
