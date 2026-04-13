@@ -107,25 +107,28 @@ const CRMComponents = {
             .map(([key, count]) => `<span class="stat-outcome">${outcomeLabels[key] || key}: <strong>${count}</strong></span>`)
             .join('');
 
+        const cardStyle = `cursor:pointer; transition: box-shadow 0.15s, transform 0.15s;`;
+        const cardHover = `onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='';this.style.transform=''"`;
+
         return `
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmRouter.navigate('/contacts')">
                     <div class="stat-number">${stats.totalContacts}</div>
                     <div class="stat-label">Total Leads</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('call')">
                     <div class="stat-number">${stats.activityCounts?.call || 0}</div>
                     <div class="stat-label">Calls Made</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('linkedin')">
                     <div class="stat-number">${stats.activityCounts?.linkedin || 0}</div>
                     <div class="stat-label">LinkedIn</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('email')">
                     <div class="stat-number">${stats.activityCounts?.email || 0}</div>
                     <div class="stat-label">Emails Sent</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('meeting')">
                     <div class="stat-number">${stats.activityCounts?.meeting || 0}</div>
                     <div class="stat-label">Meetings</div>
                 </div>

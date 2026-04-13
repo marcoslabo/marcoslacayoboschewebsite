@@ -617,7 +617,7 @@ class CRMDB {
      * Get all activities across all contacts, with optional date range filter
      * Returns activities joined with contact name/company
      */
-    async getAllActivities(dateFrom = null, dateTo = null) {
+    async getAllActivities(dateFrom = null, dateTo = null, activityType = null) {
         try {
             const owner = window.crmAuth.getOwner();
             let query = this.supabase
@@ -635,8 +635,11 @@ class CRMDB {
                 `)
                 .eq('owner', owner)
                 .order('created_at', { ascending: false })
-                .limit(dateFrom || dateTo ? 5000 : 100);
+                .limit(dateFrom || dateTo || activityType ? 5000 : 100);
 
+            if (activityType) {
+                query = query.eq('activity_type', activityType);
+            }
             if (dateFrom) {
                 query = query.gte('created_at', dateFrom);
             }

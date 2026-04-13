@@ -1934,7 +1934,7 @@ class CRMApp {
     // Activity Log
     // ==========================================================================
 
-    async renderActivityLog(preset = 'all', dateFrom = null, dateTo = null) {
+    async renderActivityLog(preset = 'all', dateFrom = null, dateTo = null, activityType = null) {
         const main = document.getElementById('mainContent');
         main.innerHTML = window.CRMComponents.renderLoading();
 
@@ -1968,16 +1968,16 @@ class CRMApp {
                 }
             }
 
-            // Fetch activities + server-side counts in parallel
             const [activities, totalCounts] = await Promise.all([
-                window.crmDB.getAllActivities(from, to),
+                window.crmDB.getAllActivities(from, to, activityType),
                 window.crmDB.getActivityCounts(from, to)
             ]);
 
             main.innerHTML = window.CRMComponents.renderActivityLog(activities, {
                 preset: (dateFrom || dateTo) ? 'custom' : preset,
                 dateFrom: from || '',
-                dateTo: to || ''
+                dateTo: to || '',
+                activityType: activityType || ''
             }, totalCounts);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
@@ -1986,6 +1986,11 @@ class CRMApp {
 
     filterActivities(preset) {
         this.renderActivityLog(preset);
+    }
+
+    filterActivityLogByType(type) {
+        window.crmRouter.navigate('/activity-log');
+        setTimeout(() => this.renderActivityLog('all', null, null, type), 50);
     }
 
     filterActivitiesCustom() {
