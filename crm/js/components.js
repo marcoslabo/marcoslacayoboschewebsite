@@ -42,67 +42,51 @@ const CRMComponents = {
     renderHighIntentStrip(contacts) {
         const now = new Date();
 
-        const cards = contacts.map(c => {
+        const rows = contacts.map(c => {
             const name = `${c.first_name || ''} ${c.last_name || ''}`.trim();
             const company = c.companies?.name || '';
-            const initials = (c.first_name?.[0] || '') + (c.last_name?.[0] || '');
-
-            // Urgency: days since last update
             const lastTouch = new Date(c.updated_at || c.created_at);
             const daysSince = Math.floor((now - lastTouch) / (1000 * 60 * 60 * 24));
             const urgencyColor = daysSince === 0 ? '#10b981' : daysSince <= 3 ? '#f59e0b' : '#ef4444';
             const urgencyLabel = daysSince === 0 ? 'Today' : daysSince === 1 ? '1d ago' : `${daysSince}d ago`;
 
             return `
-                <a href="#/contact/${c.id}" class="hi-card" style="
-                    display: flex; flex-direction: column; gap: 6px;
-                    min-width: 160px; max-width: 160px;
-                    background: white; border-radius: 12px;
-                    padding: 14px 14px 12px;
-                    border: 1.5px solid #e2e8f0;
-                    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+                <a href="#/contact/${c.id}" style="
+                    display: flex; align-items: center; gap: 12px;
+                    padding: 9px 12px; border-radius: 8px;
                     text-decoration: none; color: inherit;
-                    transition: box-shadow 0.15s, transform 0.15s;
-                    cursor: pointer;
-                    flex-shrink: 0;
-                    position: relative;
-                " onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
-                   onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.06)';this.style.transform=''"
-                >
-                    <div style="display:flex; align-items:center; justify-content:space-between;">
-                        <div style="
-                            width:36px; height:36px; border-radius:50%;
-                            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-                            color: white; font-size: 13px; font-weight: 700;
-                            display:flex; align-items:center; justify-content:center;
-                            flex-shrink:0;
-                        ">${initials.toUpperCase()}</div>
-                        <div style="
-                            width: 8px; height: 8px; border-radius: 50%;
-                            background: ${urgencyColor};
-                            box-shadow: 0 0 0 3px ${urgencyColor}22;
-                        " title="Last touch: ${urgencyLabel}"></div>
-                    </div>
-                    <div style="margin-top:4px;">
-                        <div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
-                        <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${company}</div>
-                    </div>
-                    <div style="font-size:11px; color:${urgencyColor}; font-weight:500;">${urgencyLabel}</div>
+                    transition: background 0.12s;
+                " onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                    <div style="
+                        width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+                        background: ${urgencyColor};
+                    "></div>
+                    <span style="font-weight: 600; font-size: 13px; min-width: 140px;">${name}</span>
+                    <span style="font-size: 12px; color: #94a3b8; flex: 1;">${company}</span>
+                    <span style="font-size: 11px; color: ${urgencyColor}; font-weight: 500; white-space: nowrap;">${urgencyLabel}</span>
                 </a>
             `;
         }).join('');
 
         return `
-            <div style="margin-bottom: 20px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                    <span style="font-size:13px; font-weight:700; color:#1e293b; letter-spacing:0.02em;">🔥 HIGH INTENT</span>
-                    <span style="font-size:12px; color:#94a3b8;">${contacts.length} prospect${contacts.length !== 1 ? 's' : ''}</span>
+            <div style="margin-bottom: 20px; border: 1.5px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                <button onclick="
+                    const body = document.getElementById('hiBody');
+                    const arrow = document.getElementById('hiArrow');
+                    const open = body.style.display !== 'none';
+                    body.style.display = open ? 'none' : 'block';
+                    arrow.textContent = open ? '›' : '⌄';
+                " style="
+                    width: 100%; display: flex; align-items: center; justify-content: space-between;
+                    padding: 12px 16px; background: white; border: none; cursor: pointer;
+                    font-size: 13px;
+                ">
+                    <span style="font-weight: 700; color: #1e293b; letter-spacing: 0.02em">🔥 HIGH INTENT &nbsp;<span style="color:#94a3b8; font-weight:400;">${contacts.length} prospects</span></span>
+                    <span id="hiArrow" style="font-size: 18px; color: #94a3b8; line-height:1;">⌄</span>
+                </button>
+                <div id="hiBody" style="border-top: 1px solid #f1f5f9; padding: 4px 4px;">
+                    ${rows}
                 </div>
-                <div style="
-                    display: flex; gap: 10px;
-                    overflow-x: auto; padding-bottom: 6px;
-                    scrollbar-width: none;
-                ">${cards}</div>
             </div>
         `;
     },
@@ -301,7 +285,7 @@ const CRMComponents = {
 
         return `
             <tr onclick="window.crmApp.goToContact('${contact.id}')">
-                <td class="contact-name">${contact.first_name} ${contact.last_name}${contact.brevo_synced ? ' <span style="color: #059669; font-size: 11px;" title="In Brevo">✓ Brevo</span>' : ''}${contact.event_tag ? ` <span style="background: #f5f3ff; color: #7c3aed; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${contact.event_tag}</span>` : ''}</td>
+                <td class="contact-name">${contact.high_intent ? '<span title="High Intent" style="margin-right:4px;">🔥</span>' : ''}${contact.first_name} ${contact.last_name}${contact.brevo_synced ? ' <span style="color: #059669; font-size: 11px;" title="In Brevo">✓ Brevo</span>' : ''}${contact.event_tag ? ` <span style="background: #f5f3ff; color: #7c3aed; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${contact.event_tag}</span>` : ''}</td>
                 <td>${companyName}</td>
                 <td>${this.renderSourceBadge(contact.source)}</td>
                 <td>${this.renderStatusBadge(contact.status)}</td>
