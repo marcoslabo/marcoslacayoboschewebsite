@@ -1,6 +1,6 @@
 // ==========================================================================
 // Blog Writer Agent
-// Wraps the blog-writer system prompt around the Anthropic Messages API.
+// Wraps the blog-writer system prompt around Claude.
 // Brand-aware: same agent, different voice for 'marcos' vs 'vytalmed'.
 //
 // POST /api/agents/blog-writer
@@ -10,8 +10,10 @@
 //   category: 'healthcare' | 'private-equity' | 'ai-strategy' | 'case-study'
 // }
 //
-// Returns: { excerpt: string, html: string, title: string, model, usage }
+// Returns: { success, brand, category, title, excerpt, html, model, usage }
 // ==========================================================================
+
+import { callClaude } from '../../lib/anthropic.js';
 
 const SYSTEM_PROMPT_MARCOS = `You are writing blog articles for Marcos Bosche, an AI Transformation consultant who helps Healthcare organizations and PE-backed companies operationalize AI. He runs his practice through Nymbl (nymbl.app).
 
@@ -115,12 +117,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-        return res.status(500).json({ error: 'Anthropic API key not configured' });
-    }
-
-    const { brand = 'marcos', topic, transcript, category = 'ai-strategy' } = req.body;
+    const { brand = 'marcos', topic, transcript, category = 'ai-strategy' } = req.body || {};
 
     if (!VALID_BRANDS.includes(brand)) {
         return res.status(400).json({ error: `brand must be one of: ${VALID_BRANDS.join(', ')}` });
@@ -134,67 +131,31 @@ export default async function handler(req, res) {
 
     const system = brand === 'vytalmed' ? SYSTEM_PROMPT_VYTALMED : SYSTEM_PROMPT_MARCOS;
 
-    // Build the user message
-    let userContent;
-    if (transcript) {
-        userContent = `Write a blog article based on the following transcript. Category: ${category}.
-
-TRANSCRIPT:
-${transcript}
-
-Generate the article now using the exact output format specified.`;
-    } else {
-        userContent = `Write a blog article on this topic: "${topic}". Category: ${category}.
-
-Generate the article now using the exact output format specified.`;
-    }
+    const userContent = transcript
+        ? `Write a blog article based on the following transcript. Category: ${category}.\n\nTRANSCRIPT:\n${transcript}\n\nGenerate the article now using the exact output format specified.`
+        : `Write a blog article on this topic: "${topic}". Category: ${category}.\n\nGenerate the article now using the exact output format specified.`;
 
     try {
-        const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 4096,
-                temperature: 0.8,
-                system,
-                messages: [{ role: 'user', content: userContent }]
-            })
+        const result = await callClaude({
+            system,
+            temperature: 0.8,
+            messages: [{ role: 'user', content: userContent }]
         });
 
-        const data = await anthropicRes.json();
-
-        if (!anthropicRes.ok) {
-            console.error('Anthropic API error:', anthropicRes.status, data);
-            return res.status(anthropicRes.status).json({
-                error: data.error?.message || `Anthropic error: ${anthropicRes.status}`
-            });
-        }
-
-        const rawText = (data.content || [])
-            .filter(b => b.type === 'text')
-            .map(b => b.text)
-            .join('\n');
-
-        // Parse the structured output
-        const parsed = parseBlogOutput(rawText);
+        const parsed = parseBlogOutput(result.text);
 
         return res.status(200).json({
             success: true,
             brand,
             category,
             ...parsed,
-            model: data.model,
-            usage: data.usage,
-            raw: rawText
+            model: result.model,
+            usage: result.usage
         });
-    } catch (error) {
-        console.error('Blog writer agent error:', error);
-        return res.status(500).json({ error: error.message || 'Blog generation failed' });
+    } catch (e) {
+        console.error('Blog writer agent error:', e);
+        const status = e.status || 500;
+        return res.status(status).json({ error: e.message || 'Blog generation failed' });
     }
 }
 
