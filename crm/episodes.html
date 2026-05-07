@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales OS — New Episode</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+        header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+        h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+        .sub { color: #94a3b8; font-size: 14px; }
+        select, textarea, input { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; }
+        textarea { width: 100%; min-height: 160px; resize: vertical; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; line-height: 1.5; }
+        label { display: block; font-size: 12px; color: #94a3b8; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .input-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; margin-bottom: 16px; }
+        .input-row > div { flex: 1; min-width: 200px; }
+        .input-row > div.brand { flex: 0 0 220px; }
+        .topic-input { width: 100%; }
+        .or-divider { text-align: center; color: #64748b; font-size: 12px; padding: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+        button { background: #7c3aed; color: white; border: 0; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #6d28d9; }
+        button.secondary { background: #334155; color: #e2e8f0; padding: 6px 12px; font-size: 12px; font-weight: 500; }
+        button.secondary:hover { background: #475569; }
+        .go-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .progress { font-size: 13px; color: #94a3b8; }
+        .progress .step { color: #64748b; }
+        .progress .step.active { color: #f59e0b; }
+        .progress .step.done { color: #10b981; }
+        .progress .step.error { color: #ef4444; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; min-height: 160px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
+        .card-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #7c3aed; font-weight: 600; }
+        .card-actions { display: flex; gap: 6px; }
+        .card-status { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+        .card-status.idle { background: #334155; color: #94a3b8; }
+        .card-status.running { background: #f59e0b; color: #0f172a; }
+        .card-status.done { background: #10b981; color: #0f172a; }
+        .card-status.error { background: #ef4444; color: white; }
+        .card-empty { color: #475569; text-align: center; padding: 40px 0; font-style: italic; font-size: 13px; }
+        .card-meta { font-size: 11px; color: #64748b; margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; }
+        .err { background: #7f1d1d; color: #fee2e2; padding: 10px; border-radius: 6px; font-size: 13px; }
+        .out-text { background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 8px; line-height: 1.6; max-height: 320px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
+        .out-html { background: white; color: #1e293b; padding: 18px; border-radius: 8px; line-height: 1.7; max-height: 320px; overflow-y: auto; font-size: 14px; }
+        .out-html h2 { color: #0f172a; font-size: 17px; margin-top: 18px; }
+        .out-html p { margin: 10px 0; }
+        .out-html blockquote { border-left: 3px solid #7c3aed; padding-left: 16px; color: #475569; }
+        .out-title { font-size: 16px; font-weight: 700; color: #f1f5f9; margin: 0 0 6px; }
+        .out-excerpt { font-style: italic; color: #94a3b8; margin: 0 0 12px; font-size: 13px; }
+        .badge { display: inline-block; background: #334155; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .badge.vytalmed { background: #1e40af; }
+        .badge.marcos { background: #7c3aed; }
+        .sub-section { margin-top: 12px; }
+        .sub-section-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <h1>Sales OS — New Episode</h1>
+            <div class="sub">Paste a transcript or write a topic. We run four agents and give you everything to publish.</div>
+        </div>
+        <div>
+            <label>Brand</label>
+            <select id="brand">
+                <option value="marcos">Marcos personal</option>
+                <option value="vytalmed">VytalMed</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="input-panel">
+        <div class="input-row">
+            <div style="flex: 1; min-width: 100%;">
+                <label>Topic (use this OR paste a transcript below)</label>
+                <input id="topic" type="text" class="topic-input" placeholder="e.g., How RIA eliminated 13 clerk positions">
+            </div>
+        </div>
+        <div class="or-divider">— or —</div>
+        <div>
+            <label>Transcript (Descript / Otter / Riverside export)</label>
+            <textarea id="transcript" placeholder="Paste raw transcript here. We'll clean it first, then generate the rest."></textarea>
+        </div>
+
+        <div style="margin-top: 16px;">
+            <label>Category (for blog post)</label>
+            <select id="category">
+                <option value="ai-strategy">AI Strategy</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="private-equity">Private Equity</option>
+                <option value="case-study">Case Study</option>
+            </select>
+        </div>
+
+        <div class="go-row" style="margin-top: 20px;">
+            <button id="go-btn" onclick="generateAll()">Generate Everything</button>
+            <div class="progress" id="progress">
+                <span class="step" id="step-clean">1. Clean</span> →
+                <span class="step" id="step-summary">2. Summary</span> +
+                <span class="step" id="step-blog">2. Blog</span> →
+                <span class="step" id="step-linkedin">3. LinkedIn</span>
+            </div>
+            <span id="brand-badge" class="badge"></span>
+        </div>
+        <div id="error" class="err" style="display:none; margin-top: 12px;"></div>
+    </div>
+
+    <div class="grid">
+        <!-- Cleaned Transcript -->
+        <div class="card" id="card-clean">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Cleaned Transcript</div>
+                </div>
+                <div class="card-actions">
+                    <span class="card-status idle" id="status-clean">idle</span>
+                    <button class="secondary" onclick="regen('clean')" id="regen-clean" disabled>Regenerate</button>
+                    <button class="secondary" onclick="copyOut('clean')" id="copy-clean" disabled>Copy</button>
+                </div>
+            </div>
+            <div id="out-clean" class="card-empty">Skipped if you only provide a topic.</div>
+            <div class="card-meta" id="meta-clean"></div>
+        </div>
+
+        <!-- Episode Summary -->
+        <div class="card" id="card-summary">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Episode Summary</div>
+                </div>
+                <div class="card-actions">
+                    <span class="card-status idle" id="status-summary">idle</span>
+                    <button class="secondary" onclick="regen('summary')" id="regen-summary" disabled>Regenerate</button>
+                </div>
+            </div>
+            <div id="out-summary" class="card-empty">Will populate after Generate.</div>
+            <div class="card-meta" id="meta-summary"></div>
+        </div>
+
+        <!-- Blog Post -->
+        <div class="card" id="card-blog">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Blog Post</div>
+                </div>
+                <div class="card-actions">
+                    <span class="card-status idle" id="status-blog">idle</span>
+                    <button class="secondary" onclick="regen('blog')" id="regen-blog" disabled>Regenerate</button>
+                    <button class="secondary" onclick="copyOut('blog')" id="copy-blog" disabled>Copy HTML</button>
+                    <button class="secondary" onclick="saveBlogDraft()" id="save-blog" disabled style="background:#10b981; color:#0f172a;">Save as Draft</button>
+                </div>
+            </div>
+            <div id="out-blog" class="card-empty">Will populate after Generate.</div>
+            <div id="save-blog-status" style="margin-top:8px; font-size:12px;"></div>
+            <div class="card-meta" id="meta-blog"></div>
+        </div>
+
+        <!-- LinkedIn Post -->
+        <div class="card" id="card-linkedin">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">LinkedIn Post</div>
+                </div>
+                <div class="card-actions">
+                    <span class="card-status idle" id="status-linkedin">idle</span>
+                    <button class="secondary" onclick="regen('linkedin')" id="regen-linkedin" disabled>Regenerate</button>
+                    <button class="secondary" onclick="copyOut('linkedin')" id="copy-linkedin" disabled>Copy</button>
+                </div>
+            </div>
+            <div id="out-linkedin" class="card-empty">Will populate after Generate.</div>
+            <div class="card-meta" id="meta-linkedin"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Supabase + CRM data layer (we use createBlogPost from db.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+
+<script>
+// Lazy-init the CRM DB client only when needed (avoids breaking if scripts fail to load)
+let crmDb = null;
+function getDb() {
+    if (!crmDb) {
+        if (typeof CRMDB === 'undefined') throw new Error('CRMDB not loaded — check that js/db.js is reachable');
+        crmDb = new CRMDB();
+    }
+    return crmDb;
+}
+
+// State holds the latest data from each agent so we can re-render and regenerate
+const state = {
+    brand: 'marcos',
+    category: 'ai-strategy',
+    topic: '',
+    transcript: '',          // raw input
+    cleaned: '',             // output of transcript-cleaner
+    blog: null,              // { title, excerpt, html }
+    summary: null,           // { youtube_description, social_tease }
+    linkedin: null           // { post, char_count }
+};
+
+function setStep(name, cls) {
+    const el = document.getElementById('step-' + name);
+    el.className = 'step ' + (cls || '');
+}
+function setStatus(card, cls, text) {
+    const el = document.getElementById('status-' + card);
+    el.className = 'card-status ' + cls;
+    el.textContent = text;
+}
+function setError(msg) {
+    const el = document.getElementById('error');
+    if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.style.display = 'block';
+    el.textContent = msg;
+}
+
+async function callAgent(endpoint, body) {
+    const res = await fetch(`/api/agents/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || `${endpoint} failed`);
+    return data;
+}
+
+async function generateAll() {
+    setError('');
+    state.brand = document.getElementById('brand').value;
+    state.category = document.getElementById('category').value;
+    state.topic = document.getElementById('topic').value.trim();
+    state.transcript = document.getElementById('transcript').value.trim();
+
+    if (!state.topic && !state.transcript) {
+        setError('Provide a topic or a transcript.');
+        return;
+    }
+
+    document.getElementById('brand-badge').textContent = state.brand;
+    document.getElementById('brand-badge').className = 'badge ' + state.brand;
+    document.getElementById('go-btn').disabled = true;
+    document.getElementById('go-btn').textContent = 'Generating...';
+
+    // Reset state
+    state.cleaned = '';
+    state.blog = null;
+    state.summary = null;
+    state.linkedin = null;
+    ['clean', 'summary', 'blog', 'linkedin'].forEach(k => {
+        setStatus(k, 'idle', 'idle');
+        setStep(k, '');
+        document.getElementById(`copy-${k}`)?.setAttribute('disabled', 'disabled');
+        document.getElementById(`regen-${k}`)?.setAttribute('disabled', 'disabled');
+    });
+    document.getElementById('out-clean').className = 'card-empty';
+    document.getElementById('out-clean').textContent = state.transcript ? 'Cleaning...' : 'Skipped (no transcript provided).';
+    document.getElementById('out-blog').className = 'card-empty';
+    document.getElementById('out-blog').textContent = 'Waiting...';
+    document.getElementById('out-summary').className = 'card-empty';
+    document.getElementById('out-summary').textContent = 'Waiting...';
+    document.getElementById('out-linkedin').className = 'card-empty';
+    document.getElementById('out-linkedin').textContent = 'Waiting for blog...';
+
+    try {
+        // Step 1 — clean transcript if provided
+        if (state.transcript) {
+            await runStep('clean');
+        } else {
+            setStatus('clean', 'idle', 'skipped');
+            setStep('clean', 'done');
+        }
+
+        // Step 2 — blog + summary in parallel
+        await Promise.all([runStep('blog'), runStep('summary')]);
+
+        // Step 3 — linkedin (uses blog HTML)
+        await runStep('linkedin');
+    } catch (e) {
+        setError(e.message);
+    } finally {
+        document.getElementById('go-btn').disabled = false;
+        document.getElementById('go-btn').textContent = 'Generate Everything';
+    }
+}
+
+async function runStep(step) {
+    setStep(step, 'active');
+    setStatus(step, 'running', 'running...');
+    const t0 = Date.now();
+    try {
+        if (step === 'clean') {
+            const data = await callAgent('transcript-cleaner', {
+                brand: state.brand,
+                transcript: state.transcript
+            });
+            state.cleaned = data.cleaned;
+            renderClean(data, ((Date.now() - t0) / 1000).toFixed(1));
+        } else if (step === 'blog') {
+            const body = { brand: state.brand, category: state.category };
+            // Prefer cleaned transcript if we have it, otherwise use topic
+            if (state.cleaned) body.transcript = state.cleaned;
+            else if (state.transcript) body.transcript = state.transcript;
+            else body.topic = state.topic;
+            const data = await callAgent('blog-writer', body);
+            state.blog = data;
+            renderBlog(data, ((Date.now() - t0) / 1000).toFixed(1));
+        } else if (step === 'summary') {
+            const body = { brand: state.brand };
+            if (state.cleaned) body.transcript = state.cleaned;
+            else if (state.transcript) body.transcript = state.transcript;
+            else body.topic = state.topic;
+            const data = await callAgent('episode-summary', body);
+            state.summary = data;
+            renderSummary(data, ((Date.now() - t0) / 1000).toFixed(1));
+        } else if (step === 'linkedin') {
+            const body = { brand: state.brand };
+            if (state.blog?.html) body.blog_html = state.blog.html;
+            else if (state.cleaned) body.transcript = state.cleaned;
+            else if (state.transcript) body.transcript = state.transcript;
+            else body.topic = state.topic;
+            const data = await callAgent('linkedin-writer', body);
+            state.linkedin = data;
+            renderLinkedIn(data, ((Date.now() - t0) / 1000).toFixed(1));
+        }
+        setStep(step, 'done');
+        setStatus(step, 'done', 'done');
+        document.getElementById(`regen-${step}`)?.removeAttribute('disabled');
+        document.getElementById(`copy-${step}`)?.removeAttribute('disabled');
+        // Enable Save as Draft only on the blog step and only for the marcos brand
+        if (step === 'blog' && state.brand === 'marcos') {
+            document.getElementById('save-blog')?.removeAttribute('disabled');
+        }
+    } catch (e) {
+        setStep(step, 'error');
+        setStatus(step, 'error', 'error');
+        const out = document.getElementById('out-' + step);
+        out.className = 'card-empty';
+        out.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+        throw e;
+    }
+}
+
+async function regen(step) {
+    setError('');
+    if (step === 'clean' && !state.transcript) {
+        setError('No transcript to clean.');
+        return;
+    }
+    document.getElementById(`regen-${step}`).disabled = true;
+    try {
+        await runStep(step);
+        // If we regenerated the blog, the linkedin post is now stale — note it
+        if (step === 'blog') {
+            const note = document.getElementById('meta-linkedin');
+            if (note) note.innerHTML += '<br><strong style="color:#f59e0b">Blog changed — consider regenerating LinkedIn.</strong>';
+        }
+    } catch (e) {
+        setError(e.message);
+    } finally {
+        document.getElementById(`regen-${step}`).disabled = false;
+    }
+}
+
+function renderClean(data, secs) {
+    const out = document.getElementById('out-clean');
+    out.className = '';
+    out.innerHTML = `<div class="out-text">${escapeHtml(data.cleaned)}</div>`;
+    document.getElementById('meta-clean').textContent =
+        `${data.model} · ${secs}s · ${data.usage?.input_tokens || 0} → ${data.usage?.output_tokens || 0} tok`;
+}
+
+function renderBlog(data, secs) {
+    const out = document.getElementById('out-blog');
+    out.className = '';
+    out.innerHTML = `
+        <div class="out-title">${escapeHtml(data.title || '(no title)')}</div>
+        <div class="out-excerpt">${escapeHtml(data.excerpt || '')}</div>
+        <div class="out-html">${data.html || ''}</div>
+    `;
+    document.getElementById('meta-blog').textContent =
+        `${data.model} · ${secs}s · ${data.usage?.input_tokens || 0} → ${data.usage?.output_tokens || 0} tok`;
+
+    // Reset save button when blog content changes (fresh generate or regen)
+    const saveBtn = document.getElementById('save-blog');
+    if (saveBtn) saveBtn.textContent = 'Save as Draft';
+    document.getElementById('save-blog-status').innerHTML = '';
+}
+
+function renderSummary(data, secs) {
+    const out = document.getElementById('out-summary');
+    out.className = '';
+    out.innerHTML = `
+        <div class="sub-section">
+            <div class="sub-section-label">YouTube Description</div>
+            <div class="out-text">${escapeHtml(data.youtube_description || '')}</div>
+        </div>
+        <div class="sub-section">
+            <div class="sub-section-label">Social Tease</div>
+            <div class="out-text">${escapeHtml(data.social_tease || '')}</div>
+        </div>
+    `;
+    document.getElementById('meta-summary').textContent =
+        `${data.model} · ${secs}s · ${data.usage?.input_tokens || 0} → ${data.usage?.output_tokens || 0} tok`;
+}
+
+function renderLinkedIn(data, secs) {
+    const out = document.getElementById('out-linkedin');
+    out.className = '';
+    out.innerHTML = `<div class="out-text">${escapeHtml(data.post || '')}</div>`;
+    document.getElementById('meta-linkedin').textContent =
+        `${data.model} · ${secs}s · ${data.char_count} chars · ${data.usage?.input_tokens || 0} → ${data.usage?.output_tokens || 0} tok`;
+}
+
+async function saveBlogDraft() {
+    if (!state.blog?.html || !state.blog?.title) return;
+    if (state.brand !== 'marcos') {
+        // Defensive: VytalMed publishes to Webflow, not blog_posts — shouldn't be reachable
+        return;
+    }
+    const btn = document.getElementById('save-blog');
+    const status = document.getElementById('save-blog-status');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    status.innerHTML = '';
+    try {
+        const db = getDb();
+        const saved = await db.createBlogPost({
+            title: state.blog.title,
+            excerpt: state.blog.excerpt || '',
+            content: state.blog.html,
+            category: state.category || 'ai-strategy',
+            brand_slug: state.brand
+        });
+        btn.textContent = 'Saved ✓';
+        status.innerHTML = `<span style="color:#10b981">Draft saved</span> · <a href="/crm/#/blog" style="color:#7c3aed">Open in Blog Editor →</a> (slug: <code>${saved.slug}</code>)`;
+    } catch (e) {
+        console.error('Save draft failed:', e);
+        btn.disabled = false;
+        btn.textContent = 'Save as Draft';
+        status.innerHTML = `<span style="color:#ef4444">Save failed: ${escapeHtml(e.message)}</span>`;
+    }
+}
+
+// Brand picker — keep Save button hidden for non-marcos brands
+function syncBrandUI() {
+    const brand = document.getElementById('brand').value;
+    const saveBtn = document.getElementById('save-blog');
+    if (saveBtn) saveBtn.style.display = (brand === 'marcos') ? '' : 'none';
+}
+document.getElementById('brand').addEventListener('change', syncBrandUI);
+syncBrandUI();
+
+function copyOut(card) {
+    let text = '';
+    if (card === 'clean') text = state.cleaned;
+    else if (card === 'blog') text = state.blog?.html || '';
+    else if (card === 'summary') text = `${state.summary?.youtube_description || ''}\n\n---\n\n${state.summary?.social_tease || ''}`;
+    else if (card === 'linkedin') text = state.linkedin?.post || '';
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-' + card);
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = orig, 1500);
+    });
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>
