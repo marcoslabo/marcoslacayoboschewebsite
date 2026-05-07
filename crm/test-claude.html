@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales OS — Claude Test Bench</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+        header { margin-bottom: 24px; }
+        h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+        .sub { color: #94a3b8; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #7c3aed; margin: 0 0 12px; }
+        label { display: block; font-size: 12px; color: #94a3b8; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        select, textarea, input {
+            width: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font: inherit;
+            font-size: 14px;
+        }
+        textarea { min-height: 200px; resize: vertical; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; line-height: 1.5; }
+        button {
+            background: #7c3aed;
+            color: white;
+            border: 0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #6d28d9; }
+        .row { display: flex; gap: 12px; }
+        .row > * { flex: 1; }
+        .meta { font-size: 12px; color: #64748b; margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; }
+        .out-title { font-size: 18px; font-weight: 700; color: #f1f5f9; margin: 8px 0; }
+        .out-excerpt { font-style: italic; color: #94a3b8; margin-bottom: 16px; }
+        .out-html { background: white; color: #1e293b; padding: 24px; border-radius: 8px; line-height: 1.7; max-height: 500px; overflow-y: auto; }
+        .out-html h2 { color: #0f172a; font-size: 20px; margin-top: 24px; }
+        .out-html p { margin: 12px 0; }
+        .out-html blockquote { border-left: 3px solid #7c3aed; padding-left: 16px; color: #475569; }
+        .err { background: #7f1d1d; color: #fee2e2; padding: 12px; border-radius: 8px; margin-top: 12px; }
+        .empty { color: #64748b; text-align: center; padding: 40px; }
+        .badge { display: inline-block; background: #334155; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px; }
+        .badge.vytalmed { background: #1e40af; }
+        .badge.marcos { background: #7c3aed; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Sales OS — Claude Test Bench</h1>
+        <div class="sub">Phase 0 sanity check. Pick a brand, paste a transcript or write a topic, generate.</div>
+    </header>
+
+    <div class="grid">
+        <div class="panel">
+            <h2>Input</h2>
+
+            <label>Brand</label>
+            <select id="brand">
+                <option value="marcos">Marcos personal</option>
+                <option value="vytalmed">VytalMed</option>
+            </select>
+
+            <label>Category</label>
+            <select id="category">
+                <option value="ai-strategy">AI Strategy</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="private-equity">Private Equity</option>
+                <option value="case-study">Case Study</option>
+            </select>
+
+            <label>Topic (optional — use this OR transcript)</label>
+            <input id="topic" type="text" placeholder="e.g., Why most AI pilots in healthcare fail">
+
+            <label>Transcript (optional — paste a Descript export here)</label>
+            <textarea id="transcript" placeholder="Paste raw transcript text here..."></textarea>
+
+            <button id="go" onclick="generate()">Generate Blog Post</button>
+            <div id="error" class="err" style="display:none"></div>
+            <div id="meta" class="meta"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Output <span id="brand-badge"></span></h2>
+            <div id="out" class="empty">Generated post will appear here.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function generate() {
+    const brand = document.getElementById('brand').value;
+    const category = document.getElementById('category').value;
+    const topic = document.getElementById('topic').value.trim();
+    const transcript = document.getElementById('transcript').value.trim();
+    const btn = document.getElementById('go');
+    const out = document.getElementById('out');
+    const meta = document.getElementById('meta');
+    const errEl = document.getElementById('error');
+    const badge = document.getElementById('brand-badge');
+
+    errEl.style.display = 'none';
+    if (!topic && !transcript) {
+        errEl.textContent = 'Provide either a topic or a transcript.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Generating... (15-30s)';
+    out.className = 'empty';
+    out.textContent = 'Calling Claude...';
+    meta.textContent = '';
+
+    const t0 = Date.now();
+    try {
+        const res = await fetch('/api/agents/blog-writer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brand, category, topic: topic || undefined, transcript: transcript || undefined })
+        });
+        const data = await res.json();
+        const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+        if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Unknown error');
+        }
+
+        badge.textContent = brand;
+        badge.className = 'badge ' + brand;
+
+        out.className = '';
+        out.innerHTML = `
+            <div class="out-title">${escapeHtml(data.title || '(no title)')}</div>
+            <div class="out-excerpt">${escapeHtml(data.excerpt || '')}</div>
+            <div class="out-html">${data.html || '(no html)'}</div>
+        `;
+
+        const inputTok = data.usage?.input_tokens ?? '?';
+        const outputTok = data.usage?.output_tokens ?? '?';
+        meta.textContent = `Model: ${data.model} · ${elapsed}s · in ${inputTok} tok / out ${outputTok} tok`;
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+        out.className = 'empty';
+        out.textContent = 'Failed.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Blog Post';
+    }
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
