@@ -3,165 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales OS — Claude Test Bench</title>
+    <title>Sales OS — Agent Test Bench</title>
     <style>
         * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            background: #0f172a;
-            color: #e2e8f0;
-            min-height: 100vh;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .container { max-width: 1300px; margin: 0 auto; padding: 32px 24px; }
         header { margin-bottom: 24px; }
         h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
         .sub { color: #94a3b8; font-size: 14px; }
+        .global-bar { display: flex; gap: 16px; align-items: end; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .global-bar > div { flex: 0 0 auto; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 10px 16px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 13px; }
+        .tab.active { background: #7c3aed; border-color: #7c3aed; color: white; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-        .panel {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #7c3aed; margin: 0 0 12px; }
+        .panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+        .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #7c3aed; margin: 0 0 12px; display: flex; gap: 8px; align-items: center; }
         label { display: block; font-size: 12px; color: #94a3b8; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-        select, textarea, input {
-            width: 100%;
-            background: #0f172a;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 10px 12px;
-            font: inherit;
-            font-size: 14px;
-        }
+        select, textarea, input { width: 100%; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; }
         textarea { min-height: 200px; resize: vertical; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; line-height: 1.5; }
-        button {
-            background: #7c3aed;
-            color: white;
-            border: 0;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 16px;
-            font-size: 14px;
-        }
-        button:disabled { background: #475569; cursor: not-allowed; }
-        button:hover:not(:disabled) { background: #6d28d9; }
-        .row { display: flex; gap: 12px; }
-        .row > * { flex: 1; }
+        button.go { background: #7c3aed; color: white; border: 0; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 16px; font-size: 14px; }
+        button.go:disabled { background: #475569; cursor: not-allowed; }
+        button.go:hover:not(:disabled) { background: #6d28d9; }
         .meta { font-size: 12px; color: #64748b; margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; }
+        .err { background: #7f1d1d; color: #fee2e2; padding: 12px; border-radius: 8px; margin-top: 12px; }
+        .empty { color: #64748b; text-align: center; padding: 40px; }
+        .badge { display: inline-block; background: #334155; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .badge.vytalmed { background: #1e40af; }
+        .badge.marcos { background: #7c3aed; }
         .out-title { font-size: 18px; font-weight: 700; color: #f1f5f9; margin: 8px 0; }
         .out-excerpt { font-style: italic; color: #94a3b8; margin-bottom: 16px; }
         .out-html { background: white; color: #1e293b; padding: 24px; border-radius: 8px; line-height: 1.7; max-height: 500px; overflow-y: auto; }
         .out-html h2 { color: #0f172a; font-size: 20px; margin-top: 24px; }
         .out-html p { margin: 12px 0; }
         .out-html blockquote { border-left: 3px solid #7c3aed; padding-left: 16px; color: #475569; }
-        .err { background: #7f1d1d; color: #fee2e2; padding: 12px; border-radius: 8px; margin-top: 12px; }
-        .empty { color: #64748b; text-align: center; padding: 40px; }
-        .badge { display: inline-block; background: #334155; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px; }
-        .badge.vytalmed { background: #1e40af; }
-        .badge.marcos { background: #7c3aed; }
+        .out-text { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 8px; line-height: 1.6; max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-size: 14px; }
+        .out-section { margin-bottom: 16px; }
+        .out-section-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .agent-desc { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .hidden { display: none; }
+        .copy-btn { background: #334155; color: #e2e8f0; border: 0; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-left: auto; }
+        .copy-btn:hover { background: #475569; }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <h1>Sales OS — Claude Test Bench</h1>
-        <div class="sub">Phase 0 sanity check. Pick a brand, paste a transcript or write a topic, generate.</div>
+        <h1>Sales OS — Agent Test Bench</h1>
+        <div class="sub">Pick a brand, pick an agent, fill the inputs, generate.</div>
     </header>
 
-    <div class="grid">
-        <div class="panel">
-            <h2>Input</h2>
-
-            <label>Brand</label>
+    <div class="global-bar">
+        <div>
+            <label style="margin: 0 0 6px;">Brand</label>
             <select id="brand">
                 <option value="marcos">Marcos personal</option>
                 <option value="vytalmed">VytalMed</option>
             </select>
+        </div>
+    </div>
 
-            <label>Category</label>
-            <select id="category">
-                <option value="ai-strategy">AI Strategy</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="private-equity">Private Equity</option>
-                <option value="case-study">Case Study</option>
-            </select>
+    <div class="tabs">
+        <button class="tab active" data-agent="blog-writer">Blog Writer</button>
+        <button class="tab" data-agent="transcript-cleaner">Transcript Cleaner</button>
+        <button class="tab" data-agent="episode-summary">Episode Summary</button>
+        <button class="tab" data-agent="linkedin-writer">LinkedIn Writer</button>
+    </div>
 
-            <label>Topic (optional — use this OR transcript)</label>
-            <input id="topic" type="text" placeholder="e.g., Why most AI pilots in healthcare fail">
+    <div class="grid">
+        <div class="panel">
+            <h2>Input</h2>
+            <div id="agent-desc" class="agent-desc"></div>
 
-            <label>Transcript (optional — paste a Descript export here)</label>
-            <textarea id="transcript" placeholder="Paste raw transcript text here..."></textarea>
+            <!-- Blog Writer fields -->
+            <div data-fields="blog-writer">
+                <label>Category</label>
+                <select id="bw-category">
+                    <option value="ai-strategy">AI Strategy</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="private-equity">Private Equity</option>
+                    <option value="case-study">Case Study</option>
+                </select>
+                <label>Topic (optional — use this OR transcript)</label>
+                <input id="bw-topic" type="text" placeholder="e.g., Why most AI pilots in healthcare fail">
+                <label>Transcript (optional — paste a Descript export)</label>
+                <textarea id="bw-transcript" placeholder="Paste raw transcript text here..."></textarea>
+            </div>
 
-            <button id="go" onclick="generate()">Generate Blog Post</button>
+            <!-- Transcript Cleaner fields -->
+            <div data-fields="transcript-cleaner" class="hidden">
+                <label>Raw Transcript (paste Descript / Otter / Riverside export)</label>
+                <textarea id="tc-transcript" placeholder="Paste raw transcript here..."></textarea>
+            </div>
+
+            <!-- Episode Summary fields -->
+            <div data-fields="episode-summary" class="hidden">
+                <label>Topic (optional — use this OR transcript)</label>
+                <input id="es-topic" type="text" placeholder="e.g., How RIA eliminated 13 clerk positions">
+                <label>Transcript (optional — preferred for accuracy)</label>
+                <textarea id="es-transcript" placeholder="Paste cleaned transcript here..."></textarea>
+            </div>
+
+            <!-- LinkedIn Writer fields -->
+            <div data-fields="linkedin-writer" class="hidden">
+                <label>Source (pick one)</label>
+                <input id="lw-topic" type="text" placeholder="Topic — e.g., Why HL7 alone won't fix radiology data">
+                <textarea id="lw-blog-html" placeholder="OR paste blog HTML here..." style="min-height: 120px;"></textarea>
+                <textarea id="lw-transcript" placeholder="OR paste transcript here..." style="min-height: 120px;"></textarea>
+                <label>Blog URL (optional — appended to post)</label>
+                <input id="lw-url" type="text" placeholder="https://marcoslacayobosche.com/blog/...">
+            </div>
+
+            <button class="go" id="go-btn" onclick="generate()">Generate</button>
             <div id="error" class="err" style="display:none"></div>
             <div id="meta" class="meta"></div>
         </div>
 
         <div class="panel">
-            <h2>Output <span id="brand-badge"></span></h2>
-            <div id="out" class="empty">Generated post will appear here.</div>
+            <h2>Output <span id="brand-badge" class="badge"></span></h2>
+            <div id="out" class="empty">Select an agent, fill inputs, hit Generate.</div>
         </div>
     </div>
 </div>
 
 <script>
+const AGENT_META = {
+    'blog-writer':         { desc: 'Generates a brand-voiced blog post from a topic or transcript. Returns title + excerpt + HTML.' },
+    'transcript-cleaner':  { desc: 'Cleans raw transcripts: removes filler, fixes brand terminology, segments paragraphs. Run this BEFORE other agents for best results.' },
+    'episode-summary':     { desc: 'Generates a YouTube description (~150 words) and a 1-line social tease.' },
+    'linkedin-writer':     { desc: 'Generates a LinkedIn post (max 1300 chars) from a blog HTML, transcript, or topic. Optionally adds a URL at the end.' }
+};
+
+let currentAgent = 'blog-writer';
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    currentAgent = t.dataset.agent;
+    document.querySelectorAll('[data-fields]').forEach(f => f.classList.add('hidden'));
+    document.querySelector(`[data-fields="${currentAgent}"]`).classList.remove('hidden');
+    document.getElementById('agent-desc').textContent = AGENT_META[currentAgent].desc;
+    document.getElementById('out').className = 'empty';
+    document.getElementById('out').textContent = 'Select an agent, fill inputs, hit Generate.';
+    document.getElementById('meta').textContent = '';
+}));
+
+// init description
+document.getElementById('agent-desc').textContent = AGENT_META[currentAgent].desc;
+
 async function generate() {
     const brand = document.getElementById('brand').value;
-    const category = document.getElementById('category').value;
-    const topic = document.getElementById('topic').value.trim();
-    const transcript = document.getElementById('transcript').value.trim();
-    const btn = document.getElementById('go');
+    const btn = document.getElementById('go-btn');
     const out = document.getElementById('out');
     const meta = document.getElementById('meta');
     const errEl = document.getElementById('error');
     const badge = document.getElementById('brand-badge');
 
     errEl.style.display = 'none';
-    if (!topic && !transcript) {
-        errEl.textContent = 'Provide either a topic or a transcript.';
+
+    let body = { brand };
+    let validationError = null;
+
+    if (currentAgent === 'blog-writer') {
+        body.category = document.getElementById('bw-category').value;
+        const topic = document.getElementById('bw-topic').value.trim();
+        const transcript = document.getElementById('bw-transcript').value.trim();
+        if (!topic && !transcript) validationError = 'Provide a topic or transcript.';
+        if (topic) body.topic = topic;
+        if (transcript) body.transcript = transcript;
+    } else if (currentAgent === 'transcript-cleaner') {
+        const transcript = document.getElementById('tc-transcript').value.trim();
+        if (!transcript || transcript.length < 20) validationError = 'Transcript required (min 20 chars).';
+        body.transcript = transcript;
+    } else if (currentAgent === 'episode-summary') {
+        const topic = document.getElementById('es-topic').value.trim();
+        const transcript = document.getElementById('es-transcript').value.trim();
+        if (!topic && !transcript) validationError = 'Provide a topic or transcript.';
+        if (topic) body.topic = topic;
+        if (transcript) body.transcript = transcript;
+    } else if (currentAgent === 'linkedin-writer') {
+        const topic = document.getElementById('lw-topic').value.trim();
+        const blog_html = document.getElementById('lw-blog-html').value.trim();
+        const transcript = document.getElementById('lw-transcript').value.trim();
+        const blog_url = document.getElementById('lw-url').value.trim();
+        if (!topic && !blog_html && !transcript) validationError = 'Provide a topic, blog HTML, or transcript.';
+        if (topic) body.topic = topic;
+        if (blog_html) body.blog_html = blog_html;
+        if (transcript) body.transcript = transcript;
+        if (blog_url) body.blog_url = blog_url;
+    }
+
+    if (validationError) {
+        errEl.textContent = validationError;
         errEl.style.display = 'block';
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Generating... (15-30s)';
+    btn.textContent = 'Generating... (15-60s)';
     out.className = 'empty';
-    out.textContent = 'Calling Claude...';
+    out.textContent = `Calling ${currentAgent}...`;
     meta.textContent = '';
 
     const t0 = Date.now();
     try {
-        const res = await fetch('/api/agents/blog-writer', {
+        const res = await fetch(`/api/agents/${currentAgent}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brand, category, topic: topic || undefined, transcript: transcript || undefined })
+            body: JSON.stringify(body)
         });
         const data = await res.json();
         const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 
-        if (!res.ok || !data.success) {
-            throw new Error(data.error || 'Unknown error');
-        }
+        if (!res.ok || !data.success) throw new Error(data.error || 'Unknown error');
 
         badge.textContent = brand;
         badge.className = 'badge ' + brand;
 
-        out.className = '';
-        out.innerHTML = `
-            <div class="out-title">${escapeHtml(data.title || '(no title)')}</div>
-            <div class="out-excerpt">${escapeHtml(data.excerpt || '')}</div>
-            <div class="out-html">${data.html || '(no html)'}</div>
-        `;
+        renderOutput(currentAgent, data);
 
         const inputTok = data.usage?.input_tokens ?? '?';
         const outputTok = data.usage?.output_tokens ?? '?';
-        meta.textContent = `Model: ${data.model} · ${elapsed}s · in ${inputTok} tok / out ${outputTok} tok`;
+        meta.textContent = `${data.model} · ${elapsed}s · in ${inputTok} tok / out ${outputTok} tok`;
     } catch (e) {
         errEl.textContent = e.message;
         errEl.style.display = 'block';
@@ -169,13 +233,67 @@ async function generate() {
         out.textContent = 'Failed.';
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Generate Blog Post';
+        btn.textContent = 'Generate';
     }
 }
 
-function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function renderOutput(agent, data) {
+    const out = document.getElementById('out');
+    out.className = '';
+    let html = '';
+    if (agent === 'blog-writer') {
+        html = `
+            <div class="out-section">
+                <div class="out-section-label">Title</div>
+                <div class="out-title">${escapeHtml(data.title || '(no title)')}</div>
+            </div>
+            <div class="out-section">
+                <div class="out-section-label">Excerpt</div>
+                <div class="out-excerpt">${escapeHtml(data.excerpt || '')}</div>
+            </div>
+            <div class="out-section">
+                <div class="out-section-label">HTML <button class="copy-btn" onclick="copy(this, ${JSON.stringify(data.html || '').replace(/"/g, '&quot;')})">Copy</button></div>
+                <div class="out-html">${data.html || '(no html)'}</div>
+            </div>
+        `;
+    } else if (agent === 'transcript-cleaner') {
+        html = `
+            <div class="out-section">
+                <div class="out-section-label">Cleaned Transcript <button class="copy-btn" onclick="copy(this, ${JSON.stringify(data.cleaned || '').replace(/"/g, '&quot;')})">Copy</button></div>
+                <div class="out-text">${escapeHtml(data.cleaned || '(empty)')}</div>
+            </div>
+        `;
+    } else if (agent === 'episode-summary') {
+        html = `
+            <div class="out-section">
+                <div class="out-section-label">YouTube Description <button class="copy-btn" onclick="copy(this, ${JSON.stringify(data.youtube_description || '').replace(/"/g, '&quot;')})">Copy</button></div>
+                <div class="out-text">${escapeHtml(data.youtube_description || '(empty)')}</div>
+            </div>
+            <div class="out-section">
+                <div class="out-section-label">Social Tease <button class="copy-btn" onclick="copy(this, ${JSON.stringify(data.social_tease || '').replace(/"/g, '&quot;')})">Copy</button></div>
+                <div class="out-text">${escapeHtml(data.social_tease || '(empty)')}</div>
+            </div>
+        `;
+    } else if (agent === 'linkedin-writer') {
+        html = `
+            <div class="out-section">
+                <div class="out-section-label">LinkedIn Post (${data.char_count} chars) <button class="copy-btn" onclick="copy(this, ${JSON.stringify(data.post || '').replace(/"/g, '&quot;')})">Copy</button></div>
+                <div class="out-text">${escapeHtml(data.post || '(empty)')}</div>
+            </div>
+        `;
+    }
+    out.innerHTML = html;
 }
+
+function copy(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = original, 1500);
+    });
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
 </body>
 </html>
