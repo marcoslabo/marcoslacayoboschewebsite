@@ -153,9 +153,11 @@
                     <span class="card-status idle" id="status-blog">idle</span>
                     <button class="secondary" onclick="regen('blog')" id="regen-blog" disabled>Regenerate</button>
                     <button class="secondary" onclick="copyOut('blog')" id="copy-blog" disabled>Copy HTML</button>
+                    <button class="secondary" onclick="saveBlogDraft()" id="save-blog" disabled style="background:#10b981; color:#0f172a;">Save as Draft</button>
                 </div>
             </div>
             <div id="out-blog" class="card-empty">Will populate after Generate.</div>
+            <div id="save-blog-status" style="margin-top:8px; font-size:12px;"></div>
             <div class="card-meta" id="meta-blog"></div>
         </div>
 
@@ -177,7 +179,22 @@
     </div>
 </div>
 
+<!-- Supabase + CRM data layer (we use createBlogPost from db.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+
 <script>
+// Lazy-init the CRM DB client only when needed (avoids breaking if scripts fail to load)
+let crmDb = null;
+function getDb() {
+    if (!crmDb) {
+        if (typeof CRMDB === 'undefined') throw new Error('CRMDB not loaded — check that js/db.js is reachable');
+        crmDb = new CRMDB();
+    }
+    return crmDb;
+}
+
 // State holds the latest data from each agent so we can re-render and regenerate
 const state = {
     brand: 'marcos',
@@ -319,6 +336,10 @@ async function runStep(step) {
         setStatus(step, 'done', 'done');
         document.getElementById(`regen-${step}`)?.removeAttribute('disabled');
         document.getElementById(`copy-${step}`)?.removeAttribute('disabled');
+        // Enable Save as Draft only on the blog step and only for the marcos brand
+        if (step === 'blog' && state.brand === 'marcos') {
+            document.getElementById('save-blog')?.removeAttribute('disabled');
+        }
     } catch (e) {
         setStep(step, 'error');
         setStatus(step, 'error', 'error');
@@ -368,6 +389,11 @@ function renderBlog(data, secs) {
     `;
     document.getElementById('meta-blog').textContent =
         `${data.model} · ${secs}s · ${data.usage?.input_tokens || 0} → ${data.usage?.output_tokens || 0} tok`;
+
+    // Reset save button when blog content changes (fresh generate or regen)
+    const saveBtn = document.getElementById('save-blog');
+    if (saveBtn) saveBtn.textContent = 'Save as Draft';
+    document.getElementById('save-blog-status').innerHTML = '';
 }
 
 function renderSummary(data, secs) {
@@ -394,6 +420,45 @@ function renderLinkedIn(data, secs) {
     document.getElementById('meta-linkedin').textContent =
         `${data.model} · ${secs}s · ${data.char_count} chars · ${data.usage?.input_tokens || 0} → ${data.usage?.output_tokens || 0} tok`;
 }
+
+async function saveBlogDraft() {
+    if (!state.blog?.html || !state.blog?.title) return;
+    if (state.brand !== 'marcos') {
+        // Defensive: VytalMed publishes to Webflow, not blog_posts — shouldn't be reachable
+        return;
+    }
+    const btn = document.getElementById('save-blog');
+    const status = document.getElementById('save-blog-status');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    status.innerHTML = '';
+    try {
+        const db = getDb();
+        const saved = await db.createBlogPost({
+            title: state.blog.title,
+            excerpt: state.blog.excerpt || '',
+            content: state.blog.html,
+            category: state.category || 'ai-strategy',
+            brand_slug: state.brand
+        });
+        btn.textContent = 'Saved ✓';
+        status.innerHTML = `<span style="color:#10b981">Draft saved</span> · <a href="/crm/#/blog" style="color:#7c3aed">Open in Blog Editor →</a> (slug: <code>${saved.slug}</code>)`;
+    } catch (e) {
+        console.error('Save draft failed:', e);
+        btn.disabled = false;
+        btn.textContent = 'Save as Draft';
+        status.innerHTML = `<span style="color:#ef4444">Save failed: ${escapeHtml(e.message)}</span>`;
+    }
+}
+
+// Brand picker — keep Save button hidden for non-marcos brands
+function syncBrandUI() {
+    const brand = document.getElementById('brand').value;
+    const saveBtn = document.getElementById('save-blog');
+    if (saveBtn) saveBtn.style.display = (brand === 'marcos') ? '' : 'none';
+}
+document.getElementById('brand').addEventListener('change', syncBrandUI);
+syncBrandUI();
 
 function copyOut(card) {
     let text = '';

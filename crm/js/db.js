@@ -778,6 +778,11 @@ class CRMDB {
             read_time: Math.max(1, Math.ceil((postData.content || '').split(/\s+/).length / 200))
         };
 
+        // Optional brand attribution (defaults to 'marcos' in the DB if omitted)
+        if (postData.brand_slug) {
+            post.brand_slug = postData.brand_slug;
+        }
+
         const { data, error } = await this.supabase
             .from('blog_posts')
             .insert([post])
