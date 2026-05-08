@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales OS — Inbound Triage</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .container { max-width: 1300px; margin: 0 auto; padding: 32px 24px; }
+        header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+        h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+        .sub { color: #94a3b8; font-size: 14px; }
+        select, button, input { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; font: inherit; font-size: 14px; }
+        button { cursor: pointer; }
+        button.primary { background: #7c3aed; border-color: #7c3aed; color: white; font-weight: 600; }
+        button.primary:hover:not(:disabled) { background: #6d28d9; }
+        button.primary:disabled { background: #475569; border-color: #475569; cursor: not-allowed; }
+        button.secondary { padding: 6px 12px; font-size: 12px; }
+        button.secondary:hover:not(:disabled) { background: #1e293b; }
+        button.success { background: #10b981; border-color: #10b981; color: #0f172a; font-weight: 600; }
+        button.success:hover:not(:disabled) { background: #059669; }
+
+        .filter-bar { display: flex; gap: 12px; align-items: end; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-bar > div { flex: 0 0 auto; }
+        .filter-bar label { display: block; font-size: 11px; color: #94a3b8; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .stats { display: flex; gap: 16px; margin-left: auto; align-items: center; font-size: 13px; color: #94a3b8; }
+        .stat-num { color: #f1f5f9; font-weight: 700; font-size: 18px; }
+
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+        .card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+        .card-name { font-size: 16px; font-weight: 700; color: #f1f5f9; }
+        .card-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: #334155; color: #e2e8f0; }
+        .badge.brand-marcos { background: #7c3aed; color: white; }
+        .badge.brand-vytalmed { background: #1e40af; color: white; }
+        .badge.source { background: #475569; }
+        .badge.spark { background: #f59e0b; color: #0f172a; }
+        .badge.intent-low { background: #dc2626; color: white; }
+        .badge.intent-med { background: #f59e0b; color: #0f172a; }
+        .badge.intent-high { background: #10b981; color: #0f172a; }
+        .badge.segment { background: #1d4ed8; color: white; text-transform: capitalize; }
+
+        .problem-text { background: #0f172a; border-radius: 6px; padding: 10px 12px; font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-top: 8px; }
+        .brief-summary { background: #422006; border: 1px solid #92400e; border-radius: 6px; padding: 10px 12px; font-size: 13px; margin-top: 8px; }
+        .brief-summary strong { color: #fbbf24; }
+
+        .triage-result { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px; margin-top: 12px; }
+        .triage-row { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .triage-row label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .reasoning { font-size: 13px; color: #cbd5e1; font-style: italic; margin-bottom: 12px; }
+        .draft textarea, .draft input { width: 100%; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 13px; }
+        .draft textarea { min-height: 140px; resize: vertical; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, monospace; }
+        .draft .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 0 4px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+        .err { background: #7f1d1d; color: #fee2e2; padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 13px; }
+        .meta-line { font-size: 11px; color: #64748b; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <h1>Sales OS — Inbound Triage</h1>
+            <div class="sub">Recent contacts. Click <strong>Triage Now</strong> to classify and draft a reply.</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <a href="/crm/" style="color:#7c3aed; text-decoration:none; font-size:13px;">← CRM</a>
+            <a href="/crm/episodes.html" style="color:#7c3aed; text-decoration:none; font-size:13px;">Episodes →</a>
+        </div>
+    </header>
+
+    <div class="filter-bar">
+        <div>
+            <label>Brand</label>
+            <select id="filter-brand">
+                <option value="">All</option>
+                <option value="marcos">Marcos</option>
+                <option value="vytalmed">VytalMed</option>
+            </select>
+        </div>
+        <div>
+            <label>Status</label>
+            <select id="filter-status">
+                <option value="untriaged">Untriaged only</option>
+                <option value="all">All recent</option>
+                <option value="triaged">Triaged only</option>
+            </select>
+        </div>
+        <div>
+            <label>Limit</label>
+            <select id="filter-limit">
+                <option>20</option>
+                <option>50</option>
+                <option>100</option>
+            </select>
+        </div>
+        <button class="primary" onclick="loadQueue()">Refresh</button>
+        <div class="stats">
+            <div><span class="stat-num" id="stat-total">—</span> shown</div>
+            <div><span class="stat-num" id="stat-untriaged">—</span> untriaged</div>
+            <div><span class="stat-num" id="stat-hot">—</span> hot (intent ≥ 7)</div>
+        </div>
+    </div>
+
+    <div id="error" class="err" style="display:none"></div>
+    <div id="queue"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script>
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CRM_CONFIG;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let queue = []; // current rendered contacts
+
+document.getElementById('filter-brand').addEventListener('change', loadQueue);
+document.getElementById('filter-status').addEventListener('change', loadQueue);
+document.getElementById('filter-limit').addEventListener('change', loadQueue);
+
+async function loadQueue() {
+    setError('');
+    const brand = document.getElementById('filter-brand').value;
+    const status = document.getElementById('filter-status').value;
+    const limit = parseInt(document.getElementById('filter-limit').value, 10);
+
+    let q = sb.from('contacts_inbound')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (brand) q = q.eq('brand_slug', brand);
+    if (status === 'untriaged') q = q.is('triage_id', null);
+    if (status === 'triaged') q = q.not('triage_id', 'is', null);
+
+    const { data, error } = await q;
+    if (error) {
+        setError(`Load failed: ${error.message}`);
+        document.getElementById('queue').innerHTML = '';
+        return;
+    }
+    queue = data || [];
+    render();
+}
+
+function render() {
+    const container = document.getElementById('queue');
+    if (queue.length === 0) {
+        container.innerHTML = `<div class="empty-state">No contacts match these filters.</div>`;
+        document.getElementById('stat-total').textContent = '0';
+        document.getElementById('stat-untriaged').textContent = '0';
+        document.getElementById('stat-hot').textContent = '0';
+        return;
+    }
+
+    const total = queue.length;
+    const untriaged = queue.filter(c => !c.triage_id).length;
+    const hot = queue.filter(c => (c.triage_intent_score || 0) >= 7).length;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-untriaged').textContent = untriaged;
+    document.getElementById('stat-hot').textContent = hot;
+
+    container.innerHTML = queue.map(c => renderCard(c)).join('');
+}
+
+function renderCard(c) {
+    const fullName = [c.first_name, c.last_name].filter(Boolean).join(' ') || '(no name)';
+    const brand = c.brand_slug || 'marcos';
+    const sparkInfo = c.brief_id ? `
+        <div class="brief-summary">
+            <strong>Spark Brief:</strong> ${escapeHtml(c.brief_problem || '(no problem)')}
+            <div style="margin-top:4px;">
+                <strong>Level:</strong> ${escapeHtml(c.brief_solution_level || '?')}
+                · <strong>${c.brief_hours_per_week || '?'}</strong> hrs/wk
+                · <strong>${c.brief_people_involved || '?'}</strong> people
+            </div>
+        </div>
+    ` : '';
+
+    const triage = c.triage_id ? renderTriage(c) : `
+        <div class="meta-line">Not triaged yet.</div>
+    `;
+
+    const triageButtonLabel = c.triage_id ? 'Re-Triage' : 'Triage Now';
+    return `
+        <div class="card" id="card-${c.id}">
+            <div class="card-header">
+                <div>
+                    <div class="card-name">${escapeHtml(fullName)} ${c.company_name ? `· <span style="color:#94a3b8; font-weight:400;">${escapeHtml(c.company_name)}</span>` : ''}</div>
+                    <div class="card-meta">
+                        ${escapeHtml(c.email || '(no email)')}
+                        ${c.job_title ? ` · ${escapeHtml(c.job_title)}` : ''}
+                        ${c.created_at ? ` · ${new Date(c.created_at).toLocaleDateString()}` : ''}
+                    </div>
+                    <div class="badges">
+                        <span class="badge brand-${brand}">${brand}</span>
+                        ${c.source ? `<span class="badge source">${escapeHtml(c.source)}</span>` : ''}
+                        ${c.brief_id ? `<span class="badge spark">Spark</span>` : ''}
+                        ${c.triage_segment ? `<span class="badge segment">${escapeHtml(c.triage_segment)}</span>` : ''}
+                        ${c.triage_intent_score ? renderIntentBadge(c.triage_intent_score) : ''}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="primary" onclick="runTriage('${c.id}')" id="btn-triage-${c.id}">${triageButtonLabel}</button>
+                </div>
+            </div>
+            ${c.problem ? `<div class="problem-text"><strong>Problem:</strong> ${escapeHtml(c.problem)}</div>` : ''}
+            ${sparkInfo}
+            <div id="triage-${c.id}">${triage}</div>
+        </div>
+    `;
+}
+
+function renderIntentBadge(score) {
+    let cls = 'intent-low';
+    if (score >= 7) cls = 'intent-high';
+    else if (score >= 4) cls = 'intent-med';
+    return `<span class="badge ${cls}">Intent ${score}/10</span>`;
+}
+
+function renderTriage(c) {
+    const sentBadge = c.triage_sent ? `<span class="badge intent-high">Sent ${new Date(c.triage_sent_at).toLocaleDateString()}</span>` : '';
+    return `
+        <div class="triage-result">
+            <div class="triage-row">
+                <span class="badge segment">${escapeHtml(c.triage_segment || '?')}</span>
+                ${renderIntentBadge(c.triage_intent_score || 0)}
+                ${sentBadge}
+                <div class="meta-line" style="margin: 0;">${c.triage_created_at ? `Triaged ${new Date(c.triage_created_at).toLocaleString()}` : ''}</div>
+            </div>
+            <div class="reasoning">${escapeHtml(c.triage_intent_reasoning || '')}</div>
+            <div class="draft">
+                <div class="label">Subject</div>
+                <input type="text" id="subj-${c.id}" value="${escapeHtmlAttr(c.triage_draft_subject || '')}">
+                <div class="label">Body</div>
+                <textarea id="body-${c.id}">${escapeHtml(c.triage_draft_body || '')}</textarea>
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                    <button class="secondary" onclick="copyEmail('${c.id}')">Copy email</button>
+                    <button class="secondary" onclick="copyField('${c.id}', 'body')">Copy body only</button>
+                    ${c.triage_sent ? '' : `<button class="success secondary" onclick="markSent('${c.triage_id}', '${c.id}')">Mark as Sent</button>`}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function runTriage(contactId) {
+    const c = queue.find(x => x.id === contactId);
+    if (!c) return;
+    const btn = document.getElementById(`btn-triage-${contactId}`);
+    btn.disabled = true;
+    btn.textContent = 'Triaging...';
+    setError('');
+
+    const payload = {
+        brand: c.brand_slug || 'marcos',
+        contact: {
+            first_name: c.first_name,
+            last_name: c.last_name,
+            email: c.email,
+            job_title: c.job_title,
+            company_name: c.company_name,
+            company_industry: c.company_industry,
+            company_size: c.company_size,
+            source: c.source,
+            problem: c.problem,
+            notes: c.notes
+        }
+    };
+    if (c.brief_id) {
+        payload.spark_brief = {
+            problem_clean: c.brief_problem,
+            solution_level: c.brief_solution_level,
+            suggested_approach: c.brief_approach,
+            hours_per_week: c.brief_hours_per_week,
+            people_involved: c.brief_people_involved
+        };
+    }
+
+    try {
+        const res = await fetch('/api/agents/inbound-triage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Triage failed');
+
+        // Save the triage to the DB
+        const { data: saved, error: saveErr } = await sb.from('contact_triage')
+            .insert([{
+                contact_id: contactId,
+                brand_slug: c.brand_slug || 'marcos',
+                segment: data.segment,
+                intent_score: data.intent_score,
+                intent_reasoning: data.intent_reasoning,
+                draft_subject: data.draft_subject,
+                draft_body: data.draft_body,
+                model: data.model,
+                used_spark_brief: data.used_spark_brief
+            }])
+            .select()
+            .single();
+
+        if (saveErr) throw new Error(`Save failed: ${saveErr.message}`);
+
+        // Update the in-memory contact with the new triage so we can re-render
+        Object.assign(c, {
+            triage_id: saved.id,
+            triage_segment: saved.segment,
+            triage_intent_score: saved.intent_score,
+            triage_intent_reasoning: saved.intent_reasoning,
+            triage_draft_subject: saved.draft_subject,
+            triage_draft_body: saved.draft_body,
+            triage_sent: false,
+            triage_sent_at: null,
+            triage_created_at: saved.created_at
+        });
+
+        // Auto-flag high_intent on the contact for scores >= 8
+        if (saved.intent_score >= 8) {
+            await sb.from('contacts')
+                .update({ high_intent: true })
+                .eq('id', contactId);
+        }
+
+        render();
+    } catch (e) {
+        setError(`Triage failed: ${e.message}`);
+        btn.disabled = false;
+        btn.textContent = c.triage_id ? 'Re-Triage' : 'Triage Now';
+    }
+}
+
+async function markSent(triageId, contactId) {
+    const c = queue.find(x => x.id === contactId);
+    if (!c) return;
+
+    // Pull the (possibly edited) subject + body from the textareas back into the row
+    const subjEl = document.getElementById(`subj-${contactId}`);
+    const bodyEl = document.getElementById(`body-${contactId}`);
+    const updates = {
+        sent: true,
+        sent_at: new Date().toISOString()
+    };
+    if (subjEl) updates.draft_subject = subjEl.value;
+    if (bodyEl) updates.draft_body = bodyEl.value;
+
+    const { error } = await sb.from('contact_triage').update(updates).eq('id', triageId);
+    if (error) { setError(`Mark sent failed: ${error.message}`); return; }
+
+    c.triage_sent = true;
+    c.triage_sent_at = updates.sent_at;
+    c.triage_draft_subject = updates.draft_subject || c.triage_draft_subject;
+    c.triage_draft_body = updates.draft_body || c.triage_draft_body;
+
+    // Move the contact's status forward
+    await sb.from('contacts').update({ status: 'Active' }).eq('id', contactId);
+
+    render();
+}
+
+async function copyEmail(contactId) {
+    const subj = document.getElementById(`subj-${contactId}`)?.value || '';
+    const body = document.getElementById(`body-${contactId}`)?.value || '';
+    const text = `Subject: ${subj}\n\n${body}`;
+    await navigator.clipboard.writeText(text);
+    flashCopy(contactId, 'Copied');
+}
+async function copyField(contactId, field) {
+    const el = document.getElementById(`${field}-${contactId}`);
+    if (!el) return;
+    await navigator.clipboard.writeText(el.value);
+    flashCopy(contactId, 'Copied');
+}
+function flashCopy(contactId, msg) {
+    const card = document.getElementById(`card-${contactId}`);
+    if (!card) return;
+    const flash = document.createElement('div');
+    flash.textContent = msg;
+    flash.style.cssText = 'position:absolute; background:#10b981; color:#0f172a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:600;';
+    card.style.position = 'relative';
+    flash.style.top = '8px'; flash.style.right = '8px';
+    card.appendChild(flash);
+    setTimeout(() => flash.remove(), 1200);
+}
+
+function setError(msg) {
+    const el = document.getElementById('error');
+    if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.style.display = 'block';
+    el.textContent = msg;
+}
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtmlAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+// Boot
+loadQueue();
+</script>
+</body>
+</html>
