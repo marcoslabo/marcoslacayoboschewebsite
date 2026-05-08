@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inbound | CRM</title>
+    <title>New Leads | CRM</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,7 +59,7 @@
             </div>
             <nav class="header-nav">
                 <a href="/crm/#/" class="nav-link">Today</a>
-                <a href="/crm/inbound.html" class="nav-link active" data-admin-only>📥 Inbound</a>
+                <a href="/crm/inbound.html" class="nav-link active" data-admin-only>📥 New Leads</a>
                 <a href="/crm/#/contacts" class="nav-link">All Contacts</a>
                 <a href="/crm/#/activity-log" class="nav-link">📋 Activity Log</a>
                 <a href="/crm/#/spark" class="nav-link" data-admin-only>⚡ Spark</a>
@@ -74,8 +74,8 @@
         <main class="main-content">
             <div class="ib-page">
                 <div class="ib-page-header">
-                    <h1>📥 Inbound Triage</h1>
-                    <p>Recent contacts. Click <strong>Triage Now</strong> to classify and draft a reply.</p>
+                    <h1>📥 New Leads</h1>
+                    <p>People who came in via Spark or your contact forms and haven't been replied to yet. Click <strong>Draft Reply</strong> to generate a personalized email.</p>
                 </div>
 
                 <div class="ib-filter-bar">
@@ -88,14 +88,6 @@
                         </select>
                     </div>
                     <div>
-                        <label>Status</label>
-                        <select id="filter-status">
-                            <option value="untriaged">Untriaged only</option>
-                            <option value="all">All recent</option>
-                            <option value="triaged">Triaged only</option>
-                        </select>
-                    </div>
-                    <div>
                         <label>Limit</label>
                         <select id="filter-limit">
                             <option>20</option>
@@ -105,9 +97,9 @@
                     </div>
                     <button class="btn btn-primary btn-sm" onclick="loadQueue()">Refresh</button>
                     <div class="ib-stats">
-                        <div><span class="ib-stat-num" id="stat-total">—</span>shown</div>
-                        <div><span class="ib-stat-num" id="stat-untriaged">—</span>untriaged</div>
-                        <div><span class="ib-stat-num" id="stat-hot">—</span>hot (≥7)</div>
+                        <div><span class="ib-stat-num" id="stat-total">—</span>new</div>
+                        <div><span class="ib-stat-num" id="stat-spark">—</span>from Spark</div>
+                        <div><span class="ib-stat-num" id="stat-drafted">—</span>drafted</div>
                     </div>
                 </div>
 
@@ -139,20 +131,26 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let queue = [];
 
+    // Sources that count as "new lead" inbound (vs network/met-in-person follow-ups)
+    const NEW_LEAD_SOURCES = ['Website (Spark)', 'Referral', 'Direct Call', 'Other', 'Clay Import'];
+
     document.getElementById('filter-brand').addEventListener('change', loadQueue);
-    document.getElementById('filter-status').addEventListener('change', loadQueue);
     document.getElementById('filter-limit').addEventListener('change', loadQueue);
 
     async function loadQueue() {
         setError('');
         const brand = document.getElementById('filter-brand').value;
-        const status = document.getElementById('filter-status').value;
         const limit = parseInt(document.getElementById('filter-limit').value, 10);
 
-        let q = sb.from('contacts_inbound').select('*').order('created_at', { ascending: false }).limit(limit);
+        // Only show contacts that haven't been replied to yet (status = 'New')
+        // and came from form/Spark/referral sources (not "Met In Person" / "Event" — those are warm relationships you already manage)
+        let q = sb.from('contacts_inbound')
+            .select('*')
+            .eq('status', 'New')
+            .in('source', NEW_LEAD_SOURCES)
+            .order('created_at', { ascending: false })
+            .limit(limit);
         if (brand) q = q.eq('brand_slug', brand);
-        if (status === 'untriaged') q = q.is('triage_id', null);
-        if (status === 'triaged') q = q.not('triage_id', 'is', null);
 
         const { data, error } = await q;
         if (error) { setError(`Load failed: ${error.message}`); document.getElementById('queue').innerHTML = ''; return; }
@@ -163,13 +161,13 @@
     function render() {
         const container = document.getElementById('queue');
         if (queue.length === 0) {
-            container.innerHTML = `<div class="ib-empty">No contacts match these filters.</div>`;
-            ['stat-total','stat-untriaged','stat-hot'].forEach(id => document.getElementById(id).textContent = '0');
+            container.innerHTML = `<div class="ib-empty">No new leads waiting. 🎉<br><small>Showing leads with status = New from Spark or contact forms only.</small></div>`;
+            ['stat-total','stat-spark','stat-drafted'].forEach(id => document.getElementById(id).textContent = '0');
             return;
         }
         document.getElementById('stat-total').textContent = queue.length;
-        document.getElementById('stat-untriaged').textContent = queue.filter(c => !c.triage_id).length;
-        document.getElementById('stat-hot').textContent = queue.filter(c => (c.triage_intent_score || 0) >= 7).length;
+        document.getElementById('stat-spark').textContent = queue.filter(c => c.source === 'Website (Spark)' || c.brief_id).length;
+        document.getElementById('stat-drafted').textContent = queue.filter(c => c.triage_id).length;
         container.innerHTML = queue.map(renderCard).join('');
     }
 
@@ -187,8 +185,8 @@
             </div>
         ` : '';
 
-        const triage = c.triage_id ? renderTriage(c) : `<div class="ib-meta-line" style="margin-top:8px;">Not triaged yet.</div>`;
-        const triageButtonLabel = c.triage_id ? 'Re-Triage' : 'Triage Now';
+        const triage = c.triage_id ? renderTriage(c) : `<div class="ib-meta-line" style="margin-top:8px;">No draft yet — click <strong>Draft Reply</strong> to generate one.</div>`;
+        const triageButtonLabel = c.triage_id ? 'Re-Draft' : 'Draft Reply';
 
         return `
             <div class="ib-card" id="card-${c.id}">
@@ -314,8 +312,8 @@
 
             render();
         } catch (e) {
-            setError(`Triage failed: ${e.message}`);
-            btn.disabled = false; btn.textContent = c.triage_id ? 'Re-Triage' : 'Triage Now';
+            setError(`Draft failed: ${e.message}`);
+            btn.disabled = false; btn.textContent = c.triage_id ? 'Re-Draft' : 'Draft Reply';
         }
     }
 
@@ -330,11 +328,10 @@
 
         const { error } = await sb.from('contact_triage').update(updates).eq('id', triageId);
         if (error) { setError(`Mark sent failed: ${error.message}`); return; }
-        c.triage_sent = true; c.triage_sent_at = updates.sent_at;
-        c.triage_draft_subject = updates.draft_subject || c.triage_draft_subject;
-        c.triage_draft_body = updates.draft_body || c.triage_draft_body;
+        // Status moves to Active so the contact leaves the New Leads queue
         await sb.from('contacts').update({ status: 'Active' }).eq('id', contactId);
-        render();
+        // Reload queue so the just-sent contact disappears
+        await loadQueue();
     }
 
     async function copyEmail(contactId) {
