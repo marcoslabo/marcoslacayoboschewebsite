@@ -7,9 +7,8 @@ const SPARK_CONFIG = {
     SUPABASE_URL: 'https://eccodohheekwbywifipl.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo',
 
-    // OpenAI Configuration (set via environment or localStorage)
-    OPENAI_API_KEY: localStorage.getItem('OPENAI_API_KEY') || '',
-    OPENAI_MODEL: 'gpt-4o',
+    // Anthropic Claude Configuration
+    CLAUDE_MODEL: 'claude-opus-4-7',
 
     // App Configuration
     APP_NAME: 'Spark',

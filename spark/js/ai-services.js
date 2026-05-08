@@ -1,6 +1,6 @@
 // ==========================================================================
 // AI Services for Spark
-// Uses OpenAI API for processing
+// Uses Anthropic Claude API via /api/claude proxy
 // ==========================================================================
 
 class SparkAI {
@@ -16,19 +16,19 @@ class SparkAI {
     }
 
     /**
-     * Call OpenAI API via serverless proxy
+     * Call Claude API via serverless proxy
      */
-    async callOpenAI(prompt) {
-        const { OPENAI_MODEL } = window.SPARK_CONFIG;
+    async callClaude(prompt) {
+        const { CLAUDE_MODEL } = window.SPARK_CONFIG;
 
         try {
-            const response = await fetch('/api/openai', {
+            const response = await fetch('/api/claude', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: OPENAI_MODEL,
+                    model: CLAUDE_MODEL,
                     messages: [{ role: 'user', content: prompt }],
                     temperature: 0.7
                 })
@@ -40,9 +40,9 @@ class SparkAI {
             }
 
             const data = await response.json();
-            return data.choices[0].message.content.trim();
+            return data.text.trim();
         } catch (error) {
-            console.error('OpenAI API call failed:', error);
+            console.error('Claude API call failed:', error);
             throw error;
         }
     }
@@ -52,7 +52,7 @@ class SparkAI {
      */
     async cleanupProblem(problemRaw) {
         const prompt = window.AI_PROMPTS.problemCleanup(problemRaw);
-        const result = await this.callOpenAI(prompt);
+        const result = await this.callClaude(prompt);
 
         if (!result) {
             // Demo fallback
@@ -69,7 +69,7 @@ class SparkAI {
         const prompt = window.AI_PROMPTS.levelClassification(
             problemClean, currentProcess, hoursPerWeek, peopleInvolved
         );
-        const result = await this.callOpenAI(prompt);
+        const result = await this.callClaude(prompt);
 
         if (!result) {
             // Demo fallback
@@ -93,7 +93,7 @@ class SparkAI {
      */
     async generateApproach(problemClean, solutionLevel, industry) {
         const prompt = window.AI_PROMPTS.suggestedApproach(problemClean, solutionLevel, industry);
-        const result = await this.callOpenAI(prompt);
+        const result = await this.callClaude(prompt);
 
         if (!result) {
             // Demo fallback
@@ -108,7 +108,7 @@ class SparkAI {
      */
     async estimateROI(problemClean, industry, companySize) {
         const prompt = window.AI_PROMPTS.roiEstimation(problemClean, industry, companySize);
-        const result = await this.callOpenAI(prompt);
+        const result = await this.callClaude(prompt);
 
         if (!result) {
             // Demo fallback
@@ -131,7 +131,7 @@ class SparkAI {
      */
     async generateTitle(problemClean) {
         const prompt = window.AI_PROMPTS.generateTitle(problemClean);
-        const result = await this.callOpenAI(prompt);
+        const result = await this.callClaude(prompt);
 
         if (!result) {
             // Demo fallback
