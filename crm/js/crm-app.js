@@ -1534,7 +1534,7 @@ class CRMApp {
                             <h2 style="margin: 0 0 4px;">${brief.title || 'Untitled Brief'}</h2>
                             ${brief.company_name ? `<p style="color: #64748b; margin: 0; font-size: 14px;">${brief.company_name}</p>` : ''}
                         </div>
-                        ${brief.share_id ? `<a href="/spark/s/${brief.share_id}" target="_blank" class="btn btn-ghost btn-sm">View Share Link ↗</a>` : ''}
+                        ${brief.share_id ? `<a href="/spark/s/?id=${brief.share_id}" target="_blank" class="btn btn-ghost btn-sm">View Share Link ↗</a>` : ''}
                     </div>
 
                     <!-- Submitter Contact Info -->
