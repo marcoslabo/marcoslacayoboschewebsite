@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { messages, model = 'gpt-4-turbo-preview', temperature = 0.7 } = req.body;
+        const { messages, model = 'gpt-4o', temperature = 0.7 } = req.body;
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',

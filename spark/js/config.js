@@ -9,7 +9,7 @@ const SPARK_CONFIG = {
 
     // OpenAI Configuration (set via environment or localStorage)
     OPENAI_API_KEY: localStorage.getItem('OPENAI_API_KEY') || '',
-    OPENAI_MODEL: 'gpt-4-turbo-preview',
+    OPENAI_MODEL: 'gpt-4o',
 
     // App Configuration
     APP_NAME: 'Spark',
