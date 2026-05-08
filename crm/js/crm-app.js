@@ -1356,7 +1356,19 @@ class CRMApp {
 
     async renderSparkList() {
         const main = document.getElementById('mainContent');
-        const briefs = await window.crmDB.getSparkBriefs();
+        const allBriefs = await window.crmDB.getSparkBriefs();
+
+        // Brand filter (persisted across sessions)
+        const brandFilter = localStorage.getItem('spark_brand_filter') || 'all';
+        const briefs = brandFilter === 'all'
+            ? allBriefs
+            : allBriefs.filter(b => (b.brand_slug || 'marcos') === brandFilter);
+
+        const counts = {
+            all: allBriefs.length,
+            marcos: allBriefs.filter(b => (b.brand_slug || 'marcos') === 'marcos').length,
+            vytalmed: allBriefs.filter(b => (b.brand_slug || 'marcos') === 'vytalmed').length
+        };
 
         const statusGroups = {
             'New': briefs.filter(b => b.status === 'Draft'),
@@ -1367,23 +1379,35 @@ class CRMApp {
             'Closed': briefs.filter(b => b.status === 'Closed Lost')
         };
 
+        const filterPill = (key, label, count) => `
+            <button onclick="window.crmApp.setSparkBrandFilter('${key}')"
+                class="btn btn-sm ${brandFilter === key ? 'btn-primary' : 'btn-ghost'}"
+                style="padding: 6px 12px;">${label} <span style="opacity:0.7;">${count}</span></button>
+        `;
+
         main.innerHTML = `
             <div style="max-width: 900px; margin: 0 auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <div>
                         <h2 style="margin: 0;">⚡ Spark — Submissions</h2>
-                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">"Price of Doing Nothing" calculator submissions</p>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">"Price of Doing Nothing" calculator submissions across brands</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="badge" style="background: #f0fdf4; color: #047857;">${briefs.length} total</span>
                         <a href="/spark/new" target="_blank" class="btn btn-secondary btn-sm">Open Calculator ↗</a>
                     </div>
+                </div>
+
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:24px; flex-wrap:wrap;">
+                    <span style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; margin-right:4px;">Brand</span>
+                    ${filterPill('all', 'All', counts.all)}
+                    ${filterPill('marcos', 'Marcos', counts.marcos)}
+                    ${filterPill('vytalmed', 'VytalMed', counts.vytalmed)}
                 </div>
 
                 ${briefs.length === 0 ? `
                     <div class="card" style="text-align: center; padding: 48px;">
                         <p style="font-size: 18px; margin-bottom: 8px;">No submissions yet</p>
-                        <p style="color: #64748b;">When prospects use the Price of Doing Nothing Calculator on your website, their submissions will appear here.</p>
+                        <p style="color: #64748b;">When prospects use the Price of Doing Nothing Calculator, their submissions will appear here.</p>
                     </div>
                 ` : ''}
 
@@ -1397,6 +1421,11 @@ class CRMApp {
                     `).join('')}
             </div>
         `;
+    }
+
+    setSparkBrandFilter(brand) {
+        localStorage.setItem('spark_brand_filter', brand);
+        this.renderSparkList();
     }
 
     _renderSparkCard(brief) {
@@ -1415,11 +1444,19 @@ class CRMApp {
         };
         const sc = statusColors[brief.status] || statusColors['Draft'];
 
+        // Brand badge — shows for both brands so it's always clear which inbox the lead belongs to
+        const brand = brief.brand_slug || 'marcos';
+        const brandBadgeStyle = brand === 'vytalmed'
+            ? 'background: #dbeafe; color: #1e3a8a;'
+            : 'background: #ede9fe; color: #5b21b6;';
+        const brandBadgeText = brand === 'vytalmed' ? 'VytalMed' : 'Marcos';
+
         return `
             <div class="card" style="margin-bottom: 10px; cursor: pointer;" onclick="window.crmRouter.navigate('/spark/${brief.id}')">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
+                            <span class="badge" style="${brandBadgeStyle} font-size: 11px;">${brandBadgeText}</span>
                             <span class="badge" style="background: ${sc.bg}; color: ${sc.color}; font-size: 11px;">${brief.status}</span>
                             ${brief.solution_level ? `<span class="badge" style="font-size: 11px;">${brief.solution_level.split(' - ')[0]}</span>` : ''}
                             ${brief.created_by === 'Website (Public)' ? '<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 11px;">🌐 Website</span>' : ''}
@@ -1454,9 +1491,22 @@ class CRMApp {
             return;
         }
 
+        // Pull the latest reply draft for this brief's contact (if any)
+        const triage = brief.contact_id
+            ? await window.crmDB.getLatestTriageForContact(brief.contact_id)
+            : null;
+
+        // Stash for inline handlers — we re-fetch on regenerate / mark sent
+        this._currentSparkBrief = brief;
+        this._currentTriage = triage;
+
         const annualCost = brief.annual_current_cost ? `$${Math.round(brief.annual_current_cost).toLocaleString()}` : '—';
         const savings = brief.annual_potential_savings ? `$${Math.round(brief.annual_potential_savings).toLocaleString()}` : '—';
         const statuses = ['Draft', 'Shared', 'Qualified', 'In Progress', 'Deployed', 'Measuring', 'Closed Lost'];
+
+        const brand = brief.brand_slug || 'marcos';
+        const brandBadgeStyle = brand === 'vytalmed' ? 'background: #dbeafe; color: #1e3a8a;' : 'background: #ede9fe; color: #5b21b6;';
+        const brandBadgeText = brand === 'vytalmed' ? 'VytalMed' : 'Marcos';
 
         main.innerHTML = `
             <div style="max-width: 800px; margin: 0 auto;">
@@ -1465,6 +1515,9 @@ class CRMApp {
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                         <div>
+                            <div style="margin-bottom: 6px;">
+                                <span class="badge" style="${brandBadgeStyle} font-size: 11px;">${brandBadgeText}</span>
+                            </div>
                             <h2 style="margin: 0 0 4px;">${brief.title || 'Untitled Brief'}</h2>
                             <p style="color: #64748b; margin: 0;">
                                 ${brief.company_name ? `${brief.company_name} · ` : ''}${brief.contact_name || 'No contact'}
@@ -1528,6 +1581,11 @@ class CRMApp {
                     </div>
                 ` : ''}
 
+                <!-- Reply Draft (Claude-drafted personalized response) -->
+                <div class="card" id="sparkReplyCard">
+                    ${this._renderSparkReplyCard(brief, triage)}
+                </div>
+
                 <!-- Metadata -->
                 <div class="card" style="font-size: 13px; color: #94a3b8;">
                     <div style="display: flex; gap: 16px; flex-wrap: wrap;">
@@ -1550,6 +1608,157 @@ class CRMApp {
         } catch (error) {
             alert('Error updating status: ' + error.message);
         }
+    }
+
+    // ==========================================================================
+    // Spark Reply Drafts (Claude-drafted first response)
+    // ==========================================================================
+
+    _renderSparkReplyCard(brief, triage) {
+        const hasContact = !!brief.contact_id && !!brief.contact_email;
+        const labelStyle = 'font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 4px; display:block;';
+        const inputStyle = 'width: 100%; background: white; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px;';
+        const textareaStyle = inputStyle + ' min-height: 160px; resize: vertical; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, monospace;';
+
+        const header = `<h4 style="margin: 0 0 12px; color: #64748b; font-size: 13px; text-transform: uppercase;">Reply Draft</h4>`;
+
+        if (!hasContact) {
+            return `${header}<p style="color:#94a3b8; font-style:italic;">This brief has no contact email — add the contact first to draft a reply.</p>`;
+        }
+
+        if (!triage) {
+            return `
+                ${header}
+                <p style="color:#64748b; margin-bottom:12px;">No reply drafted yet for ${this._esc(brief.contact_name || brief.contact_email)}.</p>
+                <button class="btn btn-primary btn-sm" onclick="window.crmApp.draftSparkReply('${brief.id}')" id="draftReplyBtn">✨ Draft Reply with Claude</button>
+                <p style="font-size:12px; color:#94a3b8; margin-top:8px;">Uses ${this._esc(brief.brand_slug || 'marcos')} brand voice + this brief's problem and ROI numbers.</p>
+            `;
+        }
+
+        const sentBadge = triage.sent
+            ? `<span class="badge" style="background:#d1fae5; color:#065f46; font-size:11px;">Sent ${new Date(triage.sent_at).toLocaleDateString()}</span>`
+            : `<span class="badge" style="background:#fef3c7; color:#92400e; font-size:11px;">Drafted ${new Date(triage.created_at).toLocaleDateString()}</span>`;
+
+        return `
+            ${header}
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+                ${sentBadge}
+                ${triage.intent_score ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;">Intent ${triage.intent_score}/10</span>` : ''}
+                ${triage.segment ? `<span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px; text-transform:capitalize;">${this._esc(triage.segment)}</span>` : ''}
+            </div>
+            ${triage.intent_reasoning ? `<p style="font-size:13px; color:#64748b; font-style:italic; margin-bottom:12px;">${this._esc(triage.intent_reasoning)}</p>` : ''}
+
+            <label style="${labelStyle}">To</label>
+            <input type="text" style="${inputStyle}" value="${this._esc(brief.contact_email)}" readonly>
+
+            <label style="${labelStyle} margin-top:10px;">Subject</label>
+            <input type="text" id="replySubject" style="${inputStyle}" value="${this._esc(triage.draft_subject || '')}">
+
+            <label style="${labelStyle} margin-top:10px;">Body</label>
+            <textarea id="replyBody" style="${textareaStyle}">${this._esc(triage.draft_body || '')}</textarea>
+
+            <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="window.crmApp.copySparkReply()">📋 Copy email</button>
+                <button class="btn btn-ghost btn-sm" onclick="window.crmApp.draftSparkReply('${brief.id}')">🔄 Re-draft</button>
+                ${triage.sent
+                    ? ''
+                    : `<button class="btn btn-primary btn-sm" onclick="window.crmApp.markSparkReplySent('${triage.id}', '${brief.id}')">✓ Mark as Sent</button>`}
+            </div>
+            <p id="replyStatus" style="font-size:12px; color:#94a3b8; margin-top:8px;">${triage.model || ''}</p>
+        `;
+    }
+
+    async draftSparkReply(briefId) {
+        const brief = this._currentSparkBrief;
+        if (!brief || brief.id !== briefId) {
+            // Fallback — re-fetch
+            await this.renderSparkDetail(briefId);
+            return this.draftSparkReply(briefId);
+        }
+        const btn = document.getElementById('draftReplyBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Drafting...'; }
+
+        const payload = {
+            brand: brief.brand_slug || 'marcos',
+            contact: {
+                first_name: (brief.contact_name || '').split(' ')[0] || '',
+                last_name: (brief.contact_name || '').split(' ').slice(1).join(' ') || '',
+                email: brief.contact_email,
+                company_name: brief.company_name,
+                company_industry: brief.company_industry,
+                source: 'Website (Spark)'
+            },
+            spark_brief: {
+                problem_clean: brief.problem_clean || brief.problem_raw,
+                solution_level: brief.solution_level,
+                suggested_approach: brief.suggested_approach,
+                hours_per_week: brief.hours_per_week,
+                people_involved: brief.people_involved
+            }
+        };
+
+        try {
+            const res = await fetch('/api/agents/inbound-triage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'Draft failed');
+
+            await window.crmDB.createTriage({
+                contact_id: brief.contact_id,
+                brand_slug: brief.brand_slug || 'marcos',
+                segment: data.segment,
+                intent_score: data.intent_score,
+                intent_reasoning: data.intent_reasoning,
+                draft_subject: data.draft_subject,
+                draft_body: data.draft_body,
+                model: data.model,
+                used_spark_brief: true
+            });
+
+            await this.renderSparkDetail(briefId);
+        } catch (e) {
+            alert('Draft failed: ' + e.message);
+            if (btn) { btn.disabled = false; btn.textContent = '✨ Draft Reply with Claude'; }
+        }
+    }
+
+    async copySparkReply() {
+        const subj = document.getElementById('replySubject')?.value || '';
+        const body = document.getElementById('replyBody')?.value || '';
+        const text = `Subject: ${subj}\n\n${body}`;
+        await navigator.clipboard.writeText(text);
+        const status = document.getElementById('replyStatus');
+        if (status) {
+            const orig = status.textContent;
+            status.textContent = '✓ Copied to clipboard';
+            status.style.color = '#10b981';
+            setTimeout(() => { status.textContent = orig; status.style.color = '#94a3b8'; }, 1500);
+        }
+    }
+
+    async markSparkReplySent(triageId, briefId) {
+        const subjEl = document.getElementById('replySubject');
+        const bodyEl = document.getElementById('replyBody');
+        const updates = { sent: true, sent_at: new Date().toISOString() };
+        if (subjEl) updates.draft_subject = subjEl.value;
+        if (bodyEl) updates.draft_body = bodyEl.value;
+        try {
+            await window.crmDB.updateTriage(triageId, updates);
+            // Move the brief to Shared if still in Draft (so it's not stuck in "New" forever)
+            if (this._currentSparkBrief && this._currentSparkBrief.status === 'Draft') {
+                await window.crmDB.updateBriefStatus(briefId, 'Shared');
+            }
+            await this.renderSparkDetail(briefId);
+        } catch (e) {
+            alert('Mark sent failed: ' + e.message);
+        }
+    }
+
+    _esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
     // ==========================================================================

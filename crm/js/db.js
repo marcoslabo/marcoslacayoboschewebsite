@@ -931,6 +931,62 @@ class CRMDB {
     }
 
     // ==========================================================================
+    // Contact Triage (Spark Reply Drafts)
+    // ==========================================================================
+
+    /**
+     * Get the latest triage/reply draft for a given contact (or null if none).
+     */
+    async getLatestTriageForContact(contactId) {
+        if (!contactId) return null;
+        const { data, error } = await this.supabase
+            .from('contact_triage')
+            .select('*')
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (error) {
+            console.error('Error fetching triage:', error);
+            return null;
+        }
+        return data;
+    }
+
+    /**
+     * Insert a new triage row (the agent's drafted reply) for a contact.
+     */
+    async createTriage(triage) {
+        const { data, error } = await this.supabase
+            .from('contact_triage')
+            .insert([triage])
+            .select()
+            .single();
+        if (error) {
+            console.error('Error creating triage:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    /**
+     * Update a triage row — typically used to mark sent or save edited draft text.
+     */
+    async updateTriage(triageId, updates) {
+        const { data, error } = await this.supabase
+            .from('contact_triage')
+            .update(updates)
+            .eq('id', triageId)
+            .select()
+            .single();
+        if (error) {
+            console.error('Error updating triage:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    // ==========================================================================
     // Blog Image Upload
     // ==========================================================================
 
