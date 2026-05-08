@@ -898,41 +898,34 @@ class CRMDB {
 
     async getSparkBriefs() {
         const { data, error } = await this.supabase
-            .from('briefs_with_roi')
-            .select('*')
+            .from('briefs')
+            .select('*, contacts(first_name, last_name, email), companies(name, industry)')
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching briefs from view, falling back to joined query:', error);
-            const { data: fallback, error: fallbackError } = await this.supabase
-                .from('briefs')
-                .select('*, contacts(first_name, last_name, email), companies(name, industry)')
-                .order('created_at', { ascending: false });
-            if (fallbackError) return [];
-            return (fallback || []).map(b => this._normalizeBrief(b));
+            console.error('Error fetching briefs:', error);
+            return [];
         }
-        return data || [];
+        return (data || []).map(b => this._normalizeBrief(b));
     }
 
     /**
      * Get a single Spark brief by ID
+     * Always uses the FK join path so contact_name/email are reliably populated
+     * regardless of the briefs_with_roi view state.
      */
     async getSparkBrief(id) {
         const { data, error } = await this.supabase
-            .from('briefs_with_roi')
-            .select('*')
+            .from('briefs')
+            .select('*, contacts(first_name, last_name, email), companies(name, industry)')
             .eq('id', id)
             .single();
 
         if (error) {
-            const { data: fallback } = await this.supabase
-                .from('briefs')
-                .select('*, contacts(first_name, last_name, email), companies(name, industry)')
-                .eq('id', id)
-                .single();
-            return this._normalizeBrief(fallback);
+            console.error('Error fetching brief:', error);
+            return null;
         }
-        return data;
+        return this._normalizeBrief(data);
     }
 
     /**
