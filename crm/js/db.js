@@ -872,6 +872,30 @@ class CRMDB {
     /**
      * Get all Spark briefs with ROI data
      */
+    _normalizeBrief(b) {
+        if (!b) return null;
+        const contact = b.contacts;
+        const company = b.companies;
+        const normalized = { ...b };
+        if (contact) {
+            normalized.contact_name = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || null;
+            normalized.contact_email = contact.email || null;
+        }
+        if (company) {
+            normalized.company_name = company.name || null;
+            normalized.company_industry = company.industry || null;
+        }
+        delete normalized.contacts;
+        delete normalized.companies;
+        const hours = normalized.hours_per_week || 0;
+        const people = normalized.people_involved || 1;
+        const rate = normalized.hourly_rate || 50;
+        const improvement = normalized.improvement_percent || 80;
+        normalized.annual_current_cost = normalized.annual_current_cost ?? (hours * people * rate * 52);
+        normalized.annual_potential_savings = normalized.annual_potential_savings ?? (hours * people * rate * 52 * (improvement / 100));
+        return normalized;
+    }
+
     async getSparkBriefs() {
         const { data, error } = await this.supabase
             .from('briefs_with_roi')
@@ -879,13 +903,13 @@ class CRMDB {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching briefs:', error);
-            // Fallback to briefs table if view doesn't exist
+            console.error('Error fetching briefs from view, falling back to joined query:', error);
             const { data: fallback, error: fallbackError } = await this.supabase
                 .from('briefs')
-                .select('*')
+                .select('*, contacts(first_name, last_name, email), companies(name, industry)')
                 .order('created_at', { ascending: false });
-            return fallback || [];
+            if (fallbackError) return [];
+            return (fallback || []).map(b => this._normalizeBrief(b));
         }
         return data || [];
     }
@@ -901,13 +925,12 @@ class CRMDB {
             .single();
 
         if (error) {
-            // Fallback
             const { data: fallback } = await this.supabase
                 .from('briefs')
-                .select('*')
+                .select('*, contacts(first_name, last_name, email), companies(name, industry)')
                 .eq('id', id)
                 .single();
-            return fallback;
+            return this._normalizeBrief(fallback);
         }
         return data;
     }

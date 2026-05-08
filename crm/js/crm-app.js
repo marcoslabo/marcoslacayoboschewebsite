@@ -1503,10 +1503,23 @@ class CRMApp {
         const annualCost = brief.annual_current_cost ? `$${Math.round(brief.annual_current_cost).toLocaleString()}` : '—';
         const savings = brief.annual_potential_savings ? `$${Math.round(brief.annual_potential_savings).toLocaleString()}` : '—';
         const statuses = ['Draft', 'Shared', 'Qualified', 'In Progress', 'Deployed', 'Measuring', 'Closed Lost'];
+        const statusDescriptions = {
+            'Draft':       'Reviewed internally — not yet sent to the prospect',
+            'Shared':      'Brief sent to the prospect for review',
+            'Qualified':   'Prospect confirmed the pain point and is interested',
+            'In Progress': 'Active engagement / proposal in flight',
+            'Deployed':    'Solution is live',
+            'Measuring':   'Measuring ROI post-deployment',
+            'Closed Lost': 'Opportunity did not move forward'
+        };
+        const pipeline = ['Draft', 'Shared', 'Qualified', 'In Progress', 'Deployed'];
+        const currentStep = pipeline.indexOf(brief.status);
 
         const brand = brief.brand_slug || 'marcos';
         const brandBadgeStyle = brand === 'vytalmed' ? 'background: #dbeafe; color: #1e3a8a;' : 'background: #ede9fe; color: #5b21b6;';
         const brandBadgeText = brand === 'vytalmed' ? 'VytalMed' : 'Marcos';
+
+        const contactInitial = brief.contact_name ? brief.contact_name.trim()[0].toUpperCase() : '?';
 
         main.innerHTML = `
             <div style="max-width: 800px; margin: 0 auto;">
@@ -1519,25 +1532,69 @@ class CRMApp {
                                 <span class="badge" style="${brandBadgeStyle} font-size: 11px;">${brandBadgeText}</span>
                             </div>
                             <h2 style="margin: 0 0 4px;">${brief.title || 'Untitled Brief'}</h2>
-                            <p style="color: #64748b; margin: 0;">
-                                ${brief.company_name ? `${brief.company_name} · ` : ''}${brief.contact_name || 'No contact'}
-                                ${brief.contact_email ? ` · ${brief.contact_email}` : ''}
-                            </p>
+                            ${brief.company_name ? `<p style="color: #64748b; margin: 0; font-size: 14px;">${brief.company_name}</p>` : ''}
                         </div>
                         ${brief.share_id ? `<a href="/spark/s/${brief.share_id}" target="_blank" class="btn btn-ghost btn-sm">View Share Link ↗</a>` : ''}
                     </div>
 
+                    <!-- Submitter Contact Info -->
+                    ${brief.contact_name || brief.contact_email ? `
+                        <div style="display: flex; gap: 12px; align-items: center; padding: 14px; background: #f8fafc; border-radius: 8px; margin-bottom: 20px;">
+                            <div style="width: 38px; height: 38px; background: #ede9fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #5b21b6; font-size: 15px; flex-shrink: 0;">
+                                ${contactInitial}
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: #1e293b;">${brief.contact_name || '—'}</div>
+                                ${brief.contact_email
+                                    ? `<a href="mailto:${brief.contact_email}" style="font-size: 13px; color: #3b82f6; text-decoration: none;">${brief.contact_email}</a>`
+                                    : ''}
+                            </div>
+                            <span style="margin-left: auto; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Form Submitter</span>
+                        </div>
+                    ` : `
+                        <div style="padding: 12px 14px; background: #f8fafc; border-radius: 8px; margin-bottom: 20px; color: #94a3b8; font-size: 13px;">
+                            No contact linked to this brief.
+                        </div>
+                    `}
+
+                    <!-- Pipeline Progress -->
+                    ${brief.status !== 'Closed Lost' ? `
+                        <div style="display: flex; align-items: center; gap: 0; margin-bottom: 20px; overflow-x: auto;">
+                            ${pipeline.map((s, i) => {
+                                const done = i < currentStep;
+                                const active = i === currentStep;
+                                const bg = active ? '#5b21b6' : done ? '#ede9fe' : '#f1f5f9';
+                                const color = active ? '#fff' : done ? '#5b21b6' : '#94a3b8';
+                                const connector = i < pipeline.length - 1
+                                    ? `<div style="flex: 1; height: 2px; background: ${done || active ? '#ede9fe' : '#f1f5f9'}; min-width: 16px;"></div>`
+                                    : '';
+                                return `
+                                    <div style="display: flex; align-items: center; flex-shrink: 0;">
+                                        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bg}; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">${done ? '✓' : i + 1}</div>
+                                            <span style="font-size: 10px; color: ${active ? '#5b21b6' : '#94a3b8'}; font-weight: ${active ? '600' : '400'}; white-space: nowrap;">${s}</span>
+                                        </div>
+                                    </div>
+                                    ${connector}
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+
                     <!-- Status Selector -->
-                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 20px;">
-                        <label style="font-size: 13px; color: #64748b;">Status:</label>
-                        <select id="sparkStatusSelect" class="filter-select" style="padding: 6px 12px;">
-                            ${statuses.map(s => `<option value="${s}" ${brief.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-                        </select>
-                        <button class="btn btn-sm btn-secondary" onclick="window.crmApp.updateSparkStatus('${brief.id}')">Update</button>
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 13px; color: #64748b;">Move to:</label>
+                            <select id="sparkStatusSelect" class="filter-select" style="padding: 6px 12px;" onchange="window.crmApp.updateSparkStatusHint(this.value)">
+                                ${statuses.map(s => `<option value="${s}" ${brief.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
+                            <button class="btn btn-sm btn-secondary" onclick="window.crmApp.updateSparkStatus('${brief.id}')">Update</button>
+                        </div>
+                        <p style="font-size: 12px; color: #94a3b8; margin: 6px 0 0 0;" id="sparkStatusHint">${statusDescriptions[brief.status] || ''}</p>
                     </div>
 
                     <!-- CNC Numbers -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; padding: 16px; background: #f8fafc; border-radius: 8px;">
                         <div>
                             <span style="font-size: 12px; color: #64748b; display: block;">Hours/Week</span>
                             <strong style="font-size: 18px;">${brief.hours_per_week || '—'}</strong>
@@ -1597,6 +1654,20 @@ class CRMApp {
                 </div>
             </div>
         `;
+    }
+
+    updateSparkStatusHint(status) {
+        const descriptions = {
+            'Draft':       'Reviewed internally — not yet sent to the prospect',
+            'Shared':      'Brief sent to the prospect for review',
+            'Qualified':   'Prospect confirmed the pain point and is interested',
+            'In Progress': 'Active engagement / proposal in flight',
+            'Deployed':    'Solution is live',
+            'Measuring':   'Measuring ROI post-deployment',
+            'Closed Lost': 'Opportunity did not move forward'
+        };
+        const hint = document.getElementById('sparkStatusHint');
+        if (hint) hint.textContent = descriptions[status] || '';
     }
 
     async updateSparkStatus(id) {
