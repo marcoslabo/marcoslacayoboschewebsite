@@ -57,6 +57,8 @@ class CRMRouter {
                 link.classList.add('active');
             } else if (path.startsWith('/spark') && route === 'spark') {
                 link.classList.add('active');
+            } else if (path.startsWith('/weekly-todos') && route === 'weekly-todos') {
+                link.classList.add('active');
             } else {
                 link.classList.remove('active');
             }

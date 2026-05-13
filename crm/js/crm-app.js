@@ -129,6 +129,12 @@ class CRMApp {
         window.crmRouter.on('/activity-log', async () => {
             await this.renderActivityLog();
         });
+
+        // Weekly Todos (admin only)
+        window.crmRouter.on('/weekly-todos', async () => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
+            await this.renderWeeklyTodos();
+        });
     }
 
     // ==========================================================================
@@ -2278,6 +2284,325 @@ class CRMApp {
         const to = document.getElementById('activityDateTo')?.value;
         if (from && to) {
             this.renderActivityLog('custom', from, to);
+        }
+    }
+
+    // ==========================================================================
+    // Weekly Todos
+    // ==========================================================================
+
+    _getMondayISO(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        return d.toISOString().split('T')[0];
+    }
+
+    _formatWeekLabel(weekStartISO) {
+        const start = new Date(weekStartISO + 'T00:00:00');
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        const opts = { month: 'short', day: 'numeric' };
+        return `${start.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}, ${end.getFullYear()}`;
+    }
+
+    async renderWeeklyTodos() {
+        const main = document.getElementById('mainContent');
+
+        const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
+        let weekStart = localStorage.getItem('weekly_todos_week_start');
+        if (!weekStart) {
+            weekStart = this._getMondayISO(new Date());
+            localStorage.setItem('weekly_todos_week_start', weekStart);
+        }
+
+        const brand = brandFilter === 'all' ? null : brandFilter;
+        const todos = await window.crmDB.getWeeklyTodos(weekStart, brand);
+
+        const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+        const dayLabels = {
+            monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+            thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday'
+        };
+        const todosByDay = {};
+        days.forEach(d => todosByDay[d] = []);
+        todos.forEach(t => {
+            if (todosByDay[t.day_of_week]) todosByDay[t.day_of_week].push(t);
+        });
+
+        const doneCount = todos.filter(t => t.is_done).length;
+        const totalCount = todos.length;
+        const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+        const filterPill = (key, label) => `
+            <button onclick="window.crmApp.setWeeklyTodosBrandFilter('${key}')"
+                class="btn btn-sm ${brandFilter === key ? 'btn-primary' : 'btn-ghost'}"
+                style="padding: 6px 12px;">${label}</button>
+        `;
+
+        const categoryColors = {
+            record:  { bg: '#fef3c7', color: '#92400e' },
+            edit:    { bg: '#dbeafe', color: '#1d4ed8' },
+            publish: { bg: '#d1fae5', color: '#047857' },
+            comment: { bg: '#ede9fe', color: '#6d28d9' },
+            plan:    { bg: '#fce7f3', color: '#9d174d' },
+            other:   { bg: '#f1f5f9', color: '#475569' }
+        };
+
+        const renderTodo = (todo) => {
+            const cc = categoryColors[todo.category] || categoryColors.other;
+            const bodyStyle = todo.is_done
+                ? 'opacity: 0.5; text-decoration: line-through;'
+                : '';
+            return `
+                <div style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; background: white;">
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <input type="checkbox" ${todo.is_done ? 'checked' : ''}
+                            onchange="window.crmApp.toggleWeeklyTodo('${todo.id}', this.checked)"
+                            style="margin-top: 3px; cursor: pointer; flex-shrink: 0; width: 16px; height: 16px;">
+                        <div style="flex: 1; min-width: 0; ${bodyStyle}">
+                            ${todo.category ? `<span class="badge" style="background:${cc.bg}; color:${cc.color}; font-size:10px; padding: 2px 6px; margin-bottom:4px; display:inline-block;">${todo.category}</span>` : ''}
+                            <div style="font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.3; word-wrap: break-word;">${this._esc(todo.title)}</div>
+                            ${todo.description ? `<div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.4; word-wrap: break-word;">${this._esc(todo.description)}</div>` : ''}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;">
+                            <button onclick="window.crmApp.openWeeklyTodoModal('${todo.day_of_week}', '${todo.id}')"
+                                class="btn btn-ghost" style="padding: 2px 6px; font-size: 11px; min-width: auto;" title="Edit">✏️</button>
+                            <button onclick="window.crmApp.deleteWeeklyTodo('${todo.id}')"
+                                class="btn btn-ghost" style="padding: 2px 6px; font-size: 11px; color: #dc2626; min-width: auto;" title="Delete">✕</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const weekLabel = this._formatWeekLabel(weekStart);
+
+        main.innerHTML = `
+            <div style="max-width: 1400px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2 style="margin: 0;">🗓️ Weekly Todos</h2>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Content cadence and weekly cycle</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="window.crmApp.applyWeeklyTemplate()" class="btn btn-secondary btn-sm">📋 Apply Weekly Template</button>
+                        <button onclick="window.crmApp.openWeeklyTodoModal('monday')" class="btn btn-primary btn-sm">+ Add Todo</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Brand</span>
+                        ${filterPill('all', 'All')}
+                        ${filterPill('marcos', 'Marcos')}
+                        ${filterPill('vytalmed', 'VytalMed')}
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+                        <button onclick="window.crmApp.navigateWeeklyTodos(-1)" class="btn btn-ghost btn-sm">◀ Prev</button>
+                        <span style="font-weight: 600; min-width: 220px; text-align: center; font-size: 14px;">${weekLabel}</span>
+                        <button onclick="window.crmApp.navigateWeeklyTodos(1)" class="btn btn-ghost btn-sm">Next ▶</button>
+                        <button onclick="window.crmApp.navigateWeeklyTodos(0)" class="btn btn-ghost btn-sm" title="Jump to current week">Today</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #475569; display: flex; align-items: center; gap: 12px;">
+                    <strong>${doneCount} of ${totalCount}</strong> done this week
+                    ${totalCount > 0 ? `
+                        <div style="flex: 1; max-width: 300px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                            <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #a78bfa); transition: width 0.3s;"></div>
+                        </div>
+                        <span style="color: #64748b;">${pct}%</span>
+                    ` : ''}
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px;">
+                    ${days.map(day => `
+                        <div class="card" style="padding: 12px; min-height: 200px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
+                                <div style="font-weight: 700; font-size: 12px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">${dayLabels[day]}</div>
+                                <button onclick="window.crmApp.openWeeklyTodoModal('${day}')" class="btn btn-ghost" style="padding: 2px 8px; font-size: 14px; min-width: auto;" title="Add to ${dayLabels[day]}">+</button>
+                            </div>
+                            ${todosByDay[day].length === 0
+                                ? `<div style="color: #cbd5e1; font-size: 12px; text-align: center; padding: 16px 0;">${day === 'saturday' ? '🌴 OFF' : 'No todos'}</div>`
+                                : todosByDay[day].map(renderTodo).join('')}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    setWeeklyTodosBrandFilter(brand) {
+        localStorage.setItem('weekly_todos_brand_filter', brand);
+        this.renderWeeklyTodos();
+    }
+
+    navigateWeeklyTodos(direction) {
+        let current = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
+        if (direction === 0) {
+            current = this._getMondayISO(new Date());
+        } else {
+            const d = new Date(current + 'T00:00:00');
+            d.setDate(d.getDate() + (direction * 7));
+            current = this._getMondayISO(d);
+        }
+        localStorage.setItem('weekly_todos_week_start', current);
+        this.renderWeeklyTodos();
+    }
+
+    async applyWeeklyTemplate() {
+        const weekStart = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
+        const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
+        const brand = brandFilter === 'all' ? null : brandFilter;
+
+        if (!confirm(`Apply weekly template to week of ${weekStart}? Existing duplicates will be skipped.`)) return;
+
+        try {
+            const result = await window.crmDB.applyWeeklyTemplate(weekStart, brand);
+            alert(`Template applied: ${result.inserted} todos added, ${result.skipped} skipped (already existed).`);
+            await this.renderWeeklyTodos();
+        } catch (e) {
+            alert('Failed to apply template: ' + e.message);
+        }
+    }
+
+    async toggleWeeklyTodo(id, isDone) {
+        try {
+            await window.crmDB.updateTodo(id, { is_done: isDone });
+            await this.renderWeeklyTodos();
+        } catch (e) {
+            alert('Failed to update: ' + e.message);
+        }
+    }
+
+    async deleteWeeklyTodo(id) {
+        if (!confirm('Delete this todo?')) return;
+        try {
+            await window.crmDB.deleteTodo(id);
+            await this.renderWeeklyTodos();
+        } catch (e) {
+            alert('Failed to delete: ' + e.message);
+        }
+    }
+
+    async openWeeklyTodoModal(day, id = null) {
+        let todo = { day_of_week: day, title: '', description: '', category: 'other' };
+        if (id) {
+            const weekStart = localStorage.getItem('weekly_todos_week_start');
+            const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
+            const brand = brandFilter === 'all' ? null : brandFilter;
+            const todos = await window.crmDB.getWeeklyTodos(weekStart, brand);
+            const found = todos.find(t => t.id === id);
+            if (found) todo = found;
+        }
+
+        const existing = document.getElementById('weeklyTodoModal');
+        if (existing) existing.remove();
+
+        const dayOpt = (val, label) =>
+            `<option value="${val}" ${todo.day_of_week === val ? 'selected' : ''}>${label}</option>`;
+        const catOpt = (val, label) =>
+            `<option value="${val}" ${todo.category === val ? 'selected' : ''}>${label}</option>`;
+
+        const modalHtml = `
+            <div id="weeklyTodoModal" class="modal" style="display: flex;">
+                <div class="modal-backdrop" onclick="window.crmApp.closeWeeklyTodoModal()"></div>
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h2>${id ? '✏️ Edit Todo' : '+ Add Todo'}</h2>
+                        <button class="modal-close" onclick="window.crmApp.closeWeeklyTodoModal()">&times;</button>
+                    </div>
+                    <form id="weeklyTodoForm" onsubmit="event.preventDefault(); window.crmApp.saveWeeklyTodoModal();" style="padding: 20px;">
+                        <input type="hidden" id="wtId" value="${id || ''}">
+                        <div class="form-group">
+                            <label>Title *</label>
+                            <input type="text" id="wtTitle" required value="${this._esc(todo.title)}" placeholder="What needs to be done?">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="wtDescription" rows="3" placeholder="Optional details">${this._esc(todo.description || '')}</textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Day</label>
+                                <select id="wtDay">
+                                    ${dayOpt('monday','Monday')}
+                                    ${dayOpt('tuesday','Tuesday')}
+                                    ${dayOpt('wednesday','Wednesday')}
+                                    ${dayOpt('thursday','Thursday')}
+                                    ${dayOpt('friday','Friday')}
+                                    ${dayOpt('saturday','Saturday')}
+                                    ${dayOpt('sunday','Sunday')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select id="wtCategory">
+                                    ${catOpt('record','Record')}
+                                    ${catOpt('edit','Edit')}
+                                    ${catOpt('publish','Publish')}
+                                    ${catOpt('comment','Comment')}
+                                    ${catOpt('plan','Plan')}
+                                    ${catOpt('other','Other')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="window.crmApp.closeWeeklyTodoModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">${id ? 'Save Changes' : 'Add Todo'}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        setTimeout(() => document.getElementById('wtTitle')?.focus(), 50);
+    }
+
+    closeWeeklyTodoModal() {
+        const modal = document.getElementById('weeklyTodoModal');
+        if (modal) modal.remove();
+    }
+
+    async saveWeeklyTodoModal() {
+        const id = document.getElementById('wtId').value;
+        const title = document.getElementById('wtTitle').value.trim();
+        const description = document.getElementById('wtDescription').value.trim() || null;
+        const day = document.getElementById('wtDay').value;
+        const category = document.getElementById('wtCategory').value;
+
+        if (!title) {
+            alert('Title is required.');
+            return;
+        }
+
+        const weekStart = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
+        const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
+        const brand = brandFilter === 'vytalmed' ? 'vytalmed' : 'marcos';
+
+        try {
+            if (id) {
+                await window.crmDB.updateTodo(id, {
+                    title, description, day_of_week: day, category
+                });
+            } else {
+                await window.crmDB.createTodo({
+                    week_start: weekStart,
+                    day_of_week: day,
+                    title,
+                    description,
+                    category,
+                    is_template: false,
+                    order_index: 999,
+                    brand_slug: brand
+                });
+            }
+            this.closeWeeklyTodoModal();
+            await this.renderWeeklyTodos();
+        } catch (e) {
+            alert('Failed to save: ' + e.message);
         }
     }
 }

@@ -1003,6 +1003,132 @@ class CRMDB {
     }
 
     // ==========================================================================
+    // Weekly Todos
+    // ==========================================================================
+
+    async getWeeklyTodos(weekStart, brandFilter = null) {
+        let query = this.supabase
+            .from('weekly_todos')
+            .select('*')
+            .eq('is_template', false)
+            .eq('week_start', weekStart)
+            .order('order_index', { ascending: true });
+
+        if (brandFilter && brandFilter !== 'all') {
+            query = query.eq('brand_slug', brandFilter);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            console.error('Error fetching weekly todos:', error);
+            return [];
+        }
+        return data || [];
+    }
+
+    async getTemplateTodos(brandFilter = null) {
+        let query = this.supabase
+            .from('weekly_todos')
+            .select('*')
+            .eq('is_template', true)
+            .order('order_index', { ascending: true });
+
+        if (brandFilter && brandFilter !== 'all') {
+            query = query.eq('brand_slug', brandFilter);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            console.error('Error fetching template todos:', error);
+            return [];
+        }
+        return data || [];
+    }
+
+    async createTodo(todo) {
+        const { data, error } = await this.supabase
+            .from('weekly_todos')
+            .insert([todo])
+            .select()
+            .single();
+        if (error) {
+            console.error('Error creating todo:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    async updateTodo(id, updates) {
+        // Auto-manage done_at when is_done is being toggled
+        if (Object.prototype.hasOwnProperty.call(updates, 'is_done')) {
+            updates.done_at = updates.is_done ? new Date().toISOString() : null;
+        }
+        const { data, error } = await this.supabase
+            .from('weekly_todos')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) {
+            console.error('Error updating todo:', error);
+            throw error;
+        }
+        return data;
+    }
+
+    async deleteTodo(id) {
+        const { error } = await this.supabase
+            .from('weekly_todos')
+            .delete()
+            .eq('id', id);
+        if (error) {
+            console.error('Error deleting todo:', error);
+            throw error;
+        }
+        return true;
+    }
+
+    /**
+     * Copy templates into the target week. De-dupes against existing rows
+     * for that week by (day_of_week, title, brand_slug).
+     */
+    async applyWeeklyTemplate(weekStart, brandFilter = null) {
+        const templates = await this.getTemplateTodos(brandFilter);
+        if (templates.length === 0) return { inserted: 0, skipped: 0 };
+
+        const existing = await this.getWeeklyTodos(weekStart, brandFilter);
+        const key = t => `${t.day_of_week}|${t.title}|${t.brand_slug || 'marcos'}`;
+        const existingKeys = new Set(existing.map(key));
+
+        const toInsert = templates
+            .filter(t => !existingKeys.has(key(t)))
+            .map(t => ({
+                week_start: weekStart,
+                day_of_week: t.day_of_week,
+                title: t.title,
+                description: t.description,
+                category: t.category,
+                is_done: false,
+                is_template: false,
+                order_index: t.order_index,
+                brand_slug: t.brand_slug || 'marcos'
+            }));
+
+        if (toInsert.length === 0) {
+            return { inserted: 0, skipped: templates.length };
+        }
+
+        const { error } = await this.supabase
+            .from('weekly_todos')
+            .insert(toInsert);
+        if (error) {
+            console.error('Error applying template:', error);
+            throw error;
+        }
+        return { inserted: toInsert.length, skipped: templates.length - toInsert.length };
+    }
+
+    // ==========================================================================
     // Blog Image Upload
     // ==========================================================================
 
