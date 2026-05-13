@@ -2414,6 +2414,7 @@ class CRMApp {
                         <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Content cadence and weekly cycle</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="window.crmApp.clearCurrentWeek()" class="btn btn-ghost btn-sm" style="color: #dc2626;">🗑 Clear Week</button>
                         <button onclick="window.crmApp.applyWeeklyTemplate()" class="btn btn-secondary btn-sm">📋 Apply Weekly Template</button>
                         <button onclick="window.crmApp.openWeeklyTodoModal('monday')" class="btn btn-primary btn-sm">+ Add Todo</button>
                     </div>
@@ -2527,6 +2528,18 @@ class CRMApp {
             await this.renderWeeklyTodos();
         } catch (e) {
             alert('Failed to apply template: ' + e.message);
+        }
+    }
+
+    async clearCurrentWeek() {
+        const weekStart = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
+        if (!confirm(`Delete ALL todos for the week of ${weekStart}? This cannot be undone. (Templates are safe.)`)) return;
+        try {
+            const count = await window.crmDB.clearWeeklyTodos(weekStart);
+            alert(`Cleared ${count} todo${count === 1 ? '' : 's'} for week of ${weekStart}.`);
+            await this.renderWeeklyTodos();
+        } catch (e) {
+            alert('Failed to clear: ' + e.message);
         }
     }
 

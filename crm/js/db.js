@@ -1077,6 +1077,22 @@ class CRMDB {
     }
 
     /**
+     * Delete every non-template row for a given week.
+     */
+    async clearWeeklyTodos(weekStart) {
+        const { error, count } = await this.supabase
+            .from('weekly_todos')
+            .delete({ count: 'exact' })
+            .eq('is_template', false)
+            .eq('week_start', weekStart);
+        if (error) {
+            console.error('Error clearing weekly todos:', error);
+            throw error;
+        }
+        return count || 0;
+    }
+
+    /**
      * Copy templates into the target week. De-dupes against existing rows
      * for that week by (day_of_week, title).
      */
