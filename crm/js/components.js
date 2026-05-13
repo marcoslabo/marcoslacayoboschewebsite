@@ -9,7 +9,7 @@ const CRMComponents = {
     // ==========================================================================
 
     renderDashboard(data) {
-        const { calls, emails, followUps, overdue, newToday, stats, highIntent } = data;
+        const { calls, emails, followUps, overdue, newToday, stats, highIntent, contentTodos } = data;
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         return `
@@ -17,6 +17,8 @@ const CRMComponents = {
                 <h1 class="page-title">Today's Actions</h1>
                 <p class="page-subtitle">${today}</p>
             </div>
+
+            ${this.renderContentTodosCard(contentTodos || [])}
 
             ${highIntent && highIntent.length ? this.renderHighIntentStrip(highIntent) : ''}
 
@@ -26,7 +28,7 @@ const CRMComponents = {
             ${calls.length ? this.renderActionCard('📞 Call', calls, 'call') : ''}
             ${emails.length ? this.renderActionCard('📧 Email', emails, 'email') : ''}
             ${followUps.length ? this.renderActionCard('🔄 Follow Up', followUps, 'followup') : ''}
-            
+
             ${newToday.length ? this.renderNewTodayCard(newToday) : ''}
 
             ${!overdue.length && !calls.length && !emails.length && !followUps.length ? `
@@ -36,6 +38,114 @@ const CRMComponents = {
                     <p>No actions scheduled for today.</p>
                 </div>
             ` : ''}
+        `;
+    },
+
+    renderContentTodosCard(todos) {
+        const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const doneCount = todos.filter(t => t.is_done).length;
+        const total = todos.length;
+        const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+        const categoryColors = {
+            record:  { bg: 'rgba(245, 158, 11, 0.10)',  color: '#b45309' },
+            edit:    { bg: 'rgba(59, 130, 246, 0.10)',  color: '#1d4ed8' },
+            publish: { bg: 'rgba(16, 185, 129, 0.10)',  color: '#047857' },
+            comment: { bg: 'rgba(139, 92, 246, 0.10)',  color: '#6d28d9' },
+            plan:    { bg: 'rgba(236, 72, 153, 0.10)',  color: '#9d174d' },
+            other:   { bg: 'rgba(100, 116, 139, 0.10)', color: '#475569' }
+        };
+
+        const escapeHtml = (s) => String(s || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+        const renderRow = (t) => {
+            const cc = categoryColors[t.category] || categoryColors.other;
+            const doneStyle = t.is_done ? 'opacity: 0.45; text-decoration: line-through;' : '';
+            return `
+                <label style="
+                    display: flex; align-items: center; gap: 14px;
+                    padding: 12px 16px;
+                    border-radius: 12px;
+                    background: rgba(255,255,255,0.65);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+                    cursor: pointer;
+                    transition: background 0.18s, transform 0.18s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.95)'"
+                   onmouseout="this.style.background='rgba(255,255,255,0.65)'">
+                    <input type="checkbox" ${t.is_done ? 'checked' : ''}
+                        onchange="window.crmApp.toggleDashboardContentTodo('${t.id}', this.checked); event.preventDefault();"
+                        style="width: 18px; height: 18px; cursor: pointer; accent-color: #8b5cf6; flex-shrink: 0;">
+                    <div style="flex: 1; min-width: 0; ${doneStyle}">
+                        <div style="font-size: 14px; font-weight: 600; color: #0f172a; line-height: 1.35;">${escapeHtml(t.title)}</div>
+                        ${t.description ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px; line-height: 1.4;">${escapeHtml(t.description)}</div>` : ''}
+                    </div>
+                    ${t.category ? `<span style="
+                        background: ${cc.bg}; color: ${cc.color};
+                        font-size: 10px; font-weight: 600;
+                        padding: 4px 9px; border-radius: 999px;
+                        text-transform: uppercase; letter-spacing: 0.4px;
+                        flex-shrink: 0;
+                    ">${t.category}</span>` : ''}
+                </label>
+            `;
+        };
+
+        const empty = `
+            <div style="
+                text-align: center; padding: 18px 20px;
+                background: rgba(255,255,255,0.5); border-radius: 12px;
+                color: #64748b; font-size: 13px;
+            ">
+                <div style="margin-bottom: 8px;">No content todos for ${dayName} yet.</div>
+                <a href="#/weekly-todos" style="
+                    color: #6d28d9; font-weight: 600; text-decoration: none; font-size: 13px;
+                ">Open Weekly Todos →</a>
+            </div>
+        `;
+
+        return `
+            <div style="
+                margin-bottom: 24px;
+                padding: 20px 22px;
+                border-radius: 20px;
+                background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 60%, #eff6ff 100%);
+                box-shadow:
+                    0 1px 2px rgba(15, 23, 42, 0.04),
+                    0 8px 24px rgba(139, 92, 246, 0.08);
+                border: 1px solid rgba(255,255,255,0.6);
+            ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <div>
+                        <div style="
+                            font-size: 11px; font-weight: 700; color: #6d28d9;
+                            text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 2px;
+                        ">🗓️ ${dayName} · Content</div>
+                        <div style="font-size: 17px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">
+                            ${total === 0 ? 'Nothing scheduled' : `${doneCount} of ${total} done`}
+                        </div>
+                    </div>
+                    <a href="#/weekly-todos" style="
+                        font-size: 12px; font-weight: 600; color: #6d28d9;
+                        text-decoration: none; padding: 6px 12px;
+                        border-radius: 999px; background: rgba(255,255,255,0.7);
+                        transition: background 0.18s;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.95)'"
+                       onmouseout="this.style.background='rgba(255,255,255,0.7)'">View Week →</a>
+                </div>
+
+                ${total > 0 ? `
+                    <div style="height: 4px; background: rgba(139, 92, 246, 0.12); border-radius: 999px; overflow: hidden; margin-bottom: 14px;">
+                        <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #a78bfa); transition: width 0.3s;"></div>
+                    </div>
+                ` : ''}
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${total === 0 ? empty : todos.map(renderRow).join('')}
+                </div>
+            </div>
         `;
     },
 

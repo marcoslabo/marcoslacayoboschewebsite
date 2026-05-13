@@ -179,16 +179,30 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            const [data, stats, highIntent] = await Promise.all([
+            const weekStart = this._getMondayISO(new Date());
+            const todayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date().getDay()];
+
+            const [data, stats, highIntent, weekTodos] = await Promise.all([
                 window.crmDB.getTodaysActions(),
                 window.crmDB.getDashboardStats(),
-                window.crmDB.getHighIntentContacts()
+                window.crmDB.getHighIntentContacts(),
+                window.crmDB.getWeeklyTodos(weekStart)
             ]);
             data.stats = stats;
             data.highIntent = highIntent;
+            data.contentTodos = weekTodos.filter(t => t.day_of_week === todayName);
             main.innerHTML = window.CRMComponents.renderDashboard(data);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    async toggleDashboardContentTodo(id, isDone) {
+        try {
+            await window.crmDB.updateTodo(id, { is_done: isDone });
+            await this.renderDashboard();
+        } catch (e) {
+            alert('Failed to update: ' + e.message);
         }
     }
 
@@ -2334,39 +2348,58 @@ class CRMApp {
         const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
         const categoryColors = {
-            record:  { bg: '#fef3c7', color: '#92400e' },
-            edit:    { bg: '#dbeafe', color: '#1d4ed8' },
-            publish: { bg: '#d1fae5', color: '#047857' },
-            comment: { bg: '#ede9fe', color: '#6d28d9' },
-            plan:    { bg: '#fce7f3', color: '#9d174d' },
-            other:   { bg: '#f1f5f9', color: '#475569' }
+            record:  { bg: 'rgba(245, 158, 11, 0.10)',  color: '#b45309' },
+            edit:    { bg: 'rgba(59, 130, 246, 0.10)',  color: '#1d4ed8' },
+            publish: { bg: 'rgba(16, 185, 129, 0.10)',  color: '#047857' },
+            comment: { bg: 'rgba(139, 92, 246, 0.10)',  color: '#6d28d9' },
+            plan:    { bg: 'rgba(236, 72, 153, 0.10)',  color: '#9d174d' },
+            other:   { bg: 'rgba(100, 116, 139, 0.10)', color: '#475569' }
         };
+
+        const todayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date().getDay()];
+        const currentWeek = this._getMondayISO(new Date());
+        const isCurrentWeek = weekStart === currentWeek;
 
         const renderTodo = (todo) => {
             const cc = categoryColors[todo.category] || categoryColors.other;
             const bodyStyle = todo.is_done
-                ? 'opacity: 0.5; text-decoration: line-through;'
+                ? 'opacity: 0.45; text-decoration: line-through;'
                 : '';
             return `
-                <div style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; background: white;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        ${todo.category ? `<span class="badge" style="background:${cc.bg}; color:${cc.color}; font-size:10px; padding: 2px 6px;">${todo.category}</span>` : '<span></span>'}
-                        <div style="display: flex; gap: 4px;">
+                <div style="
+                    padding: 10px 12px;
+                    border-radius: 12px;
+                    margin-bottom: 8px;
+                    background: rgba(255,255,255,0.9);
+                    border: 1px solid rgba(15, 23, 42, 0.06);
+                    transition: transform 0.15s, box-shadow 0.15s;
+                " onmouseover="this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06)'"
+                   onmouseout="this.style.boxShadow=''">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        ${todo.category ? `<span style="
+                            background: ${cc.bg}; color: ${cc.color};
+                            font-size: 9px; font-weight: 700;
+                            padding: 3px 8px; border-radius: 999px;
+                            text-transform: uppercase; letter-spacing: 0.5px;
+                        ">${todo.category}</span>` : '<span></span>'}
+                        <div style="display: flex; gap: 2px;">
                             <button onclick="window.crmApp.openWeeklyTodoModal('${todo.day_of_week}', '${todo.id}')"
-                                class="btn btn-ghost" style="padding: 0 4px; font-size: 12px; min-width: auto; line-height: 1;" title="Edit">✏️</button>
+                                style="background: none; border: none; padding: 2px 5px; font-size: 11px; cursor: pointer; opacity: 0.5; line-height: 1;"
+                                onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Edit">✏️</button>
                             <button onclick="window.crmApp.deleteWeeklyTodo('${todo.id}')"
-                                class="btn btn-ghost" style="padding: 0 4px; font-size: 12px; color: #dc2626; min-width: auto; line-height: 1;" title="Delete">✕</button>
+                                style="background: none; border: none; padding: 2px 5px; font-size: 11px; cursor: pointer; opacity: 0.5; color: #dc2626; line-height: 1;"
+                                onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Delete">✕</button>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <label style="display: flex; gap: 10px; align-items: flex-start; cursor: pointer;">
                         <input type="checkbox" ${todo.is_done ? 'checked' : ''}
                             onchange="window.crmApp.toggleWeeklyTodo('${todo.id}', this.checked)"
-                            style="margin-top: 3px; cursor: pointer; flex-shrink: 0; width: 16px; height: 16px;">
+                            style="margin-top: 2px; cursor: pointer; flex-shrink: 0; width: 16px; height: 16px; accent-color: #8b5cf6;">
                         <div style="flex: 1; min-width: 0; ${bodyStyle}">
-                            <div style="font-size: 14px; font-weight: 600; color: #1e293b; line-height: 1.4; word-wrap: break-word;">${this._esc(todo.title)}</div>
+                            <div style="font-size: 13.5px; font-weight: 600; color: #0f172a; line-height: 1.4; word-wrap: break-word; letter-spacing: -0.005em;">${this._esc(todo.title)}</div>
                             ${todo.description ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; word-wrap: break-word;">${this._esc(todo.description)}</div>` : ''}
                         </div>
-                    </div>
+                    </label>
                 </div>
             `;
         };
@@ -2375,9 +2408,9 @@ class CRMApp {
 
         main.innerHTML = `
             <div style="max-width: 100%; margin: 0 auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <div>
-                        <h2 style="margin: 0;">🗓️ Weekly Todos</h2>
+                        <h2 style="margin: 0; letter-spacing: -0.02em;">🗓️ Weekly Todos</h2>
                         <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Content cadence and weekly cycle</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
@@ -2386,35 +2419,85 @@ class CRMApp {
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-bottom: 12px; flex-wrap: wrap;">
-                    <button onclick="window.crmApp.navigateWeeklyTodos(-1)" class="btn btn-ghost btn-sm">◀ Prev</button>
-                    <span style="font-weight: 600; min-width: 220px; text-align: center; font-size: 14px;">${weekLabel}</span>
-                    <button onclick="window.crmApp.navigateWeeklyTodos(1)" class="btn btn-ghost btn-sm">Next ▶</button>
-                    <button onclick="window.crmApp.navigateWeeklyTodos(0)" class="btn btn-ghost btn-sm" title="Jump to current week">Today</button>
+                <div style="
+                    display: flex; gap: 4px; align-items: center; justify-content: flex-end;
+                    margin-bottom: 16px; flex-wrap: wrap;
+                    padding: 6px;
+                    background: rgba(15, 23, 42, 0.04);
+                    border-radius: 999px;
+                    width: fit-content;
+                    margin-left: auto;
+                ">
+                    <button onclick="window.crmApp.navigateWeeklyTodos(-1)" style="
+                        background: none; border: none; padding: 6px 12px; cursor: pointer;
+                        font-size: 13px; color: #475569; border-radius: 999px; transition: background 0.15s;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.7)'"
+                       onmouseout="this.style.background='none'">◀</button>
+                    <span style="font-weight: 600; min-width: 200px; text-align: center; font-size: 13px; color: #0f172a; letter-spacing: -0.005em;">${weekLabel}</span>
+                    <button onclick="window.crmApp.navigateWeeklyTodos(1)" style="
+                        background: none; border: none; padding: 6px 12px; cursor: pointer;
+                        font-size: 13px; color: #475569; border-radius: 999px; transition: background 0.15s;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.7)'"
+                       onmouseout="this.style.background='none'">▶</button>
+                    <button onclick="window.crmApp.navigateWeeklyTodos(0)" style="
+                        background: white; border: none; padding: 6px 14px; cursor: pointer;
+                        font-size: 12px; font-weight: 600; color: #6d28d9; border-radius: 999px;
+                        box-shadow: 0 1px 2px rgba(15,23,42,0.06);
+                    " title="Jump to current week">Today</button>
                 </div>
 
-                <div style="margin-bottom: 16px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #475569; display: flex; align-items: center; gap: 12px;">
-                    <strong>${doneCount} of ${totalCount}</strong> done this week
+                <div style="
+                    margin-bottom: 20px;
+                    padding: 16px 20px;
+                    border-radius: 16px;
+                    background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+                    border: 1px solid rgba(255,255,255,0.6);
+                    display: flex; align-items: center; gap: 16px;
+                ">
+                    <div style="flex-shrink: 0;">
+                        <div style="font-size: 11px; font-weight: 700; color: #6d28d9; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Progress</div>
+                        <div style="font-size: 17px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">${doneCount} of ${totalCount} done</div>
+                    </div>
                     ${totalCount > 0 ? `
-                        <div style="flex: 1; max-width: 300px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                        <div style="flex: 1; height: 6px; background: rgba(139, 92, 246, 0.12); border-radius: 999px; overflow: hidden;">
                             <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #a78bfa); transition: width 0.3s;"></div>
                         </div>
-                        <span style="color: #64748b;">${pct}%</span>
-                    ` : ''}
+                        <span style="color: #6d28d9; font-weight: 700; font-size: 14px; flex-shrink: 0;">${pct}%</span>
+                    ` : '<span style="color:#94a3b8; font-size: 13px;">Apply the template to get started →</span>'}
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(7, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px;">
-                    ${days.map(day => `
-                        <div class="card" style="padding: 14px; min-height: 200px; min-width: 220px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
-                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">${dayLabels[day]}</div>
-                                <button onclick="window.crmApp.openWeeklyTodoModal('${day}')" class="btn btn-ghost" style="padding: 2px 8px; font-size: 16px; min-width: auto; line-height: 1;" title="Add to ${dayLabels[day]}">+</button>
+                    ${days.map(day => {
+                        const isToday = isCurrentWeek && day === todayName;
+                        return `
+                        <div style="
+                            padding: 14px;
+                            min-height: 200px;
+                            min-width: 220px;
+                            border-radius: 16px;
+                            background: ${isToday ? 'linear-gradient(180deg, #faf5ff 0%, #ffffff 50%)' : '#ffffff'};
+                            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.03);
+                            border: 1px solid ${isToday ? 'rgba(139, 92, 246, 0.25)' : 'rgba(15, 23, 42, 0.06)'};
+                        ">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: ${isToday ? '#6d28d9' : '#0f172a'}; text-transform: uppercase; letter-spacing: 0.8px;">${dayLabels[day]}</div>
+                                    ${isToday ? '<div style="font-size: 10px; color: #6d28d9; font-weight: 600; margin-top: 1px;">TODAY</div>' : ''}
+                                </div>
+                                <button onclick="window.crmApp.openWeeklyTodoModal('${day}')" style="
+                                    background: ${isToday ? 'rgba(139, 92, 246, 0.12)' : 'rgba(15, 23, 42, 0.05)'};
+                                    border: none; padding: 4px 10px;
+                                    font-size: 14px; cursor: pointer; line-height: 1;
+                                    color: ${isToday ? '#6d28d9' : '#475569'};
+                                    border-radius: 999px;
+                                    transition: background 0.15s;
+                                " title="Add to ${dayLabels[day]}">+</button>
                             </div>
                             ${todosByDay[day].length === 0
                                 ? `<div style="color: #cbd5e1; font-size: 13px; text-align: center; padding: 20px 0;">${day === 'saturday' ? '🌴 OFF' : 'No todos'}</div>`
                                 : todosByDay[day].map(renderTodo).join('')}
                         </div>
-                    `).join('')}
+                    `;}).join('')}
                 </div>
             </div>
         `;
