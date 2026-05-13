@@ -2357,20 +2357,22 @@ class CRMApp {
                 : '';
             return `
                 <div style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; background: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        ${todo.category ? `<span class="badge" style="background:${cc.bg}; color:${cc.color}; font-size:10px; padding: 2px 6px;">${todo.category}</span>` : '<span></span>'}
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="window.crmApp.openWeeklyTodoModal('${todo.day_of_week}', '${todo.id}')"
+                                class="btn btn-ghost" style="padding: 0 4px; font-size: 12px; min-width: auto; line-height: 1;" title="Edit">✏️</button>
+                            <button onclick="window.crmApp.deleteWeeklyTodo('${todo.id}')"
+                                class="btn btn-ghost" style="padding: 0 4px; font-size: 12px; color: #dc2626; min-width: auto; line-height: 1;" title="Delete">✕</button>
+                        </div>
+                    </div>
                     <div style="display: flex; gap: 8px; align-items: flex-start;">
                         <input type="checkbox" ${todo.is_done ? 'checked' : ''}
                             onchange="window.crmApp.toggleWeeklyTodo('${todo.id}', this.checked)"
                             style="margin-top: 3px; cursor: pointer; flex-shrink: 0; width: 16px; height: 16px;">
                         <div style="flex: 1; min-width: 0; ${bodyStyle}">
-                            ${todo.category ? `<span class="badge" style="background:${cc.bg}; color:${cc.color}; font-size:10px; padding: 2px 6px; margin-bottom:4px; display:inline-block;">${todo.category}</span>` : ''}
-                            <div style="font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.3; word-wrap: break-word;">${this._esc(todo.title)}</div>
-                            ${todo.description ? `<div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.4; word-wrap: break-word;">${this._esc(todo.description)}</div>` : ''}
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;">
-                            <button onclick="window.crmApp.openWeeklyTodoModal('${todo.day_of_week}', '${todo.id}')"
-                                class="btn btn-ghost" style="padding: 2px 6px; font-size: 11px; min-width: auto;" title="Edit">✏️</button>
-                            <button onclick="window.crmApp.deleteWeeklyTodo('${todo.id}')"
-                                class="btn btn-ghost" style="padding: 2px 6px; font-size: 11px; color: #dc2626; min-width: auto;" title="Delete">✕</button>
+                            <div style="font-size: 14px; font-weight: 600; color: #1e293b; line-height: 1.4; word-wrap: break-word;">${this._esc(todo.title)}</div>
+                            ${todo.description ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; word-wrap: break-word;">${this._esc(todo.description)}</div>` : ''}
                         </div>
                     </div>
                 </div>
@@ -2380,7 +2382,7 @@ class CRMApp {
         const weekLabel = this._formatWeekLabel(weekStart);
 
         main.innerHTML = `
-            <div style="max-width: 1400px; margin: 0 auto;">
+            <div style="max-width: 100%; margin: 0 auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                     <div>
                         <h2 style="margin: 0;">🗓️ Weekly Todos</h2>
@@ -2417,15 +2419,15 @@ class CRMApp {
                     ` : ''}
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px;">
+                <div style="display: grid; grid-template-columns: repeat(7, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px;">
                     ${days.map(day => `
-                        <div class="card" style="padding: 12px; min-height: 200px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
-                                <div style="font-weight: 700; font-size: 12px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">${dayLabels[day]}</div>
-                                <button onclick="window.crmApp.openWeeklyTodoModal('${day}')" class="btn btn-ghost" style="padding: 2px 8px; font-size: 14px; min-width: auto;" title="Add to ${dayLabels[day]}">+</button>
+                        <div class="card" style="padding: 14px; min-height: 200px; min-width: 220px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">${dayLabels[day]}</div>
+                                <button onclick="window.crmApp.openWeeklyTodoModal('${day}')" class="btn btn-ghost" style="padding: 2px 8px; font-size: 16px; min-width: auto; line-height: 1;" title="Add to ${dayLabels[day]}">+</button>
                             </div>
                             ${todosByDay[day].length === 0
-                                ? `<div style="color: #cbd5e1; font-size: 12px; text-align: center; padding: 16px 0;">${day === 'saturday' ? '🌴 OFF' : 'No todos'}</div>`
+                                ? `<div style="color: #cbd5e1; font-size: 13px; text-align: center; padding: 20px 0;">${day === 'saturday' ? '🌴 OFF' : 'No todos'}</div>`
                                 : todosByDay[day].map(renderTodo).join('')}
                         </div>
                     `).join('')}
