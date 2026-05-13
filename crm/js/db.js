@@ -1006,19 +1006,13 @@ class CRMDB {
     // Weekly Todos
     // ==========================================================================
 
-    async getWeeklyTodos(weekStart, brandFilter = null) {
-        let query = this.supabase
+    async getWeeklyTodos(weekStart) {
+        const { data, error } = await this.supabase
             .from('weekly_todos')
             .select('*')
             .eq('is_template', false)
             .eq('week_start', weekStart)
             .order('order_index', { ascending: true });
-
-        if (brandFilter && brandFilter !== 'all') {
-            query = query.eq('brand_slug', brandFilter);
-        }
-
-        const { data, error } = await query;
         if (error) {
             console.error('Error fetching weekly todos:', error);
             return [];
@@ -1026,18 +1020,12 @@ class CRMDB {
         return data || [];
     }
 
-    async getTemplateTodos(brandFilter = null) {
-        let query = this.supabase
+    async getTemplateTodos() {
+        const { data, error } = await this.supabase
             .from('weekly_todos')
             .select('*')
             .eq('is_template', true)
             .order('order_index', { ascending: true });
-
-        if (brandFilter && brandFilter !== 'all') {
-            query = query.eq('brand_slug', brandFilter);
-        }
-
-        const { data, error } = await query;
         if (error) {
             console.error('Error fetching template todos:', error);
             return [];
@@ -1090,14 +1078,14 @@ class CRMDB {
 
     /**
      * Copy templates into the target week. De-dupes against existing rows
-     * for that week by (day_of_week, title, brand_slug).
+     * for that week by (day_of_week, title).
      */
-    async applyWeeklyTemplate(weekStart, brandFilter = null) {
-        const templates = await this.getTemplateTodos(brandFilter);
+    async applyWeeklyTemplate(weekStart) {
+        const templates = await this.getTemplateTodos();
         if (templates.length === 0) return { inserted: 0, skipped: 0 };
 
-        const existing = await this.getWeeklyTodos(weekStart, brandFilter);
-        const key = t => `${t.day_of_week}|${t.title}|${t.brand_slug || 'marcos'}`;
+        const existing = await this.getWeeklyTodos(weekStart);
+        const key = t => `${t.day_of_week}|${t.title}`;
         const existingKeys = new Set(existing.map(key));
 
         const toInsert = templates
@@ -1110,8 +1098,7 @@ class CRMDB {
                 category: t.category,
                 is_done: false,
                 is_template: false,
-                order_index: t.order_index,
-                brand_slug: t.brand_slug || 'marcos'
+                order_index: t.order_index
             }));
 
         if (toInsert.length === 0) {

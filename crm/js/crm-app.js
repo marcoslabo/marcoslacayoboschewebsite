@@ -2310,15 +2310,13 @@ class CRMApp {
     async renderWeeklyTodos() {
         const main = document.getElementById('mainContent');
 
-        const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
         let weekStart = localStorage.getItem('weekly_todos_week_start');
         if (!weekStart) {
             weekStart = this._getMondayISO(new Date());
             localStorage.setItem('weekly_todos_week_start', weekStart);
         }
 
-        const brand = brandFilter === 'all' ? null : brandFilter;
-        const todos = await window.crmDB.getWeeklyTodos(weekStart, brand);
+        const todos = await window.crmDB.getWeeklyTodos(weekStart);
 
         const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
         const dayLabels = {
@@ -2334,12 +2332,6 @@ class CRMApp {
         const doneCount = todos.filter(t => t.is_done).length;
         const totalCount = todos.length;
         const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-
-        const filterPill = (key, label) => `
-            <button onclick="window.crmApp.setWeeklyTodosBrandFilter('${key}')"
-                class="btn btn-sm ${brandFilter === key ? 'btn-primary' : 'btn-ghost'}"
-                style="padding: 6px 12px;">${label}</button>
-        `;
 
         const categoryColors = {
             record:  { bg: '#fef3c7', color: '#92400e' },
@@ -2394,19 +2386,11 @@ class CRMApp {
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Brand</span>
-                        ${filterPill('all', 'All')}
-                        ${filterPill('marcos', 'Marcos')}
-                        ${filterPill('vytalmed', 'VytalMed')}
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
-                        <button onclick="window.crmApp.navigateWeeklyTodos(-1)" class="btn btn-ghost btn-sm">◀ Prev</button>
-                        <span style="font-weight: 600; min-width: 220px; text-align: center; font-size: 14px;">${weekLabel}</span>
-                        <button onclick="window.crmApp.navigateWeeklyTodos(1)" class="btn btn-ghost btn-sm">Next ▶</button>
-                        <button onclick="window.crmApp.navigateWeeklyTodos(0)" class="btn btn-ghost btn-sm" title="Jump to current week">Today</button>
-                    </div>
+                <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-bottom: 12px; flex-wrap: wrap;">
+                    <button onclick="window.crmApp.navigateWeeklyTodos(-1)" class="btn btn-ghost btn-sm">◀ Prev</button>
+                    <span style="font-weight: 600; min-width: 220px; text-align: center; font-size: 14px;">${weekLabel}</span>
+                    <button onclick="window.crmApp.navigateWeeklyTodos(1)" class="btn btn-ghost btn-sm">Next ▶</button>
+                    <button onclick="window.crmApp.navigateWeeklyTodos(0)" class="btn btn-ghost btn-sm" title="Jump to current week">Today</button>
                 </div>
 
                 <div style="margin-bottom: 16px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #475569; display: flex; align-items: center; gap: 12px;">
@@ -2436,11 +2420,6 @@ class CRMApp {
         `;
     }
 
-    setWeeklyTodosBrandFilter(brand) {
-        localStorage.setItem('weekly_todos_brand_filter', brand);
-        this.renderWeeklyTodos();
-    }
-
     navigateWeeklyTodos(direction) {
         let current = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
         if (direction === 0) {
@@ -2456,13 +2435,11 @@ class CRMApp {
 
     async applyWeeklyTemplate() {
         const weekStart = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
-        const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
-        const brand = brandFilter === 'all' ? null : brandFilter;
 
         if (!confirm(`Apply weekly template to week of ${weekStart}? Existing duplicates will be skipped.`)) return;
 
         try {
-            const result = await window.crmDB.applyWeeklyTemplate(weekStart, brand);
+            const result = await window.crmDB.applyWeeklyTemplate(weekStart);
             alert(`Template applied: ${result.inserted} todos added, ${result.skipped} skipped (already existed).`);
             await this.renderWeeklyTodos();
         } catch (e) {
@@ -2493,9 +2470,7 @@ class CRMApp {
         let todo = { day_of_week: day, title: '', description: '', category: 'other' };
         if (id) {
             const weekStart = localStorage.getItem('weekly_todos_week_start');
-            const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
-            const brand = brandFilter === 'all' ? null : brandFilter;
-            const todos = await window.crmDB.getWeeklyTodos(weekStart, brand);
+            const todos = await window.crmDB.getWeeklyTodos(weekStart);
             const found = todos.find(t => t.id === id);
             if (found) todo = found;
         }
@@ -2581,8 +2556,6 @@ class CRMApp {
         }
 
         const weekStart = localStorage.getItem('weekly_todos_week_start') || this._getMondayISO(new Date());
-        const brandFilter = localStorage.getItem('weekly_todos_brand_filter') || 'all';
-        const brand = brandFilter === 'vytalmed' ? 'vytalmed' : 'marcos';
 
         try {
             if (id) {
@@ -2597,8 +2570,7 @@ class CRMApp {
                     description,
                     category,
                     is_template: false,
-                    order_index: 999,
-                    brand_slug: brand
+                    order_index: 999
                 });
             }
             this.closeWeeklyTodoModal();
