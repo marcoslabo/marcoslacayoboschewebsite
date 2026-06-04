@@ -65,12 +65,16 @@ export default async function handler(req, res) {
         const hnItems = await Promise.all(queries.map(q => fetchHackerNews(q).catch(e => {
             console.warn(`HN "${q}" failed:`, e.message); return [];
         })));
+        const googleItems = await Promise.all(queries.map(q => fetchGoogle(q).catch(e => {
+            console.warn(`Google "${q}" failed:`, e.message); return [];
+        })));
 
         let candidates = [
             ...rssItems.flat(),
             ...redditItems.flat(),
             ...ytItems.flat(),
-            ...hnItems.flat()
+            ...hnItems.flat(),
+            ...googleItems.flat()
         ];
 
         // 3. Pre-filter by keywords (cheap). Skip keyword filter for items
@@ -300,6 +304,37 @@ async function fetchHackerNews(query) {
         excerpt: (h.story_text || h._highlightResult?.story_text?.value || '').replace(/<[^>]+>/g, '').slice(0, 500),
         published_at: new Date((h.created_at_i || 0) * 1000).toISOString(),
         engagement_signal: h.points || 0,
+        from_focus_query: true
+    }));
+}
+
+// ============================================================================
+// Google Custom Search JSON API (free 100/day, requires GOOGLE_API_KEY + GOOGLE_CSE_ID)
+// ============================================================================
+async function fetchGoogle(query) {
+    const key = process.env.GOOGLE_API_KEY;
+    const cseId = process.env.GOOGLE_CSE_ID;
+    if (!key || !cseId) {
+        // Silently skip if not configured
+        return [];
+    }
+    const url = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cseId}&q=${encodeURIComponent(query)}&dateRestrict=d1&num=8`;
+    const r = await fetch(url);
+    if (!r.ok) {
+        const errBody = await r.text();
+        throw new Error(`Google CSE ${r.status}: ${errBody.slice(0, 200)}`);
+    }
+    const data = await r.json();
+    return (data.items || []).map(it => ({
+        source: 'google',
+        source_name: `Google: ${it.displayLink || 'web'}`,
+        url: it.link,
+        title: it.title || '',
+        excerpt: (it.snippet || '').slice(0, 500),
+        // CSE doesn't reliably return pubdate; we use cron time and rely on
+        // dateRestrict=d1 to ensure results are from the last 24h.
+        published_at: new Date().toISOString(),
+        engagement_signal: null,
         from_focus_query: true
     }));
 }
