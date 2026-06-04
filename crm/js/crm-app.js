@@ -2438,17 +2438,25 @@ class CRMApp {
             const result = await window.crmDB.runViralDiscoveryNow();
             const cps = result.counts_per_source || {};
             const kps = result.kept_per_source || {};
+            const eps = result.errors_per_source || {};
             const sourceSummary = Object.keys(cps)
-                .map(s => `  ${s}: ${cps[s] || 0} found → ${kps[s] || 0} kept`)
+                .map(s => {
+                    const errs = (eps[s] || []).length;
+                    const errTag = errs > 0 ? `  ⚠️  ${errs} error${errs > 1 ? 's' : ''}` : '';
+                    return `  ${s}: ${cps[s] || 0} found → ${kps[s] || 0} kept${errTag}`;
+                })
                 .join('\n');
+            const errorDetails = Object.keys(eps).length > 0
+                ? `\n\nErrors:\n` + Object.entries(eps).map(([s, msgs]) => `  ${s}: ${msgs[0]}`).join('\n')
+                : '';
             const topicsUsed = (result.focus_topics_used || []).join(', ') || '(none)';
             alert(
                 `Discovery complete.\n\n` +
-                `Topics used (proves what was searched):\n${topicsUsed}\n\n` +
+                `Topics used:\n${topicsUsed}\n\n` +
                 `Evaluated: ${result.evaluated || 0}\n` +
                 `Inserted: ${result.inserted || 0} (top ${result.thresholds?.top_per_source || 5} per source)\n\n` +
-                `Per source:\n${sourceSummary}\n\n` +
-                `Tip: if "inserted" is 0 but "found" is high, items are duplicates of previous runs.\nUse "Clear Inbox" to start fresh.`
+                `Per source:\n${sourceSummary}` +
+                errorDetails
             );
             await this.renderViralInbox();
         } catch (e) {

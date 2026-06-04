@@ -16,10 +16,14 @@ const RSS_FEEDS = [
     { url: 'https://hitconsultant.net/feed/', name: 'HIT Consultant' }
 ];
 
+// Use top.json?t=month so we get the most-upvoted posts of the LAST 30 DAYS,
+// not just current "hot". That's what "viral" actually means for these subs.
 const REDDIT_SUBS = [
-    { name: 'r/Radiology', url: 'https://www.reddit.com/r/Radiology/hot.json?limit=15' },
-    { name: 'r/healthIT',  url: 'https://www.reddit.com/r/healthIT/hot.json?limit=15' },
-    { name: 'r/medicine',  url: 'https://www.reddit.com/r/medicine/hot.json?limit=15' }
+    { name: 'r/Radiology',         url: 'https://www.reddit.com/r/Radiology/top.json?t=month&limit=25' },
+    { name: 'r/healthIT',          url: 'https://www.reddit.com/r/healthIT/top.json?t=month&limit=25' },
+    { name: 'r/medicine',          url: 'https://www.reddit.com/r/medicine/top.json?t=month&limit=25' },
+    { name: 'r/MedicalDoctor',     url: 'https://www.reddit.com/r/MedicalDoctor/top.json?t=month&limit=25' },
+    { name: 'r/healthtech',        url: 'https://www.reddit.com/r/healthtech/top.json?t=month&limit=25' }
 ];
 
 // Fallback queries used when no focus_topics are configured.
@@ -40,12 +44,11 @@ const KEYWORDS = [
 const MIN_SCORE = 40;  // Claude alignment score floor — below this never enters the inbox
 const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN/Google searches per cron run
 
-// Engagement thresholds (tuned to healthcare-AI niche, not generic-internet viral).
-// In this niche, "viral" looks like dozens-to-hundreds, not millions. Healthcare
-// subs are small and HN healthcare stories often hover at 5-30 points.
-const MIN_YT_VIEWS     = 1500;  // YT has scale — viral is real here
-const MIN_REDDIT_SCORE = 5;     // r/Radiology + r/healthIT are small subs (~30-100k members)
-const MIN_HN_POINTS    = 5;     // most HN healthcare stories sit at 5-30 points
+// Engagement thresholds — tuned for "actually viral in healthcare AI" over a 30-day window.
+// Now we're filtering for TRUE virality, not just "anything that exists."
+const MIN_YT_VIEWS     = 5000;  // top tier of healthcare AI YT content over 7 days
+const MIN_REDDIT_SCORE = 30;    // top-of-month posts in the healthcare subs
+const MIN_HN_POINTS    = 30;    // top quartile of healthcare-tagged HN over 30 days
 
 // How many top items to keep PER source after Claude scoring.
 // Forces diversity — you always see a mix instead of just whichever source dominated.
@@ -63,21 +66,28 @@ export default async function handler(req, res) {
         const focusTopics = await fetchFocusTopics();
         const queries = (focusTopics.length > 0 ? focusTopics : DEFAULT_QUERIES).slice(0, MAX_QUERIES_PER_SOURCE);
 
-        // 2. Gather candidates from all sources
+        // 2. Gather candidates from all sources. Track errors per-source so we can
+        //    surface them in the diagnostic response if something is failing.
+        const errors_per_source = {};
+        const trackError = (source, e) => {
+            console.warn(`${source} failed:`, e.message);
+            if (!errors_per_source[source]) errors_per_source[source] = [];
+            errors_per_source[source].push(e.message.slice(0, 200));
+        };
         const rssItems = await Promise.all(RSS_FEEDS.map(f => fetchRss(f.url, f.name).catch(e => {
-            console.warn(`RSS ${f.name} failed:`, e.message); return [];
+            trackError('rss', e); return [];
         })));
         const redditItems = await Promise.all(REDDIT_SUBS.map(s => fetchReddit(s.url, s.name).catch(e => {
-            console.warn(`Reddit ${s.name} failed:`, e.message); return [];
+            trackError('reddit', e); return [];
         })));
         const ytItems = await Promise.all(queries.map(q => fetchYouTube(q).catch(e => {
-            console.warn(`YouTube "${q}" failed:`, e.message); return [];
+            trackError('youtube', e); return [];
         })));
         const hnItems = await Promise.all(queries.map(q => fetchHackerNews(q).catch(e => {
-            console.warn(`HN "${q}" failed:`, e.message); return [];
+            trackError('hackernews', e); return [];
         })));
         const googleItems = await Promise.all(queries.map(q => fetchGoogle(q).catch(e => {
-            console.warn(`Google "${q}" failed:`, e.message); return [];
+            trackError('google', e); return [];
         })));
 
         const counts_per_source = {
@@ -164,6 +174,7 @@ export default async function handler(req, res) {
                 counts_per_source,
                 kept_per_source,
                 focus_topics_used: queries,
+                errors_per_source,
                 thresholds: { min_score: MIN_SCORE, min_yt_views: MIN_YT_VIEWS, min_reddit_score: MIN_REDDIT_SCORE, min_hn_points: MIN_HN_POINTS, top_per_source: TOP_PER_SOURCE },
                 top_scores: topScores,
                 hint: 'No items met the score threshold. Check counts_per_source — if all are 0 the engagement filters may be too strict, or sources are returning nothing. Try broader Focus Topics or lower thresholds.'
@@ -299,10 +310,12 @@ function stripXml(s) {
 // ============================================================================
 async function fetchReddit(url, sourceName) {
     const r = await fetch(url, { headers: { 'User-Agent': 'VytalMed-Discovery/1.0' } });
-    if (!r.ok) return [];
+    if (!r.ok) {
+        throw new Error(`Reddit ${r.status} for ${sourceName}: ${(await r.text()).slice(0, 120)}`);
+    }
     const data = await r.json();
-    // 7-day window — healthcare subs are slow and "hot" posts often span days
-    const since = Date.now() - 7 * 86400 * 1000;
+    // 30-day window matching the top.json?t=month URL
+    const since = Date.now() - 30 * 86400 * 1000;
     return (data.data?.children || [])
         .map(c => c.data)
         .filter(d => d.created_utc * 1000 >= since)
@@ -379,8 +392,8 @@ async function fetchYouTube(query) {
 // Hacker News (Algolia search API — free, no key)
 // ============================================================================
 async function fetchHackerNews(query) {
-    // 7-day window — HN healthcare stories trickle in over days, not hours
-    const since = Math.floor((Date.now() - 7 * 86400 * 1000) / 1000);
+    // 30-day window — HN healthcare stories are rare; need a wider net for virality
+    const since = Math.floor((Date.now() - 30 * 86400 * 1000) / 1000);
     const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&numericFilters=created_at_i>${since}`;
     const r = await fetch(url);
     if (!r.ok) return [];
@@ -410,8 +423,8 @@ async function fetchGoogle(query) {
         // Silently skip if not configured
         return [];
     }
-    // 7-day window — healthcare media doesn't break daily; viral takes time
-    const url = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cseId}&q=${encodeURIComponent(query)}&dateRestrict=w1&num=8`;
+    // 30-day window matching the rest of the cron — gives Google a wider pool
+    const url = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cseId}&q=${encodeURIComponent(query)}&dateRestrict=m1&num=10`;
     const r = await fetch(url);
     if (!r.ok) {
         const errBody = await r.text();
