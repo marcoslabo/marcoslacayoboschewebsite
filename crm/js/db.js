@@ -1073,6 +1073,26 @@ class CRMDB {
         return await r.json();
     }
 
+    async getDiscoveryConfig() {
+        const { data, error } = await this.supabase
+            .from('discovery_config')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+        if (error) { console.error('discovery_config fetch failed:', error); return { focus_topics: [] }; }
+        return data || { focus_topics: [] };
+    }
+
+    async updateDiscoveryConfig(focus_topics) {
+        const { data, error } = await this.supabase
+            .from('discovery_config')
+            .upsert({ id: 1, focus_topics, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+            .select()
+            .single();
+        if (error) { console.error('discovery_config update failed:', error); throw error; }
+        return data;
+    }
+
     // ==========================================================================
     // Weekly Todos
     // ==========================================================================

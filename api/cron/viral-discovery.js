@@ -22,6 +22,14 @@ const REDDIT_SUBS = [
     { name: 'r/medicine',  url: 'https://www.reddit.com/r/medicine/hot.json?limit=15' }
 ];
 
+// Fallback queries used when no focus_topics are configured.
+const DEFAULT_QUERIES = [
+    'healthcare AI workflow',
+    'EHR automation',
+    'radiology AI',
+    'prior authorization automation'
+];
+
 const KEYWORDS = [
     'ai', 'workflow', 'automation', 'fax', 'ehr', 'emr', 'pacs', 'ris',
     'hl7', 'fhir', 'epic', 'cerner', 'meditech', 'vendor', 'prior auth',
@@ -30,16 +38,19 @@ const KEYWORDS = [
 ];
 
 const MIN_SCORE = 55;  // Anything below this gets filtered out
+const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN searches per cron run
 
 export default async function handler(req, res) {
     // Vercel cron sends Authorization: Bearer <CRON_SECRET> if set; allow open for now
     const startedAt = Date.now();
     try {
-        // 1. Pull POV pillars
+        // 1. Pull POV pillars + focus topics
         const pillars = await fetchPillars();
         if (pillars.length === 0) {
             return res.status(500).json({ error: 'No POV pillars in DB — run viral_pipeline_migration.sql first' });
         }
+        const focusTopics = await fetchFocusTopics();
+        const queries = (focusTopics.length > 0 ? focusTopics : DEFAULT_QUERIES).slice(0, MAX_QUERIES_PER_SOURCE);
 
         // 2. Gather candidates from all sources
         const rssItems = await Promise.all(RSS_FEEDS.map(f => fetchRss(f.url, f.name).catch(e => {
@@ -48,24 +59,45 @@ export default async function handler(req, res) {
         const redditItems = await Promise.all(REDDIT_SUBS.map(s => fetchReddit(s.url, s.name).catch(e => {
             console.warn(`Reddit ${s.name} failed:`, e.message); return [];
         })));
-        let candidates = [...rssItems.flat(), ...redditItems.flat()];
+        const ytItems = await Promise.all(queries.map(q => fetchYouTube(q).catch(e => {
+            console.warn(`YouTube "${q}" failed:`, e.message); return [];
+        })));
+        const hnItems = await Promise.all(queries.map(q => fetchHackerNews(q).catch(e => {
+            console.warn(`HN "${q}" failed:`, e.message); return [];
+        })));
 
-        // 3. Pre-filter by keywords (cheap)
-        candidates = candidates.filter(c => matchesKeywords(c));
+        let candidates = [
+            ...rssItems.flat(),
+            ...redditItems.flat(),
+            ...ytItems.flat(),
+            ...hnItems.flat()
+        ];
+
+        // 3. Pre-filter by keywords (cheap). Skip keyword filter for items
+        //    that came from a focus-topic query (already pre-targeted).
+        candidates = candidates.filter(c => c.from_focus_query || matchesKeywords(c));
 
         // 4. Dedupe by URL against last 7 days
         const recent = await fetchRecentUrls();
         candidates = candidates.filter(c => !recent.has(c.url));
 
+        // 4b. Dedupe within this run (same URL coming from multiple sources)
+        const seen = new Set();
+        candidates = candidates.filter(c => {
+            if (seen.has(c.url)) return false;
+            seen.add(c.url);
+            return true;
+        });
+
         if (candidates.length === 0) {
             return res.status(200).json({ ok: true, inserted: 0, message: 'No new keyword matches' });
         }
 
-        // 5. Cap at 25 to keep Claude cost predictable
-        candidates = candidates.slice(0, 25);
+        // 5. Cap at 30 to keep Claude cost predictable
+        candidates = candidates.slice(0, 30);
 
-        // 6. Score with Claude (one batch call)
-        const scored = await scoreBatch(candidates, pillars);
+        // 6. Score with Claude (one batch call), with focus topics as a boost signal
+        const scored = await scoreBatch(candidates, pillars, focusTopics);
 
         // 7. Insert items above threshold
         const toInsert = scored.filter(s => s.claude_score >= MIN_SCORE);
@@ -95,6 +127,15 @@ async function fetchPillars() {
     });
     if (!r.ok) return [];
     return await r.json();
+}
+
+async function fetchFocusTopics() {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/discovery_config?id=eq.1&select=focus_topics`, {
+        headers: supabaseHeaders()
+    });
+    if (!r.ok) return [];
+    const rows = await r.json();
+    return rows[0]?.focus_topics || [];
 }
 
 async function fetchRecentUrls() {
@@ -201,6 +242,56 @@ async function fetchReddit(url, sourceName) {
 }
 
 // ============================================================================
+// YouTube Data API v3 — official, free quota (10k units/day)
+// ============================================================================
+async function fetchYouTube(query) {
+    const key = process.env.YOUTUBE_API_KEY;
+    if (!key) {
+        // Silently skip if no key set
+        return [];
+    }
+    const since = new Date(Date.now() - 86400 * 1000).toISOString();
+    const url = `https://www.googleapis.com/youtube/v3/search?key=${key}&q=${encodeURIComponent(query)}&part=snippet&type=video&order=relevance&publishedAfter=${since}&maxResults=8`;
+    const r = await fetch(url);
+    if (!r.ok) {
+        const errBody = await r.text();
+        throw new Error(`YT ${r.status}: ${errBody.slice(0, 200)}`);
+    }
+    const data = await r.json();
+    return (data.items || []).map(it => ({
+        source: 'youtube',
+        source_name: `YouTube: ${it.snippet?.channelTitle || 'unknown'}`,
+        url: `https://www.youtube.com/watch?v=${it.id?.videoId}`,
+        title: it.snippet?.title || '',
+        excerpt: (it.snippet?.description || '').slice(0, 500),
+        published_at: it.snippet?.publishedAt || new Date().toISOString(),
+        engagement_signal: null,
+        from_focus_query: true  // pre-targeted; skip keyword filter
+    }));
+}
+
+// ============================================================================
+// Hacker News (Algolia search API — free, no key)
+// ============================================================================
+async function fetchHackerNews(query) {
+    const since = Math.floor((Date.now() - 86400 * 1000) / 1000);
+    const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&numericFilters=created_at_i>${since}`;
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const data = await r.json();
+    return (data.hits || []).slice(0, 6).map(h => ({
+        source: 'hackernews',
+        source_name: 'Hacker News',
+        url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+        title: h.title || '',
+        excerpt: (h.story_text || h._highlightResult?.story_text?.value || '').replace(/<[^>]+>/g, '').slice(0, 500),
+        published_at: new Date((h.created_at_i || 0) * 1000).toISOString(),
+        engagement_signal: h.points || 0,
+        from_focus_query: true
+    }));
+}
+
+// ============================================================================
 // Keyword pre-filter (cheap)
 // ============================================================================
 function matchesKeywords(item) {
@@ -211,7 +302,7 @@ function matchesKeywords(item) {
 // ============================================================================
 // Claude batch scorer
 // ============================================================================
-async function scoreBatch(candidates, pillars) {
+async function scoreBatch(candidates, pillars, focusTopics = []) {
     const pillarList = pillars.map((p, i) => `${i + 1}. [${p.slug}] ${p.statement}`).join('\n');
 
     const itemList = candidates.map((c, i) => `
@@ -222,13 +313,17 @@ EXCERPT: ${c.excerpt.slice(0, 240)}
 URL: ${c.url}
 `).join('\n');
 
+    const focusBlock = focusTopics.length > 0
+        ? `\nPRIORITY TOPICS (boost score meaningfully — these are what Marcos is focused on right now):\n${focusTopics.map(t => `  - ${t}`).join('\n')}\nAn item that directly matches one of these topics should score 80+. Items irrelevant to these AND irrelevant to pillars should score low.\n`
+        : '';
+
     const systemPrompt = `You are the VytalMed Content Scout. VytalMed is a healthcare-specialized software development agency. We post to LinkedIn to attract healthcare operators (CIOs, COOs, radiology group leaders, PE-backed multi-site practice operators).
 
 Your job: score each candidate item 0-100 on how well it could fuel a LinkedIn post that lands one of our POV pillars.
 
 POV PILLARS:
 ${pillarList}
-
+${focusBlock}
 A high score (75-100) means:
 - The item touches a real operator pain (vendor lock-in, AI hype, integration mess, staffing crunch, prior auth, denials, etc.)
 - We could write a post that quotes/references the item and lands a VytalMed POV

@@ -2267,7 +2267,11 @@ class CRMApp {
         main.innerHTML = '<div class="empty-state"><p>Loading inbox…</p></div>';
 
         const statusFilter = localStorage.getItem('inbox_status_filter') || 'new';
-        const inputs = await window.crmDB.getViralInputs({ statusFilter });
+        const [inputs, config] = await Promise.all([
+            window.crmDB.getViralInputs({ statusFilter }),
+            window.crmDB.getDiscoveryConfig()
+        ]);
+        const focusTopicsString = (config.focus_topics || []).join(', ');
 
         const filterPill = (key, label) => `
             <button onclick="window.crmApp.setInboxFilter('${key}')"
@@ -2327,6 +2331,18 @@ class CRMApp {
                     <button onclick="window.crmApp.runDiscoveryNow()" class="btn btn-secondary btn-sm">🔄 Run Discovery Now</button>
                 </div>
 
+                <div style="margin-bottom: 16px; padding: 14px 16px; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border-radius: 12px; border: 1px solid rgba(139,92,246,0.15);">
+                    <label style="display:block; font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Focus Topics</label>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="focusTopicsInput"
+                            value="${this._esc(focusTopicsString)}"
+                            placeholder="prior auth automation, radiology AI, fax processing..."
+                            style="flex:1; min-width:280px; padding:9px 12px; border:1px solid rgba(15,23,42,0.1); border-radius:8px; font-size:13px; background:white;">
+                        <button onclick="window.crmApp.saveFocusTopics()" class="btn btn-primary btn-sm">Save</button>
+                    </div>
+                    <p style="font-size:11px; color:#64748b; margin:8px 0 0;">Comma-separated. Drives YouTube + Hacker News searches and boosts Claude scoring. Empty = uses default healthcare AI queries.</p>
+                </div>
+
                 <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
                     ${filterPill('new', 'New')}
                     ${filterPill('drafted', 'Drafted')}
@@ -2347,6 +2363,22 @@ class CRMApp {
     setInboxFilter(key) {
         localStorage.setItem('inbox_status_filter', key);
         this.renderViralInbox();
+    }
+
+    async saveFocusTopics() {
+        const raw = document.getElementById('focusTopicsInput')?.value || '';
+        const topics = raw.split(',').map(t => t.trim()).filter(Boolean);
+        try {
+            await window.crmDB.updateDiscoveryConfig(topics);
+            const btn = event?.target;
+            if (btn) {
+                const orig = btn.textContent;
+                btn.textContent = '✓ Saved';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            }
+        } catch (e) {
+            alert('Save failed: ' + e.message);
+        }
     }
 
     async runDiscoveryNow() {
