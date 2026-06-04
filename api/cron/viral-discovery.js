@@ -44,11 +44,14 @@ const KEYWORDS = [
 const MIN_SCORE = 40;  // Claude alignment score floor — below this never enters the inbox
 const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN/Google searches per cron run
 
-// Engagement thresholds — tuned for "actually viral in healthcare AI" over a 30-day window.
-// Now we're filtering for TRUE virality, not just "anything that exists."
-const MIN_YT_VIEWS     = 5000;  // top tier of healthcare AI YT content over 7 days
-const MIN_REDDIT_SCORE = 30;    // top-of-month posts in the healthcare subs
-const MIN_HN_POINTS    = 30;    // top quartile of healthcare-tagged HN over 30 days
+// Engagement thresholds — calibrated to healthcare-AI niche reality.
+// Over 30 days, "viral" in this space looks like:
+//   - YT: 1.5K+ views is the top 25%; 5K+ is rare for niche topics
+//   - Reddit: 10+ upvotes is solid in r/Radiology; 30+ is rare
+//   - HN: 10+ points is decent for healthcare; 30+ is unicorn
+const MIN_YT_VIEWS     = 1500;
+const MIN_REDDIT_SCORE = 10;
+const MIN_HN_POINTS    = 10;
 
 // How many top items to keep PER source after Claude scoring.
 // Forces diversity — you always see a mix instead of just whichever source dominated.
@@ -262,7 +265,7 @@ function supabaseHeaders() {
 // RSS parser (regex-based — enough for major feeds)
 // ============================================================================
 async function fetchRss(url, sourceName) {
-    const r = await fetch(url, { headers: { 'User-Agent': 'VytalMed-Discovery/1.0' } });
+    const r = await fetch(url, { headers: { 'User-Agent': 'web:VytalMedDiscovery:1.0 (Healthcare AI content scout; +https://vytalmed.co)' } });
     if (!r.ok) return [];
     const xml = await r.text();
     const since = Date.now() - 48 * 3600 * 1000;  // last 48 hrs (some feeds publish in bursts)
@@ -309,7 +312,7 @@ function stripXml(s) {
 // Reddit fetcher
 // ============================================================================
 async function fetchReddit(url, sourceName) {
-    const r = await fetch(url, { headers: { 'User-Agent': 'VytalMed-Discovery/1.0' } });
+    const r = await fetch(url, { headers: { 'User-Agent': 'web:VytalMedDiscovery:1.0 (Healthcare AI content scout; +https://vytalmed.co)' } });
     if (!r.ok) {
         throw new Error(`Reddit ${r.status} for ${sourceName}: ${(await r.text()).slice(0, 120)}`);
     }
