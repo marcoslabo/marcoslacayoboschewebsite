@@ -2436,33 +2436,150 @@ class CRMApp {
         if (!confirm('Run viral discovery now? Takes 30-60 sec.')) return;
         try {
             const result = await window.crmDB.runViralDiscoveryNow();
-            const cps = result.counts_per_source || {};
-            const kps = result.kept_per_source || {};
-            const eps = result.errors_per_source || {};
-            const rps = result.raw_per_source || {};
-            const sourceSummary = Object.keys(cps)
-                .map(s => {
-                    const errs = (eps[s] || []).length;
-                    const errTag = errs > 0 ? `  ⚠️  ${errs} error${errs > 1 ? 's' : ''}` : '';
-                    return `  ${s}: ${rps[s] || 0} raw → ${cps[s] || 0} found → ${kps[s] || 0} kept${errTag}`;
-                })
-                .join('\n');
-            const errorDetails = Object.keys(eps).length > 0
-                ? `\n\nErrors:\n` + Object.entries(eps).map(([s, msgs]) => `  ${s}: ${msgs[0]}`).join('\n')
-                : '';
-            const topicsUsed = (result.focus_topics_used || []).join(', ') || '(none)';
-            alert(
-                `Discovery complete.\n\n` +
-                `Topics used:\n${topicsUsed}\n\n` +
-                `Evaluated: ${result.evaluated || 0}\n` +
-                `Inserted: ${result.inserted || 0} (top ${result.thresholds?.top_per_source || 5} per source)\n\n` +
-                `Per source:\n${sourceSummary}` +
-                errorDetails
-            );
+            this.openDiscoveryResultModal(result);
             await this.renderViralInbox();
         } catch (e) {
             alert('Discovery failed: ' + e.message);
         }
+    }
+
+    openDiscoveryResultModal(result) {
+        const existing = document.getElementById('discoveryResultModal');
+        if (existing) existing.remove();
+
+        const cps = result.counts_per_source || {};
+        const kps = result.kept_per_source || {};
+        const eps = result.errors_per_source || {};
+        const rps = result.raw_per_source || {};
+        const allSources = ['rss', 'youtube', 'reddit', 'google', 'hackernews'];
+
+        const sourceMeta = {
+            rss:        { icon: '📰', label: 'RSS Feeds',   color: '#ea580c' },
+            youtube:    { icon: '📺', label: 'YouTube',     color: '#dc2626' },
+            reddit:     { icon: '💬', label: 'Reddit',      color: '#f97316' },
+            google:     { icon: '🌐', label: 'Google',      color: '#2563eb' },
+            hackernews: { icon: '🟧', label: 'Hacker News', color: '#b45309' }
+        };
+
+        const diagnoseRow = (s) => {
+            const raw = rps[s] || 0, found = cps[s] || 0, kept = kps[s] || 0;
+            const errs = eps[s] || [];
+            // Diagnose where items are being lost
+            let diagnosis, diagBg, diagColor;
+            if (errs.length > 0) {
+                diagnosis = `⚠️  ERROR: ${errs[0].slice(0, 80)}`;
+                diagBg = '#fef2f2'; diagColor = '#991b1b';
+            } else if (raw === 0 && found === 0) {
+                diagnosis = '📭  API returned nothing for your topics';
+                diagBg = '#f8fafc'; diagColor = '#64748b';
+            } else if (raw > 0 && found === 0) {
+                diagnosis = `🔻  ${raw} returned, all below engagement threshold (filter too strict)`;
+                diagBg = '#fff7ed'; diagColor = '#9a3412';
+            } else if (found > 0 && kept === 0) {
+                diagnosis = `🎯  ${found} passed engagement, Claude scored all <40 (POV mismatch)`;
+                diagBg = '#fef3c7'; diagColor = '#92400e';
+            } else {
+                diagnosis = `✅  ${kept} items added to inbox`;
+                diagBg = '#dcfce7'; diagColor = '#166534';
+            }
+            const meta = sourceMeta[s] || { icon: '•', label: s, color: '#64748b' };
+            return `
+                <div style="margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; background: white;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="font-size: 22px;">${meta.icon}</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 14px; color: ${meta.color}; text-transform: uppercase; letter-spacing: 0.5px;">${meta.label}</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div style="text-align: center; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1;">${raw}</div>
+                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; font-weight: 600;">Raw</div>
+                            <div style="font-size: 9px; color: #cbd5e1; margin-top: 2px;">from API</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 800; color: #b45309; line-height: 1;">${found}</div>
+                            <div style="font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; font-weight: 600;">Found</div>
+                            <div style="font-size: 9px; color: #b45309; margin-top: 2px;">after engagement filter</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: #dcfce7; border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 800; color: #166534; line-height: 1;">${kept}</div>
+                            <div style="font-size: 10px; color: #14532d; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; font-weight: 600;">Kept</div>
+                            <div style="font-size: 9px; color: #166534; margin-top: 2px;">after Claude score ≥40</div>
+                        </div>
+                    </div>
+                    <div style="padding: 10px 12px; background: ${diagBg}; color: ${diagColor}; border-radius: 8px; font-size: 13px; font-weight: 500;">
+                        ${diagnosis}
+                    </div>
+                </div>
+            `;
+        };
+
+        const topics = result.focus_topics_used || [];
+        const topicsHtml = topics.length > 0
+            ? topics.map(t => `<span style="display:inline-block; padding:4px 10px; background:#ede9fe; color:#6d28d9; border-radius:999px; font-size:12px; font-weight:600; margin: 2px 4px 2px 0;">${this._esc(t)}</span>`).join('')
+            : '<span style="color:#94a3b8; font-style:italic;">(none — using defaults)</span>';
+
+        const topScoresHtml = (result.top_scores || []).length > 0
+            ? `
+                <h3 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:24px 0 10px;">Top Claude scores</h3>
+                ${result.top_scores.map(s => `
+                    <div style="padding: 10px 12px; background: #fafafa; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid ${s.score >= 70 ? '#16a34a' : s.score >= 40 ? '#eab308' : '#dc2626'};">
+                        <div style="display: flex; gap: 10px; align-items: baseline;">
+                            <span style="font-weight: 800; font-size: 16px; color: ${s.score >= 70 ? '#16a34a' : s.score >= 40 ? '#b45309' : '#dc2626'};">${s.score}</span>
+                            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">${this._esc(s.source || '')}</span>
+                        </div>
+                        <div style="font-size: 13px; color: #0f172a; margin-top: 4px; font-weight: 600;">${this._esc(s.title)}</div>
+                        ${s.why ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px; font-style: italic;">${this._esc(s.why)}</div>` : ''}
+                    </div>
+                `).join('')}
+            `
+            : '';
+
+        const modalHtml = `
+            <div id="discoveryResultModal" class="modal" style="display:flex;">
+                <div class="modal-backdrop" onclick="window.crmApp.closeDiscoveryResultModal()"></div>
+                <div class="modal-content" style="max-width: 720px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <h2>🔍 Discovery Result</h2>
+                        <button class="modal-close" onclick="window.crmApp.closeDiscoveryResultModal()">&times;</button>
+                    </div>
+                    <div style="padding: 24px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                            <div style="padding: 16px; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border-radius: 12px;">
+                                <div style="font-size: 11px; font-weight: 700; color: #6d28d9; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Evaluated</div>
+                                <div style="font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -0.02em;">${result.evaluated || 0}</div>
+                                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">items reviewed by Claude</div>
+                            </div>
+                            <div style="padding: 16px; background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-radius: 12px;">
+                                <div style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Inserted</div>
+                                <div style="font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -0.02em;">${result.inserted || 0}</div>
+                                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">new items in your inbox</div>
+                            </div>
+                        </div>
+
+                        <h3 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:0 0 10px;">Focus Topics Used</h3>
+                        <div style="margin-bottom: 24px;">${topicsHtml}</div>
+
+                        <h3 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px;">Pipeline per Source</h3>
+                        <p style="font-size:12px; color:#94a3b8; margin:-6px 0 14px;">Each source goes through 3 stages — see where items are being lost.</p>
+                        ${allSources.map(diagnoseRow).join('')}
+
+                        ${topScoresHtml}
+
+                        <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+                            <button class="btn btn-primary" onclick="window.crmApp.closeDiscoveryResultModal()">Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    closeDiscoveryResultModal() {
+        const m = document.getElementById('discoveryResultModal');
+        if (m) m.remove();
     }
 
     async clearInbox() {
