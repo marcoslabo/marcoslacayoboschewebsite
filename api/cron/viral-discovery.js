@@ -41,10 +41,11 @@ const MIN_SCORE = 40;  // Claude alignment score floor — below this never ente
 const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN/Google searches per cron run
 
 // Engagement thresholds (tuned to healthcare-AI niche, not generic-internet viral).
-// In this niche, "viral" looks like hundreds-to-thousands, not millions.
-const MIN_YT_VIEWS     = 1500;  // catches top half of healthcare AI YT content
-const MIN_REDDIT_SCORE = 20;    // above noise floor in r/Radiology / r/healthIT
-const MIN_HN_POINTS    = 30;    // top ~20% of healthcare-tagged HN posts
+// In this niche, "viral" looks like dozens-to-hundreds, not millions. Healthcare
+// subs are small and HN healthcare stories often hover at 5-30 points.
+const MIN_YT_VIEWS     = 1500;  // YT has scale — viral is real here
+const MIN_REDDIT_SCORE = 5;     // r/Radiology + r/healthIT are small subs (~30-100k members)
+const MIN_HN_POINTS    = 5;     // most HN healthcare stories sit at 5-30 points
 
 // How many top items to keep PER source after Claude scoring.
 // Forces diversity — you always see a mix instead of just whichever source dominated.
@@ -241,7 +242,7 @@ async function fetchRss(url, sourceName) {
     const r = await fetch(url, { headers: { 'User-Agent': 'VytalMed-Discovery/1.0' } });
     if (!r.ok) return [];
     const xml = await r.text();
-    const since = Date.now() - 86400 * 1000;  // last 24 hrs
+    const since = Date.now() - 48 * 3600 * 1000;  // last 48 hrs (some feeds publish in bursts)
 
     const items = [];
     const itemRegex = /<item[\s\S]*?<\/item>/g;
