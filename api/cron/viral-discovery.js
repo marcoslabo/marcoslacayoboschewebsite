@@ -167,9 +167,15 @@ async function fetchRecentUrls() {
 }
 
 async function insertViralInputs(items) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/viral_inputs`, {
+    // Use on_conflict=url so duplicate URLs are silently ignored instead of
+    // failing the whole batch. Prefer: resolution=ignore-duplicates makes the
+    // returned representation reflect only the rows that ACTUALLY persisted.
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/viral_inputs?on_conflict=url`, {
         method: 'POST',
-        headers: { ...supabaseHeaders(), 'Prefer': 'return=representation' },
+        headers: {
+            ...supabaseHeaders(),
+            'Prefer': 'return=representation,resolution=ignore-duplicates'
+        },
         body: JSON.stringify(items)
     });
     if (!r.ok) {
