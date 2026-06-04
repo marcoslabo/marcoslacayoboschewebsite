@@ -69,29 +69,38 @@ export default async function handler(req, res) {
         const focusTopics = await fetchFocusTopics();
         const queries = (focusTopics.length > 0 ? focusTopics : DEFAULT_QUERIES).slice(0, MAX_QUERIES_PER_SOURCE);
 
-        // 2. Gather candidates from all sources. Track errors per-source so we can
-        //    surface them in the diagnostic response if something is failing.
+        // 2. Gather candidates from all sources. Track errors AND raw API counts
+        //    per-source so we can see whether each API actually returned items
+        //    or whether our internal filters are killing them.
         const errors_per_source = {};
+        const stats = {};
         const trackError = (source, e) => {
             console.warn(`${source} failed:`, e.message);
             if (!errors_per_source[source]) errors_per_source[source] = [];
             errors_per_source[source].push(e.message.slice(0, 200));
         };
-        const rssItems = await Promise.all(RSS_FEEDS.map(f => fetchRss(f.url, f.name).catch(e => {
+        const rssItems = await Promise.all(RSS_FEEDS.map(f => fetchRss(f.url, f.name, stats).catch(e => {
             trackError('rss', e); return [];
         })));
-        const redditItems = await Promise.all(REDDIT_SUBS.map(s => fetchReddit(s.url, s.name).catch(e => {
+        const redditItems = await Promise.all(REDDIT_SUBS.map(s => fetchReddit(s.url, s.name, stats).catch(e => {
             trackError('reddit', e); return [];
         })));
-        const ytItems = await Promise.all(queries.map(q => fetchYouTube(q).catch(e => {
+        const ytItems = await Promise.all(queries.map(q => fetchYouTube(q, stats).catch(e => {
             trackError('youtube', e); return [];
         })));
-        const hnItems = await Promise.all(queries.map(q => fetchHackerNews(q).catch(e => {
+        const hnItems = await Promise.all(queries.map(q => fetchHackerNews(q, stats).catch(e => {
             trackError('hackernews', e); return [];
         })));
-        const googleItems = await Promise.all(queries.map(q => fetchGoogle(q).catch(e => {
+        const googleItems = await Promise.all(queries.map(q => fetchGoogle(q, stats).catch(e => {
             trackError('google', e); return [];
         })));
+        const raw_per_source = {
+            rss: stats.rss_raw || 0,
+            reddit: stats.reddit_raw || 0,
+            youtube: stats.youtube_raw || 0,
+            hackernews: stats.hackernews_raw || 0,
+            google: stats.google_raw || 0
+        };
 
         const counts_per_source = {
             rss: rssItems.flat().length,
@@ -177,6 +186,7 @@ export default async function handler(req, res) {
                 counts_per_source,
                 kept_per_source,
                 focus_topics_used: queries,
+                raw_per_source,
                 errors_per_source,
                 thresholds: { min_score: MIN_SCORE, min_yt_views: MIN_YT_VIEWS, min_reddit_score: MIN_REDDIT_SCORE, min_hn_points: MIN_HN_POINTS, top_per_source: TOP_PER_SOURCE },
                 top_scores: topScores,
@@ -264,7 +274,7 @@ function supabaseHeaders() {
 // ============================================================================
 // RSS parser (regex-based — enough for major feeds)
 // ============================================================================
-async function fetchRss(url, sourceName) {
+async function fetchRss(url, sourceName, stats) {
     const r = await fetch(url, { headers: { 'User-Agent': 'web:VytalMedDiscovery:1.0 (Healthcare AI content scout; +https://vytalmed.co)' } });
     if (!r.ok) return [];
     const xml = await r.text();
@@ -273,6 +283,7 @@ async function fetchRss(url, sourceName) {
     const items = [];
     const itemRegex = /<item[\s\S]*?<\/item>/g;
     const matches = xml.match(itemRegex) || [];
+    if (stats) stats.rss_raw = (stats.rss_raw || 0) + matches.length;
     for (const block of matches) {
         const title = stripXml(extract(block, 'title'));
         const link  = stripXml(extract(block, 'link'));
@@ -311,7 +322,7 @@ function stripXml(s) {
 // ============================================================================
 // Reddit fetcher
 // ============================================================================
-async function fetchReddit(url, sourceName) {
+async function fetchReddit(url, sourceName, stats) {
     const r = await fetch(url, { headers: { 'User-Agent': 'web:VytalMedDiscovery:1.0 (Healthcare AI content scout; +https://vytalmed.co)' } });
     if (!r.ok) {
         throw new Error(`Reddit ${r.status} for ${sourceName}: ${(await r.text()).slice(0, 120)}`);
@@ -319,7 +330,9 @@ async function fetchReddit(url, sourceName) {
     const data = await r.json();
     // 30-day window matching the top.json?t=month URL
     const since = Date.now() - 30 * 86400 * 1000;
-    return (data.data?.children || [])
+    const rawChildren = data.data?.children || [];
+    if (stats) stats.reddit_raw = (stats.reddit_raw || 0) + rawChildren.length;
+    return rawChildren
         .map(c => c.data)
         .filter(d => d.created_utc * 1000 >= since)
         .filter(d => !d.over_18)
@@ -342,7 +355,7 @@ async function fetchReddit(url, sourceName) {
 // ============================================================================
 // YouTube Data API v3 — official, free quota (10k units/day)
 // ============================================================================
-async function fetchYouTube(query) {
+async function fetchYouTube(query, stats) {
     const key = process.env.YOUTUBE_API_KEY;
     if (!key) return [];
 
@@ -354,6 +367,7 @@ async function fetchYouTube(query) {
     }
     const data = await r.json();
     const items = data.items || [];
+    if (stats) stats.youtube_raw = (stats.youtube_raw || 0) + items.length;
     if (items.length === 0) return [];
 
     // The search endpoint doesn't return viewCount — we need a second call.
@@ -394,14 +408,16 @@ async function fetchYouTube(query) {
 // ============================================================================
 // Hacker News (Algolia search API — free, no key)
 // ============================================================================
-async function fetchHackerNews(query) {
+async function fetchHackerNews(query, stats) {
     // 30-day window — HN healthcare stories are rare; need a wider net for virality
     const since = Math.floor((Date.now() - 30 * 86400 * 1000) / 1000);
     const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&numericFilters=created_at_i>${since}`;
     const r = await fetch(url);
     if (!r.ok) return [];
     const data = await r.json();
-    return (data.hits || [])
+    const hits = data.hits || [];
+    if (stats) stats.hackernews_raw = (stats.hackernews_raw || 0) + hits.length;
+    return hits
         .filter(h => (h.points || 0) >= MIN_HN_POINTS)
         .slice(0, 6)
         .map(h => ({
@@ -419,7 +435,7 @@ async function fetchHackerNews(query) {
 // ============================================================================
 // Google Custom Search JSON API (free 100/day, requires GOOGLE_API_KEY + GOOGLE_CSE_ID)
 // ============================================================================
-async function fetchGoogle(query) {
+async function fetchGoogle(query, stats) {
     const key = process.env.GOOGLE_API_KEY;
     const cseId = process.env.GOOGLE_CSE_ID;
     if (!key || !cseId) {
@@ -434,7 +450,9 @@ async function fetchGoogle(query) {
         throw new Error(`Google CSE ${r.status}: ${errBody.slice(0, 200)}`);
     }
     const data = await r.json();
-    return (data.items || []).map(it => ({
+    const rawItems = data.items || [];
+    if (stats) stats.google_raw = (stats.google_raw || 0) + rawItems.length;
+    return rawItems.map(it => ({
         source: 'google',
         source_name: `Google: ${it.displayLink || 'web'}`,
         url: it.link,

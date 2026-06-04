@@ -2439,11 +2439,12 @@ class CRMApp {
             const cps = result.counts_per_source || {};
             const kps = result.kept_per_source || {};
             const eps = result.errors_per_source || {};
+            const rps = result.raw_per_source || {};
             const sourceSummary = Object.keys(cps)
                 .map(s => {
                     const errs = (eps[s] || []).length;
                     const errTag = errs > 0 ? `  ⚠️  ${errs} error${errs > 1 ? 's' : ''}` : '';
-                    return `  ${s}: ${cps[s] || 0} found → ${kps[s] || 0} kept${errTag}`;
+                    return `  ${s}: ${rps[s] || 0} raw → ${cps[s] || 0} found → ${kps[s] || 0} kept${errTag}`;
                 })
                 .join('\n');
             const errorDetails = Object.keys(eps).length > 0
