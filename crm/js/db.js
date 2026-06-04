@@ -1006,13 +1006,14 @@ class CRMDB {
     // Viral Inbox (content discovery)
     // ==========================================================================
 
-    async getViralInputs({ statusFilter = 'new', limit = 50 } = {}) {
+    async getViralInputs({ statusFilter = 'new', sourceFilter = 'all', limit = 50 } = {}) {
         let q = this.supabase
             .from('viral_inputs')
             .select('*')
             .order('claude_score', { ascending: false })
             .limit(limit);
         if (statusFilter && statusFilter !== 'all') q = q.eq('status', statusFilter);
+        if (sourceFilter && sourceFilter !== 'all') q = q.eq('source', sourceFilter);
         const { data, error } = await q;
         if (error) { console.error('viral_inputs fetch failed:', error); return []; }
         return data || [];

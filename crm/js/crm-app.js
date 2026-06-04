@@ -2267,10 +2267,18 @@ class CRMApp {
         main.innerHTML = '<div class="empty-state"><p>Loading inbox…</p></div>';
 
         const statusFilter = localStorage.getItem('inbox_status_filter') || 'new';
-        const [inputs, config] = await Promise.all([
-            window.crmDB.getViralInputs({ statusFilter }),
+
+        // Fetch top 5 per source separately so every source gets fair representation
+        const SOURCES = ['youtube', 'rss', 'reddit', 'google', 'hackernews'];
+        const [grouped, config] = await Promise.all([
+            Promise.all(SOURCES.map(s =>
+                window.crmDB.getViralInputs({ statusFilter, sourceFilter: s, limit: 5 })
+            )),
             window.crmDB.getDiscoveryConfig()
         ]);
+        const sourceGroups = {};
+        SOURCES.forEach((s, i) => { sourceGroups[s] = grouped[i] || []; });
+        const totalCount = Object.values(sourceGroups).reduce((sum, arr) => sum + arr.length, 0);
         const focusTopicsString = (config.focus_topics || []).join(', ');
 
         const filterPill = (key, label) => `
@@ -2350,12 +2358,35 @@ class CRMApp {
                     ${filterPill('all', 'All')}
                 </div>
 
-                ${inputs.length === 0
+                ${totalCount === 0
                     ? `<div class="card" style="text-align: center; padding: 48px;">
                         <p style="font-size: 17px; margin-bottom: 6px;">No items in this view</p>
                         <p style="color: #64748b; font-size: 13px;">The cron runs daily at 8am ET. Click "Run Discovery Now" to test.</p>
                        </div>`
-                    : inputs.map(renderCard).join('')}
+                    : SOURCES.map(s => {
+                        const items = sourceGroups[s];
+                        const meta = {
+                            youtube:    { icon: '📺', label: 'YouTube',     color: '#dc2626' },
+                            rss:        { icon: '📰', label: 'RSS Feeds',   color: '#ea580c' },
+                            reddit:     { icon: '💬', label: 'Reddit',      color: '#f97316' },
+                            google:     { icon: '🌐', label: 'Google',      color: '#2563eb' },
+                            hackernews: { icon: '🟧', label: 'Hacker News', color: '#b45309' }
+                        }[s];
+                        return `
+                            <div style="margin: 28px 0 14px;">
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(135deg, ${meta.color}10, ${meta.color}05); border-left: 3px solid ${meta.color}; border-radius: 8px;">
+                                    <span style="font-size: 20px;">${meta.icon}</span>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 13px; color: ${meta.color}; text-transform: uppercase; letter-spacing: 0.8px;">${meta.label}</div>
+                                        <div style="font-size: 11px; color: #94a3b8;">Top ${items.length} of 5</div>
+                                    </div>
+                                </div>
+                                ${items.length === 0
+                                    ? `<div style="text-align: center; padding: 18px; color: #cbd5e1; font-size: 13px; background: #fafafa; border-radius: 8px; margin-top: 6px;">No items from this source yet</div>`
+                                    : items.map(renderCard).join('')}
+                            </div>
+                        `;
+                    }).join('')}
             </div>
         `;
     }
