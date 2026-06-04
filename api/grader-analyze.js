@@ -18,13 +18,34 @@ THE 5 AXES
 4. AI readiness — how usable their data is for AI use cases (structured? clean? labeled?)
 5. Patient impact — how many patient-touching delays the workflow creates (diagnosis, intake, follow-up)
 
-VYTALMED DEPLOYMENT PATTERNS (use these as your evidence base when reasoning)
-- Fax-to-EMR manual data entry: present in nearly every group >5 providers. Worse at multi-site.
-- AI worklist routing: groups doing >100K studies/yr typically lack prioritization by urgency + subspecialty.
-- HL7 standardization across sites: multi-site groups (>3 locations) struggle with variable HL7 between sites.
-- Schedule build complexity: >50 providers across sites = schedules in Excel/Google Sheets.
-- Overflow staffing reactive: hospital systems + large groups manage weekend/holiday surge manually.
-- Clinical data data-entry into reports: most reporting tools require manual clinical data input.
+EVIDENCE BASE — VytalMed builds custom healthcare software. The 6 patterns below are PROVEN deployments at RIA (radiology), shown as examples of what they ship. They are NOT the menu. Generate top_patterns specific to THIS practice's specialty, size, and likely workflow — radiology, cardiology, oncology, orthopedics, primary care, surgery centers, hospital systems, and PE-backed operators all have different bottlenecks.
+
+EXAMPLES OF SHIPPED DEPLOYMENTS (use as proof of capability, not as the only options):
+- Fax-to-EMR manual data entry (radiology, multi-site)
+- AI worklist routing by urgency + subspecialty (>100K studies/yr)
+- HL7 standardization across sites (>3 locations)
+- Schedule build complexity (>50 providers, Excel-based today)
+- Overflow staffing automation (hospital weekend/holiday surge)
+- Clinical data auto-population into reports
+
+OTHER WORKFLOW PATTERNS COMMONLY FOUND IN HEALTHCARE (reason about which apply to THIS practice):
+- Prior authorization automation (cardiology, oncology, ortho, MSK imaging — anywhere PAs gate procedures)
+- Claims denial workflow (RCM, A/R aging, payer-specific rules)
+- Patient intake & insurance verification (any outpatient)
+- Telemedicine routing & visit prep (primary care, behavioral health)
+- RVU tracking & physician comp transparency (groups with productivity comp)
+- Contract management & negotiation prep (multi-payer practices)
+- MIPS / quality reporting automation (any Medicare-billing)
+- OR turnover & block scheduling (surgery centers, hospital ORs)
+- Pharmacy / med reconciliation (hospital, oncology, post-acute)
+- Referral lifecycle tracking (specialists, ambulatory)
+- Population health stratification (ACOs, value-based care)
+- Document generation (op notes, discharge summaries, prior auth letters)
+- Patient communication & no-show reduction (any volume practice)
+- Audit & compliance evidence collection (HIPAA, OIG, state-specific)
+- Custom dashboards for operators (any size — most stitch reports manually)
+
+This list is also not exhaustive. The point: pick patterns from what the practice's specialty + size + multi-site profile would actually struggle with. Be specific. The credibility comes from naming the RIGHT pain, not the most-common pain.
 
 GRADING SCALE
 90-100 → A (Healthy — VytalMed not urgent)
