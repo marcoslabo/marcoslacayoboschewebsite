@@ -163,6 +163,7 @@ export default async function handler(req, res) {
                 evaluated: candidates.length,
                 counts_per_source,
                 kept_per_source,
+                focus_topics_used: queries,
                 thresholds: { min_score: MIN_SCORE, min_yt_views: MIN_YT_VIEWS, min_reddit_score: MIN_REDDIT_SCORE, min_hn_points: MIN_HN_POINTS, top_per_source: TOP_PER_SOURCE },
                 top_scores: topScores,
                 hint: 'No items met the score threshold. Check counts_per_source — if all are 0 the engagement filters may be too strict, or sources are returning nothing. Try broader Focus Topics or lower thresholds.'
@@ -176,6 +177,7 @@ export default async function handler(req, res) {
             inserted: inserted.length,
             counts_per_source,
             kept_per_source,
+            focus_topics_used: queries,
             thresholds: { min_score: MIN_SCORE, min_yt_views: MIN_YT_VIEWS, min_reddit_score: MIN_REDDIT_SCORE, min_hn_points: MIN_HN_POINTS, top_per_source: TOP_PER_SOURCE },
             top_scores: topScores,
             elapsed_ms: Date.now() - startedAt

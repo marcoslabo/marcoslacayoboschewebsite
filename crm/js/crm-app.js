@@ -2356,6 +2356,7 @@ class CRMApp {
                         <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Healthcare AI content scored against your POV pillars · auto-refreshed daily</p>
                     </div>
                     <button onclick="window.crmApp.runDiscoveryNow()" class="btn btn-secondary btn-sm">🔄 Run Discovery Now</button>
+                    <button onclick="window.crmApp.clearInbox()" class="btn btn-ghost btn-sm" style="color:#dc2626;">🗑 Clear Inbox</button>
                 </div>
 
                 <div style="margin-bottom: 16px; padding: 14px 16px; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border-radius: 12px; border: 1px solid rgba(139,92,246,0.15);">
@@ -2440,15 +2441,33 @@ class CRMApp {
             const sourceSummary = Object.keys(cps)
                 .map(s => `  ${s}: ${cps[s] || 0} found → ${kps[s] || 0} kept`)
                 .join('\n');
+            const topicsUsed = (result.focus_topics_used || []).join(', ') || '(none)';
             alert(
                 `Discovery complete.\n\n` +
+                `Topics used (proves what was searched):\n${topicsUsed}\n\n` +
                 `Evaluated: ${result.evaluated || 0}\n` +
                 `Inserted: ${result.inserted || 0} (top ${result.thresholds?.top_per_source || 5} per source)\n\n` +
-                `Per source:\n${sourceSummary}`
+                `Per source:\n${sourceSummary}\n\n` +
+                `Tip: if "inserted" is 0 but "found" is high, items are duplicates of previous runs.\nUse "Clear Inbox" to start fresh.`
             );
             await this.renderViralInbox();
         } catch (e) {
             alert('Discovery failed: ' + e.message);
+        }
+    }
+
+    async clearInbox() {
+        if (!confirm('Delete ALL items from the Inbox? Drafts will also be deleted.\nThis cannot be undone.')) return;
+        try {
+            const { error } = await window.crmDB.supabase
+                .from('viral_inputs')
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw error;
+            alert('Inbox cleared.');
+            await this.renderViralInbox();
+        } catch (e) {
+            alert('Clear failed: ' + e.message);
         }
     }
 
