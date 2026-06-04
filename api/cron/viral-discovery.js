@@ -37,8 +37,18 @@ const KEYWORDS = [
     'data entry', 'efficiency', 'productivity', 'reporting'
 ];
 
-const MIN_SCORE = 40;  // Items below this never enter the inbox
-const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN searches per cron run
+const MIN_SCORE = 40;  // Claude alignment score floor — below this never enters the inbox
+const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN/Google searches per cron run
+
+// Engagement thresholds (tuned to healthcare-AI niche, not generic-internet viral).
+// In this niche, "viral" looks like hundreds-to-thousands, not millions.
+const MIN_YT_VIEWS     = 1500;  // catches top half of healthcare AI YT content
+const MIN_REDDIT_SCORE = 20;    // above noise floor in r/Radiology / r/healthIT
+const MIN_HN_POINTS    = 30;    // top ~20% of healthcare-tagged HN posts
+
+// How many top items to keep PER source after Claude scoring.
+// Forces diversity — you always see a mix instead of just whichever source dominated.
+const TOP_PER_SOURCE = 5;
 
 export default async function handler(req, res) {
     // Vercel cron sends Authorization: Bearer <CRON_SECRET> if set; allow open for now
@@ -68,6 +78,14 @@ export default async function handler(req, res) {
         const googleItems = await Promise.all(queries.map(q => fetchGoogle(q).catch(e => {
             console.warn(`Google "${q}" failed:`, e.message); return [];
         })));
+
+        const counts_per_source = {
+            rss: rssItems.flat().length,
+            reddit: redditItems.flat().length,
+            youtube: ytItems.flat().length,
+            hackernews: hnItems.flat().length,
+            google: googleItems.flat().length
+        };
 
         let candidates = [
             ...rssItems.flat(),
@@ -103,21 +121,40 @@ export default async function handler(req, res) {
         // 6. Score with Claude (one batch call), with focus topics as a boost signal
         const scored = await scoreBatch(candidates, pillars, focusTopics);
 
-        // 7. Insert items above threshold
-        const toInsert = scored.filter(s => s.claude_score >= MIN_SCORE);
+        // 7. Insert top-N per source (above the score floor)
+        //    Groups by source so each one contributes up to TOP_PER_SOURCE items
+        //    sorted by Claude score. Floor (MIN_SCORE) still applies as quality gate.
+        const bySource = {};
+        scored.forEach(item => {
+            if ((item.claude_score || 0) < MIN_SCORE) return;
+            const src = item.source || 'unknown';
+            if (!bySource[src]) bySource[src] = [];
+            bySource[src].push(item);
+        });
+        const toInsert = [];
+        const kept_per_source = {};
+        Object.entries(bySource).forEach(([src, items]) => {
+            items.sort((a, b) => (b.claude_score || 0) - (a.claude_score || 0));
+            const top = items.slice(0, TOP_PER_SOURCE);
+            kept_per_source[src] = top.length;
+            toInsert.push(...top);
+        });
+
         const topScores = [...scored]
             .sort((a, b) => (b.claude_score || 0) - (a.claude_score || 0))
             .slice(0, 5)
-            .map(s => ({ title: s.title, score: s.claude_score, why: s.claude_summary }));
+            .map(s => ({ title: s.title, source: s.source, score: s.claude_score, why: s.claude_summary }));
 
         if (toInsert.length === 0) {
             return res.status(200).json({
                 ok: true,
                 inserted: 0,
                 evaluated: candidates.length,
-                min_score: MIN_SCORE,
+                counts_per_source,
+                kept_per_source,
+                thresholds: { min_score: MIN_SCORE, min_yt_views: MIN_YT_VIEWS, min_reddit_score: MIN_REDDIT_SCORE, min_hn_points: MIN_HN_POINTS, top_per_source: TOP_PER_SOURCE },
                 top_scores: topScores,
-                hint: 'No items met the threshold. Try broader Focus Topics aligned with healthcare workflow (e.g. "EHR automation", "prior auth", "radiology AI") or check top_scores for what Claude saw.'
+                hint: 'No items met the score threshold. Check counts_per_source — if all are 0 the engagement filters may be too strict, or sources are returning nothing. Try broader Focus Topics or lower thresholds.'
             });
         }
         const inserted = await insertViralInputs(toInsert);
@@ -126,6 +163,9 @@ export default async function handler(req, res) {
             ok: true,
             evaluated: candidates.length,
             inserted: inserted.length,
+            counts_per_source,
+            kept_per_source,
+            thresholds: { min_score: MIN_SCORE, min_yt_views: MIN_YT_VIEWS, min_reddit_score: MIN_REDDIT_SCORE, min_hn_points: MIN_HN_POINTS, top_per_source: TOP_PER_SOURCE },
             top_scores: topScores,
             elapsed_ms: Date.now() - startedAt
         });
@@ -253,6 +293,7 @@ async function fetchReddit(url, sourceName) {
         .map(c => c.data)
         .filter(d => d.created_utc * 1000 >= since)
         .filter(d => !d.over_18)
+        .filter(d => (d.score || 0) >= MIN_REDDIT_SCORE)
         .map(d => ({
             source: 'reddit',
             source_name: sourceName,
@@ -269,30 +310,51 @@ async function fetchReddit(url, sourceName) {
 // ============================================================================
 async function fetchYouTube(query) {
     const key = process.env.YOUTUBE_API_KEY;
-    if (!key) {
-        // Silently skip if no key set
-        return [];
-    }
-    // 7-day window (healthcare YT content is weekly, not daily), sorted by
-    // viewCount so we surface what's ACTUALLY viral. 15 results per query.
+    if (!key) return [];
+
     const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-    const url = `https://www.googleapis.com/youtube/v3/search?key=${key}&q=${encodeURIComponent(query)}&part=snippet&type=video&order=viewCount&publishedAfter=${since}&maxResults=15&relevanceLanguage=en`;
-    const r = await fetch(url);
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?key=${key}&q=${encodeURIComponent(query)}&part=snippet&type=video&order=viewCount&publishedAfter=${since}&maxResults=15&relevanceLanguage=en`;
+    const r = await fetch(searchUrl);
     if (!r.ok) {
-        const errBody = await r.text();
-        throw new Error(`YT ${r.status}: ${errBody.slice(0, 200)}`);
+        throw new Error(`YT ${r.status}: ${(await r.text()).slice(0, 200)}`);
     }
     const data = await r.json();
-    return (data.items || []).map(it => ({
-        source: 'youtube',
-        source_name: `YouTube: ${it.snippet?.channelTitle || 'unknown'}`,
-        url: `https://www.youtube.com/watch?v=${it.id?.videoId}`,
-        title: it.snippet?.title || '',
-        excerpt: (it.snippet?.description || '').slice(0, 500),
-        published_at: it.snippet?.publishedAt || new Date().toISOString(),
-        engagement_signal: null,
-        from_focus_query: true  // pre-targeted; skip keyword filter
-    }));
+    const items = data.items || [];
+    if (items.length === 0) return [];
+
+    // The search endpoint doesn't return viewCount — we need a second call.
+    const ids = items.map(it => it.id?.videoId).filter(Boolean);
+    let viewMap = new Map();
+    try {
+        const statsUrl = `https://www.googleapis.com/youtube/v3/videos?key=${key}&part=statistics&id=${ids.join(',')}`;
+        const sr = await fetch(statsUrl);
+        if (sr.ok) {
+            const sdata = await sr.json();
+            (sdata.items || []).forEach(v => {
+                viewMap.set(v.id, parseInt(v.statistics?.viewCount || '0', 10));
+            });
+        }
+    } catch (e) {
+        // Non-fatal — fall through with no view filtering
+        console.warn(`YT stats fetch failed for "${query}":`, e.message);
+    }
+
+    return items
+        .map(it => {
+            const views = viewMap.get(it.id?.videoId) || 0;
+            return { it, views };
+        })
+        .filter(({ views }) => views >= MIN_YT_VIEWS)
+        .map(({ it, views }) => ({
+            source: 'youtube',
+            source_name: `YouTube: ${it.snippet?.channelTitle || 'unknown'}`,
+            url: `https://www.youtube.com/watch?v=${it.id?.videoId}`,
+            title: it.snippet?.title || '',
+            excerpt: (it.snippet?.description || '').slice(0, 500),
+            published_at: it.snippet?.publishedAt || new Date().toISOString(),
+            engagement_signal: views,
+            from_focus_query: true
+        }));
 }
 
 // ============================================================================
@@ -304,16 +366,19 @@ async function fetchHackerNews(query) {
     const r = await fetch(url);
     if (!r.ok) return [];
     const data = await r.json();
-    return (data.hits || []).slice(0, 6).map(h => ({
-        source: 'hackernews',
-        source_name: 'Hacker News',
-        url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
-        title: h.title || '',
-        excerpt: (h.story_text || h._highlightResult?.story_text?.value || '').replace(/<[^>]+>/g, '').slice(0, 500),
-        published_at: new Date((h.created_at_i || 0) * 1000).toISOString(),
-        engagement_signal: h.points || 0,
-        from_focus_query: true
-    }));
+    return (data.hits || [])
+        .filter(h => (h.points || 0) >= MIN_HN_POINTS)
+        .slice(0, 6)
+        .map(h => ({
+            source: 'hackernews',
+            source_name: 'Hacker News',
+            url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+            title: h.title || '',
+            excerpt: (h.story_text || h._highlightResult?.story_text?.value || '').replace(/<[^>]+>/g, '').slice(0, 500),
+            published_at: new Date((h.created_at_i || 0) * 1000).toISOString(),
+            engagement_signal: h.points || 0,
+            from_focus_query: true
+        }));
 }
 
 // ============================================================================

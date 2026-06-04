@@ -2385,7 +2385,17 @@ class CRMApp {
         if (!confirm('Run viral discovery now? Takes 30-60 sec.')) return;
         try {
             const result = await window.crmDB.runViralDiscoveryNow();
-            alert(`Discovery complete. Evaluated: ${result.evaluated || 0}, inserted: ${result.inserted || 0}.`);
+            const cps = result.counts_per_source || {};
+            const kps = result.kept_per_source || {};
+            const sourceSummary = Object.keys(cps)
+                .map(s => `  ${s}: ${cps[s] || 0} found → ${kps[s] || 0} kept`)
+                .join('\n');
+            alert(
+                `Discovery complete.\n\n` +
+                `Evaluated: ${result.evaluated || 0}\n` +
+                `Inserted: ${result.inserted || 0} (top ${result.thresholds?.top_per_source || 5} per source)\n\n` +
+                `Per source:\n${sourceSummary}`
+            );
             await this.renderViralInbox();
         } catch (e) {
             alert('Discovery failed: ' + e.message);
