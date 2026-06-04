@@ -19,11 +19,15 @@ export default async function handler(req, res) {
         practice,
         fallback_specialty,
         analysis,
+        first_name,
         email
     } = req.body || {};
 
     if (!email || !email.includes('@')) {
         return res.status(400).json({ error: 'Valid email required' });
+    }
+    if (!first_name || !first_name.trim()) {
+        return res.status(400).json({ error: 'First name required' });
     }
     if (!analysis || typeof analysis.risk_score !== 'number') {
         return res.status(400).json({ error: 'Analysis payload required' });
@@ -45,6 +49,7 @@ export default async function handler(req, res) {
         risk_breakdown: analysis.risk_breakdown || null,
         top_patterns: analysis.top_patterns || null,
         headline: analysis.headline || null,
+        first_name: first_name.trim(),
         email: email.trim().toLowerCase()
     };
 

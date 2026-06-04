@@ -282,25 +282,29 @@
                 </div>
             </div>
 
-            <div class="patterns-title">Axis Breakdown</div>
-            <div id="breakdown" class="breakdown"></div>
-
-            <div class="patterns-title">Top 3 Patterns We'd Fix in Your 5-Week Playback</div>
-            <div id="patterns"></div>
-
+            <!-- Email gate: shown FIRST, unlocks breakdown + patterns -->
             <div id="gate" class="gate">
-                <h3>Want the full report?</h3>
-                <p>Enter your email and we'll send the breakdown + a 1-pager you can share with your team.</p>
+                <h3>Unlock your full report</h3>
+                <p>Get the 5-axis breakdown + the 3 patterns we'd ship for you in a 5-week playback. We'll also email you a 1-pager to share with your team.</p>
                 <form class="gate-form" id="gate-form">
+                    <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
                     <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
-                    <button type="submit" class="gate-btn" id="gate-btn">Send report</button>
+                    <button type="submit" class="gate-btn" id="gate-btn">Unlock report</button>
                 </form>
                 <div id="gate-error" class="error" style="display:none; margin-top:14px; background:rgba(255,255,255,0.15); color:white;"></div>
             </div>
 
-            <div id="cta-row" class="cta-row" style="display:none;">
-                <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" class="btn-primary">Book your 5-week playback session →</a>
-                <a href="/spark/new" class="btn-secondary">See the ROI math →</a>
+            <!-- Hidden until email gate is unlocked -->
+            <div id="locked-content" style="display:none;">
+                <div class="patterns-title">Axis Breakdown</div>
+                <div id="breakdown" class="breakdown"></div>
+
+                <div class="patterns-title">Top 3 Patterns We'd Fix in Your 5-Week Playback</div>
+                <div id="patterns"></div>
+
+                <div id="cta-row" class="cta-row">
+                    <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" class="btn-primary">Book your 30-min playback consult →</a>
+                </div>
             </div>
         </div>
     </div>
@@ -465,9 +469,15 @@ function renderResult() {
 // ---------- Email gate ----------
 $('gate-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const first_name = $('gate-first-name').value.trim();
     const email = $('gate-email').value.trim();
     const btn = $('gate-btn');
-    btn.disabled = true; btn.textContent = 'Sending…';
+    if (!first_name) {
+        $('gate-error').textContent = 'First name required';
+        $('gate-error').style.display = 'block';
+        return;
+    }
+    btn.disabled = true; btn.textContent = 'Unlocking…';
     $('gate-error').style.display = 'none';
     try {
         const r = await fetch('/api/grader-submit', {
@@ -477,6 +487,7 @@ $('gate-form').addEventListener('submit', async (e) => {
                 practice: currentPractice,
                 fallback_specialty: currentFallback,
                 analysis: currentAnalysis,
+                first_name,
                 email
             })
         });
@@ -484,13 +495,14 @@ $('gate-form').addEventListener('submit', async (e) => {
             const err = await r.json().catch(() => ({}));
             throw new Error(err.error || 'Submission failed');
         }
-        // Show CTAs, hide gate
+        // Hide gate, reveal full report
         $('gate').style.display = 'none';
-        $('cta-row').style.display = 'flex';
+        $('locked-content').style.display = 'block';
+        $('locked-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
         $('gate-error').textContent = e.message;
         $('gate-error').style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Send report';
+        btn.disabled = false; btn.textContent = 'Unlock report';
     }
 });
 

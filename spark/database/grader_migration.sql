@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS grader_submissions (
     headline TEXT,             -- one-line summary "You scored XX — Vendor Trapped"
 
     -- Lead capture
+    first_name TEXT,
     email TEXT,
     contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL,
 
