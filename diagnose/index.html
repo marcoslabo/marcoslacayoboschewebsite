@@ -271,6 +271,7 @@
 
     <!-- Stage 2: Result -->
     <div id="stage-result" class="stage">
+        <a href="#" id="reset-link" style="display:inline-block; margin-bottom:14px; font-size:13px; color:var(--accent); text-decoration:none; font-weight:600;">← Try another practice</a>
         <div class="result-card">
             <div id="practice-block" class="practice-block"></div>
 
@@ -502,6 +503,28 @@ $('gate-form').addEventListener('submit', async (e) => {
         $('gate-error').style.display = 'block';
         btn.disabled = false; btn.textContent = 'Send 1-pager';
     }
+});
+
+// ---------- Reset ----------
+$('reset-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    currentPractice = null;
+    currentFallback = null;
+    currentAnalysis = null;
+    $('search').value = '';
+    $('fallback-specialty').value = '';
+    $('typeahead').style.display = 'none';
+    $('fallback-picker').style.display = 'none';
+    // Reset gate UI in case they had submitted
+    $('gate-form').style.display = 'flex';
+    $('gate-success').style.display = 'none';
+    $('gate-error').style.display = 'none';
+    $('gate-first-name').value = '';
+    $('gate-email').value = '';
+    $('gate-btn').disabled = false;
+    $('gate-btn').textContent = 'Send 1-pager';
+    setStage('search');
+    setTimeout(() => $('search').focus(), 50);
 });
 
 // ---------- Helpers ----------

@@ -113,16 +113,28 @@ export default async function handler(req, res) {
 
         const inserted = await resp.json();
 
-        // 3. Fire-and-forget: send the 1-pager email via Brevo (don't block / fail the response)
-        sendReportEmail({
-            to: email.trim().toLowerCase(),
-            firstName: first_name.trim(),
-            practice,
-            fallback_specialty,
-            analysis
-        }).catch(err => console.warn('Report email send failed (non-fatal):', err.message));
+        // 3. Send the 1-pager email via Brevo. Awaited because Vercel serverless
+        //    will kill non-awaited async work when the function returns.
+        let emailSent = false;
+        try {
+            await sendReportEmail({
+                to: email.trim().toLowerCase(),
+                firstName: first_name.trim(),
+                practice,
+                fallback_specialty,
+                analysis
+            });
+            emailSent = true;
+        } catch (err) {
+            console.warn('Report email send failed (non-fatal):', err.message);
+        }
 
-        return res.status(200).json({ id: inserted[0]?.id, contact_id: contactId, ok: true });
+        return res.status(200).json({
+            id: inserted[0]?.id,
+            contact_id: contactId,
+            email_sent: emailSent,
+            ok: true
+        });
     } catch (e) {
         console.error('Grader submit error:', e);
         return res.status(500).json({ error: 'Failed to save submission' });
