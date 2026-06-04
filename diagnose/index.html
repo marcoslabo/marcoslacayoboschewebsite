@@ -282,29 +282,28 @@
                 </div>
             </div>
 
-            <!-- Email gate: shown FIRST, unlocks breakdown + patterns -->
+            <!-- Full report visible to everyone -->
+            <div class="patterns-title">Axis Breakdown</div>
+            <div id="breakdown" class="breakdown"></div>
+
+            <div class="patterns-title">Top 3 Patterns We'd Fix in Your 5-Week Playback</div>
+            <div id="patterns"></div>
+
+            <!-- Soft email gate: optional, for the 1-pager. Calendly is also right here, no gate. -->
             <div id="gate" class="gate">
-                <h3>Unlock your full report</h3>
-                <p>Get the 5-axis breakdown + the 3 patterns we'd ship for you in a 5-week playback. We'll also email you a 1-pager to share with your team.</p>
+                <h3>Want the 1-pager — or to talk this through?</h3>
+                <p>Drop your name + email and we'll send a 1-page PDF you can share with your team. Or skip the email and just book a 30-min call below.</p>
                 <form class="gate-form" id="gate-form">
                     <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
                     <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
-                    <button type="submit" class="gate-btn" id="gate-btn">Unlock report</button>
+                    <button type="submit" class="gate-btn" id="gate-btn">Send 1-pager</button>
                 </form>
                 <div id="gate-error" class="error" style="display:none; margin-top:14px; background:rgba(255,255,255,0.15); color:white;"></div>
+                <div id="gate-success" style="display:none; margin-top:14px; color:white; font-weight:600;">✓ Got it — we'll send the 1-pager shortly.</div>
             </div>
 
-            <!-- Hidden until email gate is unlocked -->
-            <div id="locked-content" style="display:none;">
-                <div class="patterns-title">Axis Breakdown</div>
-                <div id="breakdown" class="breakdown"></div>
-
-                <div class="patterns-title">Top 3 Patterns We'd Fix in Your 5-Week Playback</div>
-                <div id="patterns"></div>
-
-                <div id="cta-row" class="cta-row">
-                    <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" class="btn-primary">Book your 30-min playback consult →</a>
-                </div>
+            <div class="cta-row">
+                <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" class="btn-primary">Book your 30-min playback consult →</a>
             </div>
         </div>
     </div>
@@ -495,14 +494,13 @@ $('gate-form').addEventListener('submit', async (e) => {
             const err = await r.json().catch(() => ({}));
             throw new Error(err.error || 'Submission failed');
         }
-        // Hide gate, reveal full report
-        $('gate').style.display = 'none';
-        $('locked-content').style.display = 'block';
-        $('locked-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Hide the form, show inline success
+        $('gate-form').style.display = 'none';
+        $('gate-success').style.display = 'block';
     } catch (e) {
         $('gate-error').textContent = e.message;
         $('gate-error').style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Unlock report';
+        btn.disabled = false; btn.textContent = 'Send 1-pager';
     }
 });
 
