@@ -1003,6 +1003,77 @@ class CRMDB {
     }
 
     // ==========================================================================
+    // Viral Inbox (content discovery)
+    // ==========================================================================
+
+    async getViralInputs({ statusFilter = 'new', limit = 50 } = {}) {
+        let q = this.supabase
+            .from('viral_inputs')
+            .select('*')
+            .order('claude_score', { ascending: false })
+            .limit(limit);
+        if (statusFilter && statusFilter !== 'all') q = q.eq('status', statusFilter);
+        const { data, error } = await q;
+        if (error) { console.error('viral_inputs fetch failed:', error); return []; }
+        return data || [];
+    }
+
+    async getDraftsForInput(viralInputId) {
+        const { data, error } = await this.supabase
+            .from('post_drafts')
+            .select('*')
+            .eq('viral_input_id', viralInputId)
+            .order('created_at', { ascending: true });
+        if (error) { console.error('drafts fetch failed:', error); return []; }
+        return data || [];
+    }
+
+    async generateDraftsForInput(viralInputId) {
+        const r = await fetch('/api/draft-post', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viral_input_id: viralInputId })
+        });
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.error || `draft-post failed: ${r.status}`);
+        }
+        return await r.json();
+    }
+
+    async updateDraftStatus(draftId, status, editedText) {
+        const updates = { status };
+        if (editedText !== undefined) updates.edited_text = editedText;
+        if (status === 'posted') updates.posted_at = new Date().toISOString();
+        const { data, error } = await this.supabase
+            .from('post_drafts')
+            .update(updates)
+            .eq('id', draftId)
+            .select()
+            .single();
+        if (error) { console.error('draft update failed:', error); throw error; }
+        return data;
+    }
+
+    async archiveViralInput(id) {
+        const { error } = await this.supabase
+            .from('viral_inputs')
+            .update({ status: 'archived' })
+            .eq('id', id);
+        if (error) { console.error('archive failed:', error); throw error; }
+        return true;
+    }
+
+    async runViralDiscoveryNow() {
+        const r = await fetch('/api/cron/viral-discovery');
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.error || `discovery failed: ${r.status}`);
+        }
+        return await r.json();
+    }
+
+    // ==========================================================================
     // Weekly Todos
     // ==========================================================================
 

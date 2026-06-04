@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/viral-discovery",
+      "schedule": "0 13 * * *"
+    }
+  ]
+}

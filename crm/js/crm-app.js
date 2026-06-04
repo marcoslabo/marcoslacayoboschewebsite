@@ -135,6 +135,12 @@ class CRMApp {
             if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
             await this.renderWeeklyTodos();
         });
+
+        // Viral Inbox (admin only)
+        window.crmRouter.on('/inbox', async () => {
+            if (!window.crmAuth.isAdmin()) return window.crmRouter.navigate('/');
+            await this.renderViralInbox();
+        });
     }
 
     // ==========================================================================
@@ -2249,6 +2255,232 @@ class CRMApp {
         const to = document.getElementById('activityDateTo')?.value;
         if (from && to) {
             this.renderActivityLog('custom', from, to);
+        }
+    }
+
+    // ==========================================================================
+    // Viral Inbox
+    // ==========================================================================
+
+    async renderViralInbox() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = '<div class="empty-state"><p>Loading inbox…</p></div>';
+
+        const statusFilter = localStorage.getItem('inbox_status_filter') || 'new';
+        const inputs = await window.crmDB.getViralInputs({ statusFilter });
+
+        const filterPill = (key, label) => `
+            <button onclick="window.crmApp.setInboxFilter('${key}')"
+                class="btn btn-sm ${statusFilter === key ? 'btn-primary' : 'btn-ghost'}"
+                style="padding: 6px 12px;">${label}</button>
+        `;
+
+        const renderCard = (item) => {
+            const score = item.claude_score ?? 0;
+            const scoreColor = score >= 80 ? '#047857' : score >= 65 ? '#b45309' : '#64748b';
+            const when = item.published_at
+                ? new Date(item.published_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                : '';
+            const pillarBadge = item.claude_alignment_pillar
+                ? `<span class="badge" style="background:#ede9fe; color:#5b21b6; font-size:11px;">${this._esc(item.claude_alignment_pillar)}</span>`
+                : '';
+            const engagement = item.engagement_signal
+                ? `<span style="font-size:12px; color:#64748b;">↑ ${item.engagement_signal}</span>`
+                : '';
+            return `
+                <div class="card" style="margin-bottom: 12px;">
+                    <div style="display: flex; gap: 14px; align-items: flex-start;">
+                        <div style="flex-shrink: 0; min-width: 60px; text-align: center;">
+                            <div style="font-size: 28px; font-weight: 800; color: ${scoreColor}; line-height: 1; letter-spacing: -0.02em;">${score}</div>
+                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">score</div>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
+                                ${pillarBadge}
+                                <span style="font-size: 12px; color: #64748b;">${this._esc(item.source_name)}</span>
+                                <span style="font-size: 12px; color: #94a3b8;">· ${this._esc(when)}</span>
+                                ${engagement ? `· ${engagement}` : ''}
+                            </div>
+                            <h3 style="margin: 0 0 6px; font-size: 15px; line-height: 1.4;">
+                                <a href="${this._esc(item.url)}" target="_blank" style="color: #0f172a; text-decoration: none;">${this._esc(item.title)}</a>
+                            </h3>
+                            ${item.claude_summary ? `<p style="font-size: 13px; color: #475569; margin: 0 0 8px; font-style: italic;">${this._esc(item.claude_summary)}</p>` : ''}
+                            <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                                <button onclick="window.crmApp.generateDraftsFor('${item.id}')" class="btn btn-primary btn-sm">⚡ Generate Drafts</button>
+                                <button onclick="window.crmApp.viewDraftsFor('${item.id}')" class="btn btn-ghost btn-sm">View Drafts</button>
+                                <a href="${this._esc(item.url)}" target="_blank" class="btn btn-ghost btn-sm">Open ↗</a>
+                                <button onclick="window.crmApp.archiveViralInput('${item.id}')" class="btn btn-ghost btn-sm" style="color:#dc2626;">Archive</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        main.innerHTML = `
+            <div style="max-width: 900px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2 style="margin: 0;">📥 Viral Inbox</h2>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Healthcare AI content scored against your POV pillars · auto-refreshed daily</p>
+                    </div>
+                    <button onclick="window.crmApp.runDiscoveryNow()" class="btn btn-secondary btn-sm">🔄 Run Discovery Now</button>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                    ${filterPill('new', 'New')}
+                    ${filterPill('drafted', 'Drafted')}
+                    ${filterPill('archived', 'Archived')}
+                    ${filterPill('all', 'All')}
+                </div>
+
+                ${inputs.length === 0
+                    ? `<div class="card" style="text-align: center; padding: 48px;">
+                        <p style="font-size: 17px; margin-bottom: 6px;">No items in this view</p>
+                        <p style="color: #64748b; font-size: 13px;">The cron runs daily at 8am ET. Click "Run Discovery Now" to test.</p>
+                       </div>`
+                    : inputs.map(renderCard).join('')}
+            </div>
+        `;
+    }
+
+    setInboxFilter(key) {
+        localStorage.setItem('inbox_status_filter', key);
+        this.renderViralInbox();
+    }
+
+    async runDiscoveryNow() {
+        if (!confirm('Run viral discovery now? Takes 30-60 sec.')) return;
+        try {
+            const result = await window.crmDB.runViralDiscoveryNow();
+            alert(`Discovery complete. Evaluated: ${result.evaluated || 0}, inserted: ${result.inserted || 0}.`);
+            await this.renderViralInbox();
+        } catch (e) {
+            alert('Discovery failed: ' + e.message);
+        }
+    }
+
+    async archiveViralInput(id) {
+        if (!confirm('Archive this item?')) return;
+        try {
+            await window.crmDB.archiveViralInput(id);
+            await this.renderViralInbox();
+        } catch (e) {
+            alert('Archive failed: ' + e.message);
+        }
+    }
+
+    async generateDraftsFor(id) {
+        // Confirm before burning Claude tokens
+        if (!confirm('Generate 4 platform drafts (video script + LinkedIn + YouTube + Instagram)?')) return;
+        const btn = event?.target;
+        if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+        try {
+            const result = await window.crmDB.generateDraftsForInput(id);
+            await this.openDraftsModal(id);
+        } catch (e) {
+            alert('Draft generation failed: ' + e.message);
+            if (btn) { btn.disabled = false; btn.textContent = '⚡ Generate Drafts'; }
+        }
+    }
+
+    async viewDraftsFor(id) {
+        await this.openDraftsModal(id);
+    }
+
+    async openDraftsModal(viralInputId) {
+        const drafts = await window.crmDB.getDraftsForInput(viralInputId);
+        if (drafts.length === 0) {
+            alert('No drafts yet for this item. Click "Generate Drafts" first.');
+            return;
+        }
+
+        const existing = document.getElementById('draftsModal');
+        if (existing) existing.remove();
+
+        const formatMeta = {
+            'video-script': { label: '🎬 Video Script', hint: 'For 60-90s talking-head → Submagic' },
+            'linkedin':     { label: '💼 LinkedIn Post', hint: 'Text long-form. Put YouTube link in FIRST comment.' },
+            'youtube':      { label: '📺 YouTube Short', hint: 'Title + description + hashtags' },
+            'instagram':    { label: '📸 Instagram / TikTok', hint: 'Reels caption with hashtags' }
+        };
+
+        const sections = ['video-script', 'linkedin', 'youtube', 'instagram'].map(angle => {
+            const d = drafts.find(x => x.angle === angle);
+            if (!d) return '';
+            const meta = formatMeta[angle];
+            const isPosted = d.status === 'posted';
+            return `
+                <div style="border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:14px; background:white;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">${meta.label}</div>
+                            <div style="font-size:11px; color:#94a3b8;">${meta.hint}</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="window.crmApp.copyDraft('${d.id}')" class="btn btn-primary btn-sm">📋 Copy</button>
+                            <button onclick="window.crmApp.markDraftPosted('${d.id}', '${viralInputId}')" class="btn ${isPosted ? 'btn-ghost' : 'btn-secondary'} btn-sm">
+                                ${isPosted ? '✓ Posted' : 'Mark posted'}
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="draft-${d.id}" style="width:100%; min-height:200px; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace; font-size:13px; line-height:1.5; resize:vertical; background:#fafafa;">${this._esc(d.edited_text ?? d.draft_text ?? '')}</textarea>
+                </div>
+            `;
+        }).join('');
+
+        const modalHtml = `
+            <div id="draftsModal" class="modal" style="display:flex;">
+                <div class="modal-backdrop" onclick="window.crmApp.closeDraftsModal()"></div>
+                <div class="modal-content" style="max-width: 760px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <h2>⚡ Platform Drafts</h2>
+                        <button class="modal-close" onclick="window.crmApp.closeDraftsModal()">&times;</button>
+                    </div>
+                    <div style="padding:20px;">
+                        ${sections}
+                        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+                            <button class="btn btn-secondary" onclick="window.crmApp.closeDraftsModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    closeDraftsModal() {
+        const m = document.getElementById('draftsModal');
+        if (m) m.remove();
+    }
+
+    async copyDraft(draftId) {
+        const ta = document.getElementById(`draft-${draftId}`);
+        if (!ta) return;
+        const text = ta.value;
+        try {
+            await navigator.clipboard.writeText(text);
+            // Persist the edited text if user changed it
+            await window.crmDB.updateDraftStatus(draftId, undefined, text).catch(() => {});
+            const btn = event?.target;
+            if (btn) {
+                const orig = btn.textContent;
+                btn.textContent = '✓ Copied';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            }
+        } catch {
+            prompt('Copy this text:', text);
+        }
+    }
+
+    async markDraftPosted(draftId, viralInputId) {
+        const ta = document.getElementById(`draft-${draftId}`);
+        const text = ta ? ta.value : undefined;
+        try {
+            await window.crmDB.updateDraftStatus(draftId, 'posted', text);
+            await this.openDraftsModal(viralInputId);
+        } catch (e) {
+            alert('Failed to mark posted: ' + e.message);
         }
     }
 
