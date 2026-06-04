@@ -9,7 +9,7 @@ const CRMComponents = {
     // ==========================================================================
 
     renderDashboard(data) {
-        const { calls, emails, followUps, overdue, newToday, stats, highIntent, contentTodos } = data;
+        const { calls, emails, followUps, overdue, newToday, stats, highIntent } = data;
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         return `
@@ -17,8 +17,6 @@ const CRMComponents = {
                 <h1 class="page-title">Today's Actions</h1>
                 <p class="page-subtitle">${today}</p>
             </div>
-
-            ${this.renderContentTodosCard(contentTodos || [])}
 
             ${highIntent && highIntent.length ? this.renderHighIntentStrip(highIntent) : ''}
 

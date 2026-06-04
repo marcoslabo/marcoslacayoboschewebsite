@@ -179,18 +179,13 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            const weekStart = this._getMondayISO(new Date());
-            const todayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date().getDay()];
-
-            const [data, stats, highIntent, weekTodos] = await Promise.all([
+            const [data, stats, highIntent] = await Promise.all([
                 window.crmDB.getTodaysActions(),
                 window.crmDB.getDashboardStats(),
-                window.crmDB.getHighIntentContacts(),
-                window.crmDB.getWeeklyTodos(weekStart)
+                window.crmDB.getHighIntentContacts()
             ]);
             data.stats = stats;
             data.highIntent = highIntent;
-            data.contentTodos = weekTodos.filter(t => t.day_of_week === todayName);
             main.innerHTML = window.CRMComponents.renderDashboard(data);
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);

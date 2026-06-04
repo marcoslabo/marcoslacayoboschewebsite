@@ -53,16 +53,56 @@ export default async function handler(req, res) {
         email: email.trim().toLowerCase()
     };
 
+    const headers = {
+        'Content-Type': 'application/json',
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
+        'Prefer': 'return=representation'
+    };
+
     try {
+        // 1. Create a contact so this lead flows into the CRM's Today's Actions / Overdue list
+        //    Same shape as the legacy Spark flow — keeps the existing source CHECK constraint happy.
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const problemSummary = analysis.headline
+            ? `🩺 Diagnose · ${analysis.headline} (score ${analysis.risk_score}/100, grade ${analysis.risk_grade})${practice?.name ? ` · ${practice.name}` : ''}`
+            : `🩺 Diagnose submission · score ${analysis.risk_score}/100`;
+
+        const contactRow = {
+            first_name: first_name.trim(),
+            last_name: '',
+            email: email.trim().toLowerCase(),
+            source: 'Website (Spark)',
+            is_lead: true,
+            status: 'New',
+            next_action: 'Call',
+            next_action_date: tomorrow.toISOString().split('T')[0],
+            problem: problemSummary,
+            brevo_tag: 'diagnose-lead',
+            brevo_synced: false
+        };
+
+        let contactId = null;
+        try {
+            const contactResp = await fetch(`${SUPABASE_URL}/rest/v1/contacts`, {
+                method: 'POST', headers, body: JSON.stringify(contactRow)
+            });
+            if (contactResp.ok) {
+                const c = await contactResp.json();
+                contactId = c[0]?.id || null;
+            } else {
+                console.warn('Contact creation failed (non-fatal):', contactResp.status, await contactResp.text());
+            }
+        } catch (e) {
+            console.warn('Contact creation threw (non-fatal):', e.message);
+        }
+
+        // 2. Insert the grader_submissions row (with optional contact_id backlink)
+        if (contactId) row.contact_id = contactId;
+
         const resp = await fetch(`${SUPABASE_URL}/rest/v1/grader_submissions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': apiKey,
-                'Authorization': `Bearer ${apiKey}`,
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(row)
+            method: 'POST', headers, body: JSON.stringify(row)
         });
 
         if (!resp.ok) {
@@ -72,7 +112,7 @@ export default async function handler(req, res) {
         }
 
         const inserted = await resp.json();
-        return res.status(200).json({ id: inserted[0]?.id, ok: true });
+        return res.status(200).json({ id: inserted[0]?.id, contact_id: contactId, ok: true });
     } catch (e) {
         console.error('Grader submit error:', e);
         return res.status(500).json({ error: 'Failed to save submission' });
