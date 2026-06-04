@@ -1376,19 +1376,7 @@ class CRMApp {
 
     async renderSparkList() {
         const main = document.getElementById('mainContent');
-        const allBriefs = await window.crmDB.getSparkBriefs();
-
-        // Brand filter (persisted across sessions)
-        const brandFilter = localStorage.getItem('spark_brand_filter') || 'all';
-        const briefs = brandFilter === 'all'
-            ? allBriefs
-            : allBriefs.filter(b => (b.brand_slug || 'marcos') === brandFilter);
-
-        const counts = {
-            all: allBriefs.length,
-            marcos: allBriefs.filter(b => (b.brand_slug || 'marcos') === 'marcos').length,
-            vytalmed: allBriefs.filter(b => (b.brand_slug || 'marcos') === 'vytalmed').length
-        };
+        const briefs = await window.crmDB.getSparkBriefs();
 
         const statusGroups = {
             'New': briefs.filter(b => b.status === 'Draft'),
@@ -1399,29 +1387,16 @@ class CRMApp {
             'Closed': briefs.filter(b => b.status === 'Closed Lost')
         };
 
-        const filterPill = (key, label, count) => `
-            <button onclick="window.crmApp.setSparkBrandFilter('${key}')"
-                class="btn btn-sm ${brandFilter === key ? 'btn-primary' : 'btn-ghost'}"
-                style="padding: 6px 12px;">${label} <span style="opacity:0.7;">${count}</span></button>
-        `;
-
         main.innerHTML = `
             <div style="max-width: 900px; margin: 0 auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
                         <h2 style="margin: 0;">⚡ Spark — Submissions</h2>
-                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">"Price of Doing Nothing" calculator submissions across brands</p>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">"Price of Doing Nothing" calculator submissions</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <a href="/spark/new" target="_blank" class="btn btn-secondary btn-sm">Open Calculator ↗</a>
                     </div>
-                </div>
-
-                <div style="display:flex; gap:8px; align-items:center; margin-bottom:24px; flex-wrap:wrap;">
-                    <span style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; margin-right:4px;">Brand</span>
-                    ${filterPill('all', 'All', counts.all)}
-                    ${filterPill('marcos', 'Marcos', counts.marcos)}
-                    ${filterPill('vytalmed', 'VytalMed', counts.vytalmed)}
                 </div>
 
                 ${briefs.length === 0 ? `
@@ -1443,11 +1418,6 @@ class CRMApp {
         `;
     }
 
-    setSparkBrandFilter(brand) {
-        localStorage.setItem('spark_brand_filter', brand);
-        this.renderSparkList();
-    }
-
     _renderSparkCard(brief) {
         const date = new Date(brief.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const annualCost = brief.annual_current_cost ? `$${Math.round(brief.annual_current_cost).toLocaleString()}` : '—';
@@ -1465,18 +1435,11 @@ class CRMApp {
         const sc = statusColors[brief.status] || statusColors['Draft'];
 
         // Brand badge — shows for both brands so it's always clear which inbox the lead belongs to
-        const brand = brief.brand_slug || 'marcos';
-        const brandBadgeStyle = brand === 'vytalmed'
-            ? 'background: #dbeafe; color: #1e3a8a;'
-            : 'background: #ede9fe; color: #5b21b6;';
-        const brandBadgeText = brand === 'vytalmed' ? 'VytalMed' : 'Marcos';
-
         return `
             <div class="card" style="margin-bottom: 10px; cursor: pointer;" onclick="window.crmRouter.navigate('/spark/${brief.id}')">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
-                            <span class="badge" style="${brandBadgeStyle} font-size: 11px;">${brandBadgeText}</span>
                             <span class="badge" style="background: ${sc.bg}; color: ${sc.color}; font-size: 11px;">${brief.status}</span>
                             ${brief.solution_level ? `<span class="badge" style="font-size: 11px;">${brief.solution_level.split(' - ')[0]}</span>` : ''}
                             ${brief.created_by === 'Website (Public)' ? '<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 11px;">🌐 Website</span>' : ''}
@@ -1535,10 +1498,6 @@ class CRMApp {
         const pipeline = ['Draft', 'Shared', 'Qualified', 'In Progress', 'Deployed'];
         const currentStep = pipeline.indexOf(brief.status);
 
-        const brand = brief.brand_slug || 'marcos';
-        const brandBadgeStyle = brand === 'vytalmed' ? 'background: #dbeafe; color: #1e3a8a;' : 'background: #ede9fe; color: #5b21b6;';
-        const brandBadgeText = brand === 'vytalmed' ? 'VytalMed' : 'Marcos';
-
         const contactInitial = brief.contact_name ? brief.contact_name.trim()[0].toUpperCase() : '?';
 
         main.innerHTML = `
@@ -1548,9 +1507,6 @@ class CRMApp {
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                         <div>
-                            <div style="margin-bottom: 6px;">
-                                <span class="badge" style="${brandBadgeStyle} font-size: 11px;">${brandBadgeText}</span>
-                            </div>
                             <h2 style="margin: 0 0 4px;">${brief.title || 'Untitled Brief'}</h2>
                             ${brief.company_name ? `<p style="color: #64748b; margin: 0; font-size: 14px;">${brief.company_name}</p>` : ''}
                         </div>
