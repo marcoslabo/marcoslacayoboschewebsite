@@ -273,8 +273,10 @@ async function fetchYouTube(query) {
         // Silently skip if no key set
         return [];
     }
-    const since = new Date(Date.now() - 86400 * 1000).toISOString();
-    const url = `https://www.googleapis.com/youtube/v3/search?key=${key}&q=${encodeURIComponent(query)}&part=snippet&type=video&order=relevance&publishedAfter=${since}&maxResults=8`;
+    // 7-day window (healthcare YT content is weekly, not daily), sorted by
+    // viewCount so we surface what's ACTUALLY viral. 15 results per query.
+    const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+    const url = `https://www.googleapis.com/youtube/v3/search?key=${key}&q=${encodeURIComponent(query)}&part=snippet&type=video&order=viewCount&publishedAfter=${since}&maxResults=15&relevanceLanguage=en`;
     const r = await fetch(url);
     if (!r.ok) {
         const errBody = await r.text();
