@@ -112,9 +112,117 @@ export default async function handler(req, res) {
         }
 
         const inserted = await resp.json();
+
+        // 3. Fire-and-forget: send the 1-pager email via Brevo (don't block / fail the response)
+        sendReportEmail({
+            to: email.trim().toLowerCase(),
+            firstName: first_name.trim(),
+            practice,
+            fallback_specialty,
+            analysis
+        }).catch(err => console.warn('Report email send failed (non-fatal):', err.message));
+
         return res.status(200).json({ id: inserted[0]?.id, contact_id: contactId, ok: true });
     } catch (e) {
         console.error('Grader submit error:', e);
         return res.status(500).json({ error: 'Failed to save submission' });
     }
+}
+
+// ============================================================================
+// Brevo transactional email — sends the 1-pager
+// ============================================================================
+async function sendReportEmail({ to, firstName, practice, fallback_specialty, analysis }) {
+    const brevoKey = process.env.BREVO_API_KEY;
+    if (!brevoKey) {
+        console.warn('BREVO_API_KEY not configured — skipping email send');
+        return;
+    }
+
+    const senderEmail = process.env.GRADER_SENDER_EMAIL || 'marcos@marcoslacayobosche.com';
+    const senderName  = process.env.GRADER_SENDER_NAME  || 'Marcos Bosche (VytalMed)';
+    const calendlyUrl = process.env.GRADER_CALENDLY_URL || 'https://calendly.com/marcos-bosche-nymbl/30min';
+
+    const practiceLabel = practice?.name
+        ? practice.name
+        : (fallback_specialty ? `${fallback_specialty} (specialty benchmark)` : 'your practice');
+
+    const axisRows = [
+        ['Automation Gap',    analysis.risk_breakdown?.automation ?? 0],
+        ['Integration Burden', analysis.risk_breakdown?.integration ?? 0],
+        ['Vendor Lock-in',    analysis.risk_breakdown?.vendor_lock_in ?? 0],
+        ['AI Readiness',      analysis.risk_breakdown?.ai_readiness ?? 0],
+        ['Patient Impact',    analysis.risk_breakdown?.patient_impact ?? 0]
+    ];
+
+    const patternsHtml = (analysis.top_patterns || []).map(p => `
+        <div style="padding:16px; border-left:3px solid #6d28d9; background:#fafafa; border-radius:8px; margin-bottom:12px;">
+            <div style="font-weight:700; font-size:15px; color:#0f172a; margin-bottom:6px;">${esc(p.title)}</div>
+            <div style="font-size:13px; color:#475569; line-height:1.5; margin-bottom:6px;">${esc(p.why_it_applies)}</div>
+            <div style="font-size:13px; color:#6d28d9; line-height:1.5; font-style:italic;">→ ${esc(p.fix)}</div>
+        </div>
+    `).join('');
+
+    const axisHtml = axisRows.map(([label, v]) => `
+        <tr>
+            <td style="padding:6px 0; font-size:13px; color:#475569;">${esc(label)}</td>
+            <td style="padding:6px 0; font-size:13px; color:#0f172a; font-weight:600; text-align:right;">${v} / 20</td>
+        </tr>
+    `).join('');
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html><body style="margin:0; padding:0; background:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="max-width:600px; margin:0 auto; background:white; padding:32px 28px;">
+    <div style="font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px;">🩺 VytalMed Workflow Grader</div>
+    <h1 style="font-size:24px; font-weight:800; color:#0f172a; margin:0 0 4px; letter-spacing:-0.02em;">Hi ${esc(firstName)} — here's your report</h1>
+    <p style="font-size:14px; color:#64748b; margin:0 0 24px;">For <strong>${esc(practiceLabel)}</strong></p>
+
+    <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff); padding:24px; border-radius:14px; margin-bottom:24px;">
+        <div style="font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Workflow Risk Score</div>
+        <div style="font-size:48px; font-weight:800; color:#6d28d9; line-height:1; margin-bottom:6px;">${analysis.risk_score} <span style="font-size:18px; font-weight:600; color:#0f172a;">/ 100</span></div>
+        <div style="display:inline-block; padding:4px 12px; background:#ede9fe; color:#6d28d9; border-radius:999px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-right:8px;">Grade ${esc(analysis.risk_grade)}</div>
+        <span style="font-size:16px; font-weight:700; color:#0f172a;">${esc(analysis.headline || '')}</span>
+    </div>
+
+    <h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:24px 0 10px;">Axis Breakdown</h2>
+    <table style="width:100%; border-collapse:collapse;">${axisHtml}</table>
+
+    <h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:28px 0 12px;">Top 3 Patterns We'd Fix in Your 5-Week Playback</h2>
+    ${patternsHtml}
+
+    <div style="background:#0f172a; padding:24px; border-radius:14px; text-align:center; margin:32px 0 8px;">
+        <div style="color:white; font-size:16px; font-weight:700; margin-bottom:6px;">Want to talk through this?</div>
+        <div style="color:#94a3b8; font-size:13px; margin-bottom:16px;">5 weeks from now you could have a working demo. Or another quarter of scoping.</div>
+        <a href="${esc(calendlyUrl)}" style="display:inline-block; padding:14px 24px; background:white; color:#0f172a; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px;">Book your 30-min playback consult →</a>
+    </div>
+
+    <p style="font-size:12px; color:#94a3b8; text-align:center; margin-top:32px;">VytalMed · Built by healthcare engineers, for healthcare operators<br>You got this email because you ran the Workflow Grader at marcoslacayobosche.com/diagnose.</p>
+</div></body></html>`;
+
+    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'api-key': brevoKey,
+            'accept': 'application/json'
+        },
+        body: JSON.stringify({
+            sender: { name: senderName, email: senderEmail },
+            to: [{ email: to, name: firstName }],
+            subject: `Your Workflow Risk Score for ${practiceLabel}`,
+            htmlContent
+        })
+    });
+
+    if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`Brevo ${resp.status}: ${errText}`);
+    }
+}
+
+function esc(s) {
+    return String(s || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
