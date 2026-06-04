@@ -37,7 +37,7 @@ const KEYWORDS = [
     'data entry', 'efficiency', 'productivity', 'reporting'
 ];
 
-const MIN_SCORE = 55;  // Anything below this gets filtered out
+const MIN_SCORE = 40;  // Items below this never enter the inbox
 const MAX_QUERIES_PER_SOURCE = 6;  // Cap YT/HN searches per cron run
 
 export default async function handler(req, res) {
@@ -101,8 +101,20 @@ export default async function handler(req, res) {
 
         // 7. Insert items above threshold
         const toInsert = scored.filter(s => s.claude_score >= MIN_SCORE);
+        const topScores = [...scored]
+            .sort((a, b) => (b.claude_score || 0) - (a.claude_score || 0))
+            .slice(0, 5)
+            .map(s => ({ title: s.title, score: s.claude_score, why: s.claude_summary }));
+
         if (toInsert.length === 0) {
-            return res.status(200).json({ ok: true, inserted: 0, evaluated: candidates.length });
+            return res.status(200).json({
+                ok: true,
+                inserted: 0,
+                evaluated: candidates.length,
+                min_score: MIN_SCORE,
+                top_scores: topScores,
+                hint: 'No items met the threshold. Try broader Focus Topics aligned with healthcare workflow (e.g. "EHR automation", "prior auth", "radiology AI") or check top_scores for what Claude saw.'
+            });
         }
         const inserted = await insertViralInputs(toInsert);
 
@@ -110,6 +122,7 @@ export default async function handler(req, res) {
             ok: true,
             evaluated: candidates.length,
             inserted: inserted.length,
+            top_scores: topScores,
             elapsed_ms: Date.now() - startedAt
         });
     } catch (e) {
@@ -355,8 +368,10 @@ RETURN JSON ARRAY ONLY (no markdown). One object per item, in the SAME ORDER as 
     return scores.map(s => {
         const c = candidates[s.index];
         if (!c) return null;
+        // Strip from_focus_query — it's a runtime flag, not a viral_inputs column
+        const { from_focus_query, ...rest } = c;
         return {
-            ...c,
+            ...rest,
             claude_score: s.score,
             claude_alignment_pillar: s.best_pillar_slug,
             claude_summary: s.one_line_why,
