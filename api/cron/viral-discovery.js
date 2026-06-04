@@ -122,9 +122,11 @@ export default async function handler(req, res) {
         // 6. Score with Claude (one batch call), with focus topics as a boost signal
         const scored = await scoreBatch(candidates, pillars, focusTopics);
 
-        // 7. Insert top-N per source (above the score floor)
-        //    Groups by source so each one contributes up to TOP_PER_SOURCE items
-        //    sorted by Claude score. Floor (MIN_SCORE) still applies as quality gate.
+        // 7. Insert top-N per source — ranked by VIRALITY (engagement signal)
+        //    with Claude score as quality gate. Engagement is the primary
+        //    ranking; alignment is the floor.
+        //    For sources without engagement data (RSS, Google), fall back to
+        //    Claude score as the ranking signal.
         const bySource = {};
         scored.forEach(item => {
             if ((item.claude_score || 0) < MIN_SCORE) return;
@@ -135,7 +137,15 @@ export default async function handler(req, res) {
         const toInsert = [];
         const kept_per_source = {};
         Object.entries(bySource).forEach(([src, items]) => {
-            items.sort((a, b) => (b.claude_score || 0) - (a.claude_score || 0));
+            const hasEngagement = items.some(i => (i.engagement_signal || 0) > 0);
+            items.sort((a, b) => {
+                if (hasEngagement) {
+                    // Primary: engagement DESC. Tiebreaker: claude_score DESC.
+                    const eDiff = (b.engagement_signal || 0) - (a.engagement_signal || 0);
+                    if (eDiff !== 0) return eDiff;
+                }
+                return (b.claude_score || 0) - (a.claude_score || 0);
+            });
             const top = items.slice(0, TOP_PER_SOURCE);
             kept_per_source[src] = top.length;
             toInsert.push(...top);

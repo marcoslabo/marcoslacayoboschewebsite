@@ -2287,6 +2287,17 @@ class CRMApp {
                 style="padding: 6px 12px;">${label}</button>
         `;
 
+        const formatEngagement = (item) => {
+            const n = item.engagement_signal || 0;
+            if (!n) return null;
+            const formatted = n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : n.toString();
+            // Choose label based on source
+            const label = item.source === 'youtube' ? 'views'
+                : item.source === 'reddit' ? 'upvotes'
+                : item.source === 'hackernews' ? 'points' : '';
+            return { value: formatted, label, raw: n };
+        };
+
         const renderCard = (item) => {
             const score = item.claude_score ?? 0;
             const scoreColor = score >= 80 ? '#047857' : score >= 65 ? '#b45309' : '#64748b';
@@ -2296,22 +2307,30 @@ class CRMApp {
             const pillarBadge = item.claude_alignment_pillar
                 ? `<span class="badge" style="background:#ede9fe; color:#5b21b6; font-size:11px;">${this._esc(item.claude_alignment_pillar)}</span>`
                 : '';
-            const engagement = item.engagement_signal
-                ? `<span style="font-size:12px; color:#64748b;">↑ ${item.engagement_signal}</span>`
-                : '';
+            const eng = formatEngagement(item);
+            // Heat: 🔥 indicator scales with engagement
+            const heat = eng ? (eng.raw >= 10000 ? '🔥🔥🔥' : eng.raw >= 1000 ? '🔥🔥' : eng.raw >= 100 ? '🔥' : '') : '';
             return `
                 <div class="card" style="margin-bottom: 12px;">
                     <div style="display: flex; gap: 14px; align-items: flex-start;">
-                        <div style="flex-shrink: 0; min-width: 60px; text-align: center;">
-                            <div style="font-size: 28px; font-weight: 800; color: ${scoreColor}; line-height: 1; letter-spacing: -0.02em;">${score}</div>
-                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">score</div>
-                        </div>
+                        ${eng ? `
+                            <div style="flex-shrink: 0; min-width: 80px; text-align: center; padding: 8px; background: linear-gradient(135deg, #fef3c7, #fef3c780); border-radius: 10px;">
+                                <div style="font-size: 20px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.02em;">${eng.value}</div>
+                                <div style="font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; font-weight: 600;">${eng.label}</div>
+                                ${heat ? `<div style="font-size: 12px; margin-top: 2px;">${heat}</div>` : ''}
+                            </div>
+                        ` : `
+                            <div style="flex-shrink: 0; min-width: 60px; text-align: center;">
+                                <div style="font-size: 28px; font-weight: 800; color: ${scoreColor}; line-height: 1; letter-spacing: -0.02em;">${score}</div>
+                                <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">score</div>
+                            </div>
+                        `}
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
+                                <span style="background:#f1f5f9; color:#475569; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600;">Score ${score}</span>
                                 ${pillarBadge}
                                 <span style="font-size: 12px; color: #64748b;">${this._esc(item.source_name)}</span>
                                 <span style="font-size: 12px; color: #94a3b8;">· ${this._esc(when)}</span>
-                                ${engagement ? `· ${engagement}` : ''}
                             </div>
                             <h3 style="margin: 0 0 6px; font-size: 15px; line-height: 1.4;">
                                 <a href="${this._esc(item.url)}" target="_blank" style="color: #0f172a; text-decoration: none;">${this._esc(item.title)}</a>
