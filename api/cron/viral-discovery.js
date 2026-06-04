@@ -289,7 +289,8 @@ async function fetchReddit(url, sourceName) {
     const r = await fetch(url, { headers: { 'User-Agent': 'VytalMed-Discovery/1.0' } });
     if (!r.ok) return [];
     const data = await r.json();
-    const since = Date.now() - 86400 * 1000;
+    // 7-day window — healthcare subs are slow and "hot" posts often span days
+    const since = Date.now() - 7 * 86400 * 1000;
     return (data.data?.children || [])
         .map(c => c.data)
         .filter(d => d.created_utc * 1000 >= since)
@@ -302,7 +303,11 @@ async function fetchReddit(url, sourceName) {
             title: d.title,
             excerpt: (d.selftext || '').slice(0, 500),
             published_at: new Date(d.created_utc * 1000).toISOString(),
-            engagement_signal: d.score || 0
+            engagement_signal: d.score || 0,
+            // The sub itself is already healthcare-targeted (r/Radiology, r/healthIT,
+            // r/medicine) — no need for the broad keyword filter to drop posts that
+            // don't say "fax/HL7/EHR" explicitly.
+            from_focus_query: true
         }));
 }
 
@@ -362,7 +367,8 @@ async function fetchYouTube(query) {
 // Hacker News (Algolia search API — free, no key)
 // ============================================================================
 async function fetchHackerNews(query) {
-    const since = Math.floor((Date.now() - 86400 * 1000) / 1000);
+    // 7-day window — HN healthcare stories trickle in over days, not hours
+    const since = Math.floor((Date.now() - 7 * 86400 * 1000) / 1000);
     const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&numericFilters=created_at_i>${since}`;
     const r = await fetch(url);
     if (!r.ok) return [];
@@ -392,7 +398,8 @@ async function fetchGoogle(query) {
         // Silently skip if not configured
         return [];
     }
-    const url = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cseId}&q=${encodeURIComponent(query)}&dateRestrict=d1&num=8`;
+    // 7-day window — healthcare media doesn't break daily; viral takes time
+    const url = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cseId}&q=${encodeURIComponent(query)}&dateRestrict=w1&num=8`;
     const r = await fetch(url);
     if (!r.ok) {
         const errBody = await r.text();
