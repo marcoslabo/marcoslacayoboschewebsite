@@ -92,14 +92,14 @@ export default async function handler(req, res) {
             body: JSON.stringify(rows)
         });
         if (!draftsResp.ok) {
-            console.warn('post_drafts insert failed:', await draftsResp.text());
+            const errBody = await draftsResp.text();
+            console.error('post_drafts insert failed:', errBody);
+            throw new Error(`Could not save drafts: ${errBody.slice(0, 200)}`);
         }
 
-        // 5. Mark the viral_input as drafted
-        await fetch(`${SUPABASE_URL}/rest/v1/viral_inputs?id=eq.${viralInputId}`, {
-            method: 'PATCH', headers: supabaseHeaders(),
-            body: JSON.stringify({ status: 'drafted' })
-        });
+        // Status stays 'new' so the capture shows up in the Inbox's default
+        // "New" filter. Users can manually mark items 'drafted' or 'archived'
+        // once they've reviewed.
 
         return res.status(200).json({
             ok: true,
