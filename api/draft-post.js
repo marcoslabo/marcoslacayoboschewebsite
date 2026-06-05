@@ -10,7 +10,7 @@ import { callClaude } from '../lib/anthropic.js';
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
 
-const FORMATS = ['video-script', 'linkedin', 'youtube', 'instagram'];
+const FORMATS = ['carousel', 'video-script', 'linkedin', 'article'];
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -126,30 +126,38 @@ RULES FOR ALL FOUR DRAFTS:
 - No hype words ("revolutionary", "game-changer", "unlock", etc.)
 - Specificity wins: name real workflows (faxes, HL7, prior auth, etc.) not abstractions
 
-DRAFT 1 — video-script (for 60-90 sec talking-head, run through Submagic)
+DRAFT 1 — carousel (6-slide LinkedIn carousel for Canva PDF export)
+Format as 6 numbered slides. Each slide: short headline + 1-2 supporting lines.
+  SLIDE 1 (HOOK): one sharp claim, max 8 words, no period
+  SLIDE 2 (SETUP): the operator pain in 1-2 sentences
+  SLIDE 3-5 (BODY): three substantive points — each a short headline + 1-2 supporting lines
+  SLIDE 6 (CTA): one-line takeaway + "Diagnose your workflow → vytalmed.co/diagnose"
+Render as plain text with "SLIDE N:" labels and blank lines between.
+
+DRAFT 2 — video-script (for 60-90 sec talking-head, run through Submagic)
 Format: spoken script with [pause], [emphasis], [b-roll: description] cues.
 Structure: HOOK (5 sec) → CLAIM (15 sec) → STORY/EXAMPLE (30 sec) → POV (15 sec) → CTA (10 sec).
 Open with a contrarian or surprising line. End with: "Diagnose your workflow at vytalmed.co/diagnose."
 
-DRAFT 2 — linkedin (text long-form post, 300-500 words)
+DRAFT 3 — linkedin (text long-form post, 300-500 words)
 Structure: Hook line (one line, blank line after) → 2-3 short paragraphs telling the story → POV punchline → CTA on its own line.
-Write the way Marcos talks: short sentences, line breaks, operator-respecting, no jargon padding. Use the viral piece as the entry point. Put the CTA on the last line — link as plain text "vytalmed.co/diagnose" not a URL (LinkedIn demotes external links in body — explain in a comment if needed).
+Short sentences, line breaks, operator-respecting, no jargon padding. CTA on last line as plain text "vytalmed.co/diagnose" (LinkedIn demotes external links in the body).
 
-DRAFT 3 — youtube (short title + description)
-Format:
-TITLE: <60 char max, hook + outcome>
-DESCRIPTION: <120-180 words, summarize the take + link>
-HASHTAGS: <5-8 relevant tags>
+DRAFT 4 — article (1000-1500 word blog post)
+Structure:
+  HEADLINE (markdown #): sharp claim, one line
+  INTRO: 2-3 paragraphs framing the operator pain
+  3-4 SECTION SUBHEADERS (markdown ##): each with 150-250 words of substantive content
+  CLOSING POV: one-paragraph anti-hype punchline
+  CTA: link to vytalmed.co/diagnose
+Tone: operator-respecting, anti-hype, anti-vendor. Specific over abstract.
 
-DRAFT 4 — instagram (90-150 word caption for Reels)
-Format: opening hook on line 1, 2-3 short paragraphs, CTA at the bottom, then hashtags (8-12).
-
-RETURN JSON ONLY (no markdown):
+RETURN JSON ONLY (no markdown fences):
 {
+  "carousel": "...",
   "video-script": "...",
   "linkedin": "...",
-  "youtube": "...",
-  "instagram": "..."
+  "article": "..."
 }`;
 
     const userPrompt = `VIRAL INPUT:

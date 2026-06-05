@@ -2264,22 +2264,12 @@ class CRMApp {
 
     async renderViralInbox() {
         const main = document.getElementById('mainContent');
-        main.innerHTML = '<div class="empty-state"><p>Loading inbox…</p></div>';
+        main.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
 
         const statusFilter = localStorage.getItem('inbox_status_filter') || 'new';
-
-        // Fetch top 5 per source separately so every source gets fair representation
-        const SOURCES = ['youtube', 'rss', 'reddit', 'google', 'hackernews'];
-        const [grouped, config] = await Promise.all([
-            Promise.all(SOURCES.map(s =>
-                window.crmDB.getViralInputs({ statusFilter, sourceFilter: s, limit: 5 })
-            )),
-            window.crmDB.getDiscoveryConfig()
-        ]);
-        const sourceGroups = {};
-        SOURCES.forEach((s, i) => { sourceGroups[s] = grouped[i] || []; });
-        const totalCount = Object.values(sourceGroups).reduce((sum, arr) => sum + arr.length, 0);
-        const focusTopicsString = (config.focus_topics || []).join(', ');
+        const items = await window.crmDB.getViralInputs({ statusFilter, limit: 100 });
+        // Sort newest first
+        items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         const filterPill = (key, label) => `
             <button onclick="window.crmApp.setInboxFilter('${key}')"
@@ -2287,88 +2277,35 @@ class CRMApp {
                 style="padding: 6px 12px;">${label}</button>
         `;
 
-        const formatEngagement = (item) => {
-            const n = item.engagement_signal || 0;
-            if (!n) return null;
-            const formatted = n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : n.toString();
-            // Choose label based on source
-            const label = item.source === 'youtube' ? 'views'
-                : item.source === 'reddit' ? 'upvotes'
-                : item.source === 'hackernews' ? 'points' : '';
-            return { value: formatted, label, raw: n };
-        };
-
         const renderCard = (item) => {
-            const score = item.claude_score ?? 0;
-            const scoreColor = score >= 80 ? '#047857' : score >= 65 ? '#b45309' : '#64748b';
-            const when = item.published_at
-                ? new Date(item.published_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-                : '';
-            const pillarBadge = item.claude_alignment_pillar
-                ? `<span class="badge" style="background:#ede9fe; color:#5b21b6; font-size:11px;">${this._esc(item.claude_alignment_pillar)}</span>`
-                : '';
-            const eng = formatEngagement(item);
-            // Heat: 🔥 indicator scales with engagement
-            const heat = eng ? (eng.raw >= 10000 ? '🔥🔥🔥' : eng.raw >= 1000 ? '🔥🔥' : eng.raw >= 100 ? '🔥' : '') : '';
+            const when = new Date(item.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
             return `
                 <div class="card" style="margin-bottom: 12px;">
-                    <div style="display: flex; gap: 14px; align-items: flex-start;">
-                        ${eng ? `
-                            <div style="flex-shrink: 0; min-width: 80px; text-align: center; padding: 8px; background: linear-gradient(135deg, #fef3c7, #fef3c780); border-radius: 10px;">
-                                <div style="font-size: 20px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.02em;">${eng.value}</div>
-                                <div style="font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; font-weight: 600;">${eng.label}</div>
-                                ${heat ? `<div style="font-size: 12px; margin-top: 2px;">${heat}</div>` : ''}
-                            </div>
-                        ` : `
-                            <div style="flex-shrink: 0; min-width: 60px; text-align: center;">
-                                <div style="font-size: 28px; font-weight: 800; color: ${scoreColor}; line-height: 1; letter-spacing: -0.02em;">${score}</div>
-                                <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">score</div>
-                            </div>
-                        `}
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
-                                <span style="background:#f1f5f9; color:#475569; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600;">Score ${score}</span>
-                                ${pillarBadge}
-                                <span style="font-size: 12px; color: #64748b;">${this._esc(item.source_name)}</span>
-                                <span style="font-size: 12px; color: #94a3b8;">· ${this._esc(when)}</span>
-                            </div>
-                            <h3 style="margin: 0 0 6px; font-size: 15px; line-height: 1.4;">
-                                <a href="${this._esc(item.url)}" target="_blank" style="color: #0f172a; text-decoration: none;">${this._esc(item.title)}</a>
-                            </h3>
-                            ${item.claude_summary ? `<p style="font-size: 13px; color: #475569; margin: 0 0 8px; font-style: italic;">${this._esc(item.claude_summary)}</p>` : ''}
-                            <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                                <button onclick="window.crmApp.generateDraftsFor('${item.id}')" class="btn btn-primary btn-sm">⚡ Generate Drafts</button>
-                                <button onclick="window.crmApp.viewDraftsFor('${item.id}')" class="btn btn-ghost btn-sm">View Drafts</button>
-                                <a href="${this._esc(item.url)}" target="_blank" class="btn btn-ghost btn-sm">Open ↗</a>
-                                <button onclick="window.crmApp.archiveViralInput('${item.id}')" class="btn btn-ghost btn-sm" style="color:#dc2626;">Archive</button>
-                            </div>
-                        </div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
+                        <span style="font-size: 12px; color: #94a3b8;">${this._esc(when)}</span>
+                        ${item.url && !item.url.startsWith('capture://') ? `<a href="${this._esc(item.url)}" target="_blank" style="font-size: 12px; color: #6d28d9; text-decoration: none;">source ↗</a>` : ''}
+                    </div>
+                    <h3 style="margin: 0 0 10px; font-size: 16px; line-height: 1.4; color: #0f172a;">${this._esc(item.title || 'Untitled')}</h3>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button onclick="window.crmApp.viewDraftsFor('${item.id}')" class="btn btn-primary btn-sm">View drafts</button>
+                        <button onclick="window.crmApp.generateDraftsFor('${item.id}')" class="btn btn-ghost btn-sm">Regenerate</button>
+                        <button onclick="window.crmApp.archiveViralInput('${item.id}')" class="btn btn-ghost btn-sm" style="color:#dc2626;">Archive</button>
                     </div>
                 </div>
             `;
         };
 
         main.innerHTML = `
-            <div style="max-width: 900px; margin: 0 auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div style="max-width: 720px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <div>
-                        <h2 style="margin: 0;">📥 Viral Inbox</h2>
-                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Healthcare AI content scored against your POV pillars · auto-refreshed daily</p>
+                        <h2 style="margin: 0;">📥 Inbox</h2>
+                        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">Drafts from your captures</p>
                     </div>
-                    <button onclick="window.crmApp.runDiscoveryNow()" class="btn btn-secondary btn-sm">🔄 Run Discovery Now</button>
-                    <button onclick="window.crmApp.clearInbox()" class="btn btn-ghost btn-sm" style="color:#dc2626;">🗑 Clear Inbox</button>
-                </div>
-
-                <div style="margin-bottom: 16px; padding: 14px 16px; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border-radius: 12px; border: 1px solid rgba(139,92,246,0.15);">
-                    <label style="display:block; font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Focus Topics</label>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <input type="text" id="focusTopicsInput"
-                            value="${this._esc(focusTopicsString)}"
-                            placeholder="prior auth automation, radiology AI, fax processing..."
-                            style="flex:1; min-width:280px; padding:9px 12px; border:1px solid rgba(15,23,42,0.1); border-radius:8px; font-size:13px; background:white;">
-                        <button onclick="window.crmApp.saveFocusTopics()" class="btn btn-primary btn-sm">Save</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <a href="/capture" target="_blank" class="btn btn-primary btn-sm">+ Capture</a>
+                        <button onclick="window.crmApp.clearInbox()" class="btn btn-ghost btn-sm" style="color:#dc2626;">Clear all</button>
                     </div>
-                    <p style="font-size:11px; color:#64748b; margin:8px 0 0;">Comma-separated. Drives YouTube + Hacker News searches and boosts Claude scoring. Empty = uses default healthcare AI queries.</p>
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
@@ -2378,35 +2315,14 @@ class CRMApp {
                     ${filterPill('all', 'All')}
                 </div>
 
-                ${totalCount === 0
-                    ? `<div class="card" style="text-align: center; padding: 48px;">
-                        <p style="font-size: 17px; margin-bottom: 6px;">No items in this view</p>
-                        <p style="color: #64748b; font-size: 13px;">The cron runs daily at 8am ET. Click "Run Discovery Now" to test.</p>
+                ${items.length === 0
+                    ? `<div class="card" style="text-align: center; padding: 56px 24px;">
+                        <div style="font-size: 36px; margin-bottom: 10px;">🎯</div>
+                        <p style="font-size: 17px; font-weight: 600; margin: 0 0 6px;">Nothing here yet</p>
+                        <p style="color: #64748b; font-size: 13px; margin: 0 0 18px;">Capture viral content from your phone or desktop.</p>
+                        <a href="/capture" target="_blank" class="btn btn-primary">Open Capture →</a>
                        </div>`
-                    : SOURCES.map(s => {
-                        const items = sourceGroups[s];
-                        const meta = {
-                            youtube:    { icon: '📺', label: 'YouTube',     color: '#dc2626' },
-                            rss:        { icon: '📰', label: 'RSS Feeds',   color: '#ea580c' },
-                            reddit:     { icon: '💬', label: 'Reddit',      color: '#f97316' },
-                            google:     { icon: '🌐', label: 'Google',      color: '#2563eb' },
-                            hackernews: { icon: '🟧', label: 'Hacker News', color: '#b45309' }
-                        }[s];
-                        return `
-                            <div style="margin: 28px 0 14px;">
-                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(135deg, ${meta.color}10, ${meta.color}05); border-left: 3px solid ${meta.color}; border-radius: 8px;">
-                                    <span style="font-size: 20px;">${meta.icon}</span>
-                                    <div>
-                                        <div style="font-weight: 700; font-size: 13px; color: ${meta.color}; text-transform: uppercase; letter-spacing: 0.8px;">${meta.label}</div>
-                                        <div style="font-size: 11px; color: #94a3b8;">Top ${items.length} of 5</div>
-                                    </div>
-                                </div>
-                                ${items.length === 0
-                                    ? `<div style="text-align: center; padding: 18px; color: #cbd5e1; font-size: 13px; background: #fafafa; border-radius: 8px; margin-top: 6px;">No items from this source yet</div>`
-                                    : items.map(renderCard).join('')}
-                            </div>
-                        `;
-                    }).join('')}
+                    : items.map(renderCard).join('')}
             </div>
         `;
     }
@@ -2414,172 +2330,6 @@ class CRMApp {
     setInboxFilter(key) {
         localStorage.setItem('inbox_status_filter', key);
         this.renderViralInbox();
-    }
-
-    async saveFocusTopics() {
-        const raw = document.getElementById('focusTopicsInput')?.value || '';
-        const topics = raw.split(',').map(t => t.trim()).filter(Boolean);
-        try {
-            await window.crmDB.updateDiscoveryConfig(topics);
-            const btn = event?.target;
-            if (btn) {
-                const orig = btn.textContent;
-                btn.textContent = '✓ Saved';
-                setTimeout(() => { btn.textContent = orig; }, 1500);
-            }
-        } catch (e) {
-            alert('Save failed: ' + e.message);
-        }
-    }
-
-    async runDiscoveryNow() {
-        if (!confirm('Run viral discovery now? Takes 30-60 sec.')) return;
-        try {
-            const result = await window.crmDB.runViralDiscoveryNow();
-            this.openDiscoveryResultModal(result);
-            await this.renderViralInbox();
-        } catch (e) {
-            alert('Discovery failed: ' + e.message);
-        }
-    }
-
-    openDiscoveryResultModal(result) {
-        const existing = document.getElementById('discoveryResultModal');
-        if (existing) existing.remove();
-
-        const cps = result.counts_per_source || {};
-        const kps = result.kept_per_source || {};
-        const eps = result.errors_per_source || {};
-        const rps = result.raw_per_source || {};
-        const allSources = ['rss', 'youtube', 'reddit', 'google', 'hackernews'];
-
-        const sourceMeta = {
-            rss:        { icon: '📰', label: 'RSS Feeds',   color: '#ea580c' },
-            youtube:    { icon: '📺', label: 'YouTube',     color: '#dc2626' },
-            reddit:     { icon: '💬', label: 'Reddit',      color: '#f97316' },
-            google:     { icon: '🌐', label: 'Google',      color: '#2563eb' },
-            hackernews: { icon: '🟧', label: 'Hacker News', color: '#b45309' }
-        };
-
-        const diagnoseRow = (s) => {
-            const raw = rps[s] || 0, found = cps[s] || 0, kept = kps[s] || 0;
-            const errs = eps[s] || [];
-            // Diagnose where items are being lost
-            let diagnosis, diagBg, diagColor;
-            if (errs.length > 0) {
-                diagnosis = `⚠️  ERROR: ${errs[0].slice(0, 80)}`;
-                diagBg = '#fef2f2'; diagColor = '#991b1b';
-            } else if (raw === 0 && found === 0) {
-                diagnosis = '📭  API returned nothing for your topics';
-                diagBg = '#f8fafc'; diagColor = '#64748b';
-            } else if (raw > 0 && found === 0) {
-                diagnosis = `🔻  ${raw} returned, all below engagement threshold (filter too strict)`;
-                diagBg = '#fff7ed'; diagColor = '#9a3412';
-            } else if (found > 0 && kept === 0) {
-                diagnosis = `🎯  ${found} passed engagement, Claude scored all <40 (POV mismatch)`;
-                diagBg = '#fef3c7'; diagColor = '#92400e';
-            } else {
-                diagnosis = `✅  ${kept} items added to inbox`;
-                diagBg = '#dcfce7'; diagColor = '#166534';
-            }
-            const meta = sourceMeta[s] || { icon: '•', label: s, color: '#64748b' };
-            return `
-                <div style="margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; background: white;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <span style="font-size: 22px;">${meta.icon}</span>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 700; font-size: 14px; color: ${meta.color}; text-transform: uppercase; letter-spacing: 0.5px;">${meta.label}</div>
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                        <div style="text-align: center; padding: 10px; background: #f8fafc; border-radius: 8px;">
-                            <div style="font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1;">${raw}</div>
-                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; font-weight: 600;">Raw</div>
-                            <div style="font-size: 9px; color: #cbd5e1; margin-top: 2px;">from API</div>
-                        </div>
-                        <div style="text-align: center; padding: 10px; background: #fef3c7; border-radius: 8px;">
-                            <div style="font-size: 24px; font-weight: 800; color: #b45309; line-height: 1;">${found}</div>
-                            <div style="font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; font-weight: 600;">Found</div>
-                            <div style="font-size: 9px; color: #b45309; margin-top: 2px;">after engagement filter</div>
-                        </div>
-                        <div style="text-align: center; padding: 10px; background: #dcfce7; border-radius: 8px;">
-                            <div style="font-size: 24px; font-weight: 800; color: #166534; line-height: 1;">${kept}</div>
-                            <div style="font-size: 10px; color: #14532d; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; font-weight: 600;">Kept</div>
-                            <div style="font-size: 9px; color: #166534; margin-top: 2px;">after Claude score ≥40</div>
-                        </div>
-                    </div>
-                    <div style="padding: 10px 12px; background: ${diagBg}; color: ${diagColor}; border-radius: 8px; font-size: 13px; font-weight: 500;">
-                        ${diagnosis}
-                    </div>
-                </div>
-            `;
-        };
-
-        const topics = result.focus_topics_used || [];
-        const topicsHtml = topics.length > 0
-            ? topics.map(t => `<span style="display:inline-block; padding:4px 10px; background:#ede9fe; color:#6d28d9; border-radius:999px; font-size:12px; font-weight:600; margin: 2px 4px 2px 0;">${this._esc(t)}</span>`).join('')
-            : '<span style="color:#94a3b8; font-style:italic;">(none — using defaults)</span>';
-
-        const topScoresHtml = (result.top_scores || []).length > 0
-            ? `
-                <h3 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:24px 0 10px;">Top Claude scores</h3>
-                ${result.top_scores.map(s => `
-                    <div style="padding: 10px 12px; background: #fafafa; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid ${s.score >= 70 ? '#16a34a' : s.score >= 40 ? '#eab308' : '#dc2626'};">
-                        <div style="display: flex; gap: 10px; align-items: baseline;">
-                            <span style="font-weight: 800; font-size: 16px; color: ${s.score >= 70 ? '#16a34a' : s.score >= 40 ? '#b45309' : '#dc2626'};">${s.score}</span>
-                            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">${this._esc(s.source || '')}</span>
-                        </div>
-                        <div style="font-size: 13px; color: #0f172a; margin-top: 4px; font-weight: 600;">${this._esc(s.title)}</div>
-                        ${s.why ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px; font-style: italic;">${this._esc(s.why)}</div>` : ''}
-                    </div>
-                `).join('')}
-            `
-            : '';
-
-        const modalHtml = `
-            <div id="discoveryResultModal" class="modal" style="display:flex;">
-                <div class="modal-backdrop" onclick="window.crmApp.closeDiscoveryResultModal()"></div>
-                <div class="modal-content" style="max-width: 720px; max-height: 90vh; overflow-y: auto;">
-                    <div class="modal-header">
-                        <h2>🔍 Discovery Result</h2>
-                        <button class="modal-close" onclick="window.crmApp.closeDiscoveryResultModal()">&times;</button>
-                    </div>
-                    <div style="padding: 24px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                            <div style="padding: 16px; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border-radius: 12px;">
-                                <div style="font-size: 11px; font-weight: 700; color: #6d28d9; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Evaluated</div>
-                                <div style="font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -0.02em;">${result.evaluated || 0}</div>
-                                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">items reviewed by Claude</div>
-                            </div>
-                            <div style="padding: 16px; background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-radius: 12px;">
-                                <div style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Inserted</div>
-                                <div style="font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -0.02em;">${result.inserted || 0}</div>
-                                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">new items in your inbox</div>
-                            </div>
-                        </div>
-
-                        <h3 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:0 0 10px;">Focus Topics Used</h3>
-                        <div style="margin-bottom: 24px;">${topicsHtml}</div>
-
-                        <h3 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px;">Pipeline per Source</h3>
-                        <p style="font-size:12px; color:#94a3b8; margin:-6px 0 14px;">Each source goes through 3 stages — see where items are being lost.</p>
-                        ${allSources.map(diagnoseRow).join('')}
-
-                        ${topScoresHtml}
-
-                        <div style="display:flex; justify-content:flex-end; margin-top:24px;">
-                            <button class="btn btn-primary" onclick="window.crmApp.closeDiscoveryResultModal()">Done</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-
-    closeDiscoveryResultModal() {
-        const m = document.getElementById('discoveryResultModal');
-        if (m) m.remove();
     }
 
     async clearInbox() {
@@ -2636,13 +2386,13 @@ class CRMApp {
         if (existing) existing.remove();
 
         const formatMeta = {
+            'carousel':     { label: '📊 Carousel', hint: '6 slides → Canva PDF for LinkedIn carousel' },
             'video-script': { label: '🎬 Video Script', hint: 'For 60-90s talking-head → Submagic' },
-            'linkedin':     { label: '💼 LinkedIn Post', hint: 'Text long-form. Put YouTube link in FIRST comment.' },
-            'youtube':      { label: '📺 YouTube Short', hint: 'Title + description + hashtags' },
-            'instagram':    { label: '📸 Instagram / TikTok', hint: 'Reels caption with hashtags' }
+            'linkedin':     { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words' },
+            'article':      { label: '📝 Article', hint: '1000-1500 word blog post with markdown headings' }
         };
 
-        const sections = ['video-script', 'linkedin', 'youtube', 'instagram'].map(angle => {
+        const sections = ['carousel', 'video-script', 'linkedin', 'article'].map(angle => {
             const d = drafts.find(x => x.angle === angle);
             if (!d) return '';
             const meta = formatMeta[angle];

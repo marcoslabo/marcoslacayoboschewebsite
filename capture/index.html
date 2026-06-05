@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Capture — VytalMed</title>
+    <meta name="description" content="Paste a URL or text, get carousel + video script + LinkedIn + article drafts.">
+    <link rel="manifest" href="/capture/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Capture">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#6d28d9">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --bg-gradient: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+            --card: #1e293b;
+            --accent: #a78bfa;
+            --accent-strong: #8b5cf6;
+            --ink: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.15);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            min-height: 100dvh;
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top);
+        }
+        .page { max-width: 540px; margin: 0 auto; padding: 24px 20px 80px; }
+        .header { text-align: center; margin-bottom: 28px; }
+        .eyebrow {
+            font-size: 11px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
+        }
+        h1 {
+            font-size: 28px; font-weight: 800; line-height: 1.2; letter-spacing: -0.025em;
+            margin: 0 0 8px;
+        }
+        .sub { font-size: 14px; color: var(--muted); margin: 0; }
+
+        .card {
+            background: var(--card);
+            border-radius: 18px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+        textarea {
+            width: 100%;
+            min-height: 140px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #0f172a;
+            color: var(--ink);
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: border 0.2s;
+        }
+        textarea:focus { border-color: var(--accent-strong); }
+        textarea::placeholder { color: #64748b; }
+
+        .formats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .format-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            background: #0f172a;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .format-chip.active {
+            border-color: var(--accent-strong);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(167, 139, 250, 0.08));
+        }
+        .format-icon { font-size: 22px; flex-shrink: 0; }
+        .format-meta { flex: 1; min-width: 0; }
+        .format-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
+        .format-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .format-check {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: transparent; border: 1.5px solid var(--border);
+            flex-shrink: 0; transition: all 0.15s;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 12px;
+        }
+        .format-chip.active .format-check {
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.12s, box-shadow 0.12s;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+        }
+        .submit-btn:active { transform: scale(0.98); }
+        .submit-btn:disabled {
+            opacity: 0.5; cursor: not-allowed; transform: none;
+        }
+
+        .stage { display: none; animation: fadeIn 0.3s ease; }
+        .stage.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+        .spinner-wrap { text-align: center; padding: 60px 0; }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(167, 139, 250, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner-text { color: var(--muted); font-size: 14px; }
+
+        .success {
+            text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.05));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 16px;
+        }
+        .success-icon { font-size: 48px; margin-bottom: 10px; }
+        .success h2 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
+        .success p { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
+        .success .link-btn {
+            display: inline-block;
+            padding: 12px 22px;
+            background: var(--accent-strong);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        .success .secondary {
+            display: inline-block; margin-top: 12px;
+            color: var(--muted); font-size: 13px; text-decoration: none;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-top: 14px;
+            display: none;
+        }
+        .error.show { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <!-- Stage 0: input -->
+    <div id="stage-input" class="stage active">
+        <div class="header">
+            <div class="eyebrow">🎯 Capture</div>
+            <h1>What did you find?</h1>
+            <p class="sub">Paste a URL or the text. Pick formats. Done.</p>
+        </div>
+
+        <div class="card">
+            <label>Source</label>
+            <textarea id="input" placeholder="Paste a URL (LinkedIn post, YouTube, article…)&#10;Or paste the text directly."></textarea>
+        </div>
+
+        <div class="card">
+            <label>Generate</label>
+            <div class="formats" id="formats">
+                <div class="format-chip active" data-fmt="carousel">
+                    <span class="format-icon">📊</span>
+                    <div class="format-meta">
+                        <div class="format-name">Carousel</div>
+                        <div class="format-detail">6 slides · Canva PDF</div>
+                    </div>
+                    <span class="format-check">✓</span>
+                </div>
+                <div class="format-chip active" data-fmt="video-script">
+                    <span class="format-icon">🎬</span>
+                    <div class="format-meta">
+                        <div class="format-name">Video script</div>
+                        <div class="format-detail">60-90s · Submagic</div>
+                    </div>
+                    <span class="format-check">✓</span>
+                </div>
+                <div class="format-chip" data-fmt="linkedin">
+                    <span class="format-icon">💼</span>
+                    <div class="format-meta">
+                        <div class="format-name">LinkedIn post</div>
+                        <div class="format-detail">300-500 words</div>
+                    </div>
+                    <span class="format-check">✓</span>
+                </div>
+                <div class="format-chip" data-fmt="article">
+                    <span class="format-icon">📝</span>
+                    <div class="format-meta">
+                        <div class="format-name">Article</div>
+                        <div class="format-detail">1000-1500w blog</div>
+                    </div>
+                    <span class="format-check">✓</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="submit" class="submit-btn">Generate drafts</button>
+        <div id="error" class="error"></div>
+    </div>
+
+    <!-- Stage 1: processing -->
+    <div id="stage-processing" class="stage">
+        <div class="card">
+            <div class="spinner-wrap">
+                <div class="spinner"></div>
+                <div class="spinner-text" id="processingText">Reading the source…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage 2: success -->
+    <div id="stage-success" class="stage">
+        <div class="success">
+            <div class="success-icon">✅</div>
+            <h2>Drafts ready</h2>
+            <p id="successDetail">Generated and saved to your inbox.</p>
+            <a id="viewInbox" href="/crm/#/inbox" class="link-btn">View in inbox →</a>
+            <br>
+            <a href="#" class="secondary" onclick="window.location.reload(); return false;">Capture another →</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// Format chip toggling
+document.querySelectorAll('.format-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+        chip.classList.toggle('active');
+    });
+});
+
+function getSelectedFormats() {
+    return Array.from(document.querySelectorAll('.format-chip.active')).map(c => c.dataset.fmt);
+}
+
+function setStage(name) {
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+    $('stage-' + name).classList.add('active');
+}
+
+$('submit').addEventListener('click', async () => {
+    const input = $('input').value.trim();
+    const formats = getSelectedFormats();
+
+    if (!input) {
+        $('error').textContent = 'Paste a URL or text first.';
+        $('error').classList.add('show');
+        return;
+    }
+    if (formats.length === 0) {
+        $('error').textContent = 'Pick at least one format.';
+        $('error').classList.add('show');
+        return;
+    }
+    $('error').classList.remove('show');
+
+    setStage('processing');
+    const looksLikeUrl = /^https?:\/\//i.test(input);
+    $('processingText').textContent = looksLikeUrl ? 'Fetching the URL…' : 'Reading the text…';
+
+    setTimeout(() => $('processingText').textContent = 'Claude is writing your drafts…', 1800);
+
+    try {
+        const r = await fetch('/api/capture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input, formats })
+        });
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.error || `Capture failed: ${r.status}`);
+        }
+        const data = await r.json();
+        $('successDetail').textContent = `Generated ${formats.length} draft${formats.length > 1 ? 's' : ''}. Open the inbox to review.`;
+        if (data.viral_input_id) {
+            $('viewInbox').href = `/crm/#/inbox`;
+        }
+        setStage('success');
+    } catch (e) {
+        $('error').textContent = e.message;
+        $('error').classList.add('show');
+        setStage('input');
+    }
+});
+</script>
+</body>
+</html>
