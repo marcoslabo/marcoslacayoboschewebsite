@@ -374,12 +374,24 @@ function esc(s) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// PDF download — render each slide to canvas at 1080x1350 and stack into PDF
+// PDF download — render each slide at TRUE 1080x1350 by forcing the element
+// dimensions during capture, then stack into a portrait PDF.
 async function downloadPDF() {
     const btn = $('downloadBtn');
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = '⏳ Rendering…';
+
+    // Create an offscreen stage where each slide can be temporarily sized to
+    // its full PDF dimensions without visual flash in the main UI.
+    const stage = document.createElement('div');
+    stage.style.cssText = `
+        position: fixed; top: 0; left: -9999px;
+        width: 1080px; height: 1350px;
+        z-index: -1; visibility: visible;
+    `;
+    document.body.appendChild(stage);
+
     try {
         const slides = document.querySelectorAll('.slide');
         const { jsPDF } = window.jspdf;
@@ -387,17 +399,32 @@ async function downloadPDF() {
 
         for (let i = 0; i < slides.length; i++) {
             btn.textContent = `⏳ Slide ${i + 1}/${slides.length}…`;
-            const canvas = await html2canvas(slides[i], {
+
+            // Clone the slide into the offscreen stage at full 1080x1350
+            const clone = slides[i].cloneNode(true);
+            clone.style.width = '1080px';
+            clone.style.height = '1350px';
+            clone.style.aspectRatio = 'auto';
+            clone.style.borderRadius = '0';
+            clone.style.boxShadow = 'none';
+            // Wait a tick so styles apply
+            stage.innerHTML = '';
+            stage.appendChild(clone);
+            await new Promise(r => requestAnimationFrame(r));
+
+            const canvas = await html2canvas(clone, {
                 width: 1080, height: 1350,
                 windowWidth: 1080, windowHeight: 1350,
                 scale: 2,
-                backgroundColor: null,
-                useCORS: true
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
             });
             const img = canvas.toDataURL('image/jpeg', 0.92);
             if (i > 0) pdf.addPage([1080, 1350], 'portrait');
             pdf.addImage(img, 'JPEG', 0, 0, 1080, 1350);
         }
+
         const date = new Date().toISOString().split('T')[0];
         pdf.save(`vytalmed-carousel-${date}.pdf`);
         btn.textContent = '✓ Downloaded';
@@ -407,6 +434,8 @@ async function downloadPDF() {
         alert('PDF generation failed: ' + e.message);
         btn.textContent = orig;
         btn.disabled = false;
+    } finally {
+        stage.remove();
     }
 }
 </script>
