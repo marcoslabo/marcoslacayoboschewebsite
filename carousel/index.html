@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carousel — VytalMed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-page: #0a0a0f;
+            --accent: #22c55e;
+            --purple: #6d28d9;
+            --light-purple: #a78bfa;
+            --navy: #0f172a;
+            --cream: #fef3c7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-page);
+            color: #f8fafc;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 24px;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .toolbar h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+        .toolbar .spacer { flex: 1; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-family: inherit; font-size: 13px; font-weight: 700;
+            text-decoration: none; cursor: pointer; border: none;
+            transition: transform 0.12s, box-shadow 0.12s;
+        }
+        .btn-primary { background: var(--accent); color: var(--navy); box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3); }
+        .btn-primary:hover { transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-ghost { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; }
+
+        /* Slides container */
+        .slides {
+            max-width: 540px;
+            margin: 40px auto;
+            padding: 0 16px 80px;
+            display: flex; flex-direction: column; gap: 28px;
+        }
+
+        /* Each slide — 1080x1350 (4:5 LinkedIn-optimal) */
+        .slide {
+            width: 100%;
+            aspect-ratio: 4 / 5;
+            border-radius: 24px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 16px 48px rgba(0, 0, 0, 0.15);
+            display: flex; flex-direction: column;
+            padding: 8% 9%;
+        }
+
+        .slide .brand {
+            position: absolute; top: 6%; left: 9%;
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase;
+            opacity: 0.85;
+        }
+        .slide .brand-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent);
+        }
+        .slide .page-num {
+            position: absolute; bottom: 6%; right: 9%;
+            font-size: 11px; font-weight: 600; opacity: 0.5;
+            letter-spacing: 1px;
+        }
+        .slide .footer-tag {
+            position: absolute; bottom: 6%; left: 9%;
+            font-size: 11px; font-weight: 500; opacity: 0.5;
+            letter-spacing: 0.5px;
+        }
+
+        /* Slide types */
+        .slide-hook {
+            background:
+                radial-gradient(circle at 20% 10%, rgba(167, 139, 250, 0.25), transparent 50%),
+                radial-gradient(circle at 80% 90%, rgba(34, 197, 94, 0.18), transparent 50%),
+                linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4c1d95 100%);
+            color: white;
+            justify-content: center;
+            text-align: left;
+        }
+        .slide-hook .headline {
+            font-size: clamp(28px, 7vw, 56px);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+        .slide-hook .body {
+            margin-top: 16px;
+            font-size: clamp(14px, 2.5vw, 20px);
+            font-weight: 500;
+            opacity: 0.85;
+            max-width: 90%;
+        }
+
+        .slide-setup {
+            background: linear-gradient(180deg, #f8fafc 0%, #ede9fe 100%);
+            color: var(--navy);
+            justify-content: center;
+            border-left: 6px solid var(--purple);
+        }
+        .slide-setup .headline {
+            font-size: clamp(24px, 5vw, 42px);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            color: var(--navy);
+        }
+        .slide-setup .body {
+            margin-top: 18px;
+            font-size: clamp(14px, 2.5vw, 19px);
+            font-weight: 500;
+            color: #475569;
+            line-height: 1.5;
+            max-width: 95%;
+        }
+
+        /* Body slides — three variants for visual rhythm */
+        .slide-body {
+            color: var(--navy);
+            justify-content: flex-start;
+            padding-top: 18%;
+        }
+        .slide-body-1 { background: #fefce8; }
+        .slide-body-1 .accent-bar { background: #eab308; }
+        .slide-body-2 { background: #fce7f3; }
+        .slide-body-2 .accent-bar { background: #ec4899; }
+        .slide-body-3 { background: #dbeafe; }
+        .slide-body-3 .accent-bar { background: #2563eb; }
+        .slide-body .accent-bar {
+            width: 56px; height: 5px;
+            border-radius: 999px;
+            margin-bottom: 24px;
+        }
+        .slide-body .headline {
+            font-size: clamp(22px, 5vw, 40px);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+        .slide-body .body {
+            margin-top: 18px;
+            font-size: clamp(13px, 2.4vw, 18px);
+            font-weight: 500;
+            color: #334155;
+            line-height: 1.55;
+        }
+        .slide-body .slide-num-big {
+            position: absolute; top: 6%; right: 9%;
+            font-size: clamp(32px, 8vw, 60px);
+            font-weight: 900;
+            opacity: 0.08;
+            line-height: 1;
+        }
+
+        .slide-cta {
+            background:
+                radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.3), transparent 60%),
+                linear-gradient(135deg, #6d28d9 0%, #4c1d95 40%, #064e3b 100%);
+            color: white;
+            justify-content: center;
+            text-align: left;
+        }
+        .slide-cta .headline {
+            font-size: clamp(26px, 6vw, 48px);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.025em;
+        }
+        .slide-cta .body {
+            margin-top: 16px;
+            font-size: clamp(14px, 2.5vw, 19px);
+            font-weight: 500;
+            opacity: 0.85;
+        }
+        .slide-cta .cta-pill {
+            display: inline-block;
+            margin-top: 28px;
+            padding: 14px 22px;
+            background: var(--accent);
+            color: var(--navy);
+            border-radius: 14px;
+            font-size: clamp(13px, 2.5vw, 18px);
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+        }
+
+        .loader { text-align: center; padding: 80px 20px; color: #94a3b8; }
+        .error-box { max-width: 480px; margin: 60px auto; padding: 24px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; color: #fca5a5; text-align: center; }
+
+        @media (max-width: 540px) {
+            .slides { padding: 0 12px 60px; margin: 24px auto; }
+            .toolbar { padding: 12px 16px; }
+            .toolbar h1 { font-size: 13px; }
+            .btn { padding: 8px 12px; font-size: 12px; }
+        }
+
+        /* Print: each slide on its own page for browser PDF fallback */
+        @media print {
+            .toolbar { display: none; }
+            body, html { background: white; }
+            .slides { margin: 0; padding: 0; gap: 0; max-width: none; }
+            .slide {
+                width: 1080px; height: 1350px; aspect-ratio: auto;
+                border-radius: 0; box-shadow: none;
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header class="toolbar">
+    <h1>🎯 VytalMed Carousel</h1>
+    <div class="spacer"></div>
+    <button id="downloadBtn" class="btn btn-primary" disabled>📥 Download PDF</button>
+</header>
+
+<main id="content">
+    <div class="loader">Loading carousel…</div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
+
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(window.location.search);
+const viralInputId = params.get('id');
+
+if (!viralInputId) {
+    $('content').innerHTML = '<div class="error-box">Missing <code>?id=</code> param. Open a carousel from the Inbox.</div>';
+} else {
+    init();
+}
+
+async function init() {
+    try {
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data, error } = await sb
+            .from('post_drafts')
+            .select('*')
+            .eq('viral_input_id', viralInputId)
+            .eq('angle', 'carousel')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            $('content').innerHTML = '<div class="error-box">No carousel draft found for this item. Try regenerating from the Inbox.</div>';
+            return;
+        }
+        const draft = data[0].edited_text || data[0].draft_text;
+        const slides = parseSlides(draft);
+        if (slides.length === 0) {
+            $('content').innerHTML = '<div class="error-box">Could not parse slides from the carousel draft.</div>';
+            return;
+        }
+        renderSlides(slides);
+        $('downloadBtn').disabled = false;
+        $('downloadBtn').addEventListener('click', downloadPDF);
+    } catch (e) {
+        console.error(e);
+        $('content').innerHTML = `<div class="error-box">${e.message || 'Failed to load.'}</div>`;
+    }
+}
+
+function parseSlides(text) {
+    // Match: "SLIDE 1 (HOOK):  content..." across the text
+    const re = /SLIDE\s+(\d+)\s*(?:\(([^)]+)\))?\s*:?\s*([\s\S]*?)(?=\n\s*SLIDE\s+\d+|$)/gi;
+    const out = [];
+    let m;
+    while ((m = re.exec(text)) !== null) {
+        const num = parseInt(m[1], 10);
+        const type = (m[2] || '').trim().toUpperCase();
+        const content = (m[3] || '').trim();
+        const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+        // Strip leading markdown bold/asterisks
+        const clean = lines.map(l => l.replace(/^\*\*|\*\*$/g, '').replace(/^[#-]+\s*/, ''));
+        const headline = clean[0] || '';
+        const body = clean.slice(1).join('\n');
+        out.push({ n: num, type, headline, body });
+    }
+    return out.sort((a, b) => a.n - b.n);
+}
+
+function renderSlides(slides) {
+    const html = `<div class="slides">${slides.map(slideHtml).join('')}</div>`;
+    $('content').innerHTML = html;
+}
+
+function slideHtml(s) {
+    const t = s.type;
+    const total = 6;
+    const pageNum = `${s.n} / ${total}`;
+    // Choose the right slide style
+    if (t === 'HOOK' || s.n === 1) {
+        return `
+            <div class="slide slide-hook" data-slide="${s.n}">
+                <div class="brand"><span class="brand-dot"></span> VYTALMED</div>
+                <div class="headline">${esc(s.headline)}</div>
+                ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                <div class="page-num">${pageNum}</div>
+            </div>`;
+    }
+    if (t === 'SETUP' || s.n === 2) {
+        return `
+            <div class="slide slide-setup" data-slide="${s.n}">
+                <div class="brand" style="color: #6d28d9;"><span class="brand-dot"></span> VYTALMED</div>
+                <div class="headline">${esc(s.headline)}</div>
+                ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                <div class="page-num" style="color: #475569; opacity: 0.5;">${pageNum}</div>
+            </div>`;
+    }
+    if (t === 'CTA' || s.n === total) {
+        // Extract URL from body if present, otherwise use a default
+        const urlMatch = (s.body + ' ' + s.headline).match(/(marcoslacayobosche\.com\/diagnose|vytalmed\.co\/diagnose)/i);
+        const url = urlMatch ? urlMatch[1] : 'marcoslacayobosche.com/diagnose';
+        // Body text without the URL chunk
+        let bodyClean = s.body.replace(/[→\-]?\s*(marcoslacayobosche\.com\/diagnose|vytalmed\.co\/diagnose)/i, '').trim();
+        return `
+            <div class="slide slide-cta" data-slide="${s.n}">
+                <div class="brand"><span class="brand-dot"></span> VYTALMED</div>
+                <div class="headline">${esc(s.headline)}</div>
+                ${bodyClean ? `<div class="body">${esc(bodyClean)}</div>` : ''}
+                <div class="cta-pill">→ ${esc(url)}</div>
+                <div class="page-num">${pageNum}</div>
+            </div>`;
+    }
+    // BODY (slides 3, 4, 5)
+    const bodyVariant = ((s.n - 3) % 3) + 1;  // 1 → yellow, 2 → pink, 3 → blue
+    return `
+        <div class="slide slide-body slide-body-${bodyVariant}" data-slide="${s.n}">
+            <div class="brand" style="color: #475569;"><span class="brand-dot"></span> VYTALMED</div>
+            <div class="slide-num-big">0${s.n}</div>
+            <div class="accent-bar"></div>
+            <div class="headline">${esc(s.headline)}</div>
+            ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+            <div class="footer-tag">marcoslacayobosche.com/diagnose</div>
+            <div class="page-num" style="color: #475569; opacity: 0.5;">${pageNum}</div>
+        </div>`;
+}
+
+function esc(s) {
+    return String(s || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// PDF download — render each slide to canvas at 1080x1350 and stack into PDF
+async function downloadPDF() {
+    const btn = $('downloadBtn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Rendering…';
+    try {
+        const slides = document.querySelectorAll('.slide');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [1080, 1350] });
+
+        for (let i = 0; i < slides.length; i++) {
+            btn.textContent = `⏳ Slide ${i + 1}/${slides.length}…`;
+            const canvas = await html2canvas(slides[i], {
+                width: 1080, height: 1350,
+                windowWidth: 1080, windowHeight: 1350,
+                scale: 2,
+                backgroundColor: null,
+                useCORS: true
+            });
+            const img = canvas.toDataURL('image/jpeg', 0.92);
+            if (i > 0) pdf.addPage([1080, 1350], 'portrait');
+            pdf.addImage(img, 'JPEG', 0, 0, 1080, 1350);
+        }
+        const date = new Date().toISOString().split('T')[0];
+        pdf.save(`vytalmed-carousel-${date}.pdf`);
+        btn.textContent = '✓ Downloaded';
+        setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+    } catch (e) {
+        console.error(e);
+        alert('PDF generation failed: ' + e.message);
+        btn.textContent = orig;
+        btn.disabled = false;
+    }
+}
+</script>
+</body>
+</html>

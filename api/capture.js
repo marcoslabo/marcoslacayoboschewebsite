@@ -184,7 +184,7 @@ You're given ONE piece of source content. Generate ONLY the formats requested be
 UNIVERSAL RULES (apply to ALL formats):
 - Reference the source's claim/angle without copying verbatim
 - Operator-perspective twist with VytalMed POV
-- End with CTA: "Diagnose your workflow at vytalmed.co/diagnose"
+- End with CTA: "Diagnose your workflow at marcoslacayobosche.com/diagnose"
 - No emojis (or sparingly, only where natural to the platform)
 - No hype words ("revolutionary", "game-changer", "unlock")
 - Specificity wins: name real workflows (faxes, HL7, prior auth) over abstractions
@@ -223,18 +223,18 @@ Slide structure:
   SLIDE 1 (HOOK): one sharp claim, max 8 words, no period
   SLIDE 2 (SETUP): the operator pain in 1-2 sentences
   SLIDE 3-5 (BODY): three substantive points — each a short headline + 1-2 supporting lines
-  SLIDE 6 (CTA): one-line takeaway + "Diagnose your workflow → vytalmed.co/diagnose"
+  SLIDE 6 (CTA): one-line takeaway + "Diagnose your workflow → marcoslacayobosche.com/diagnose"
 Render as plain text with "SLIDE N:" labels and blank lines between.`,
 
     'video-script': `🎬 VIDEO-SCRIPT (60-90 second talking-head, processed via Submagic)
 Spoken script with [pause], [emphasis], [b-roll: description] cues.
 Structure: HOOK (5s) → CLAIM (15s) → STORY/EXAMPLE (30s) → POV (15s) → CTA (10s)
-Open with a contrarian or surprising line. End with: "Diagnose your workflow at vytalmed.co/diagnose."`,
+Open with a contrarian or surprising line. End with: "Diagnose your workflow at marcoslacayobosche.com/diagnose."`,
 
     'linkedin': `💼 LINKEDIN (300-500 word text post)
 Structure: Hook line (one line, blank line after) → 2-3 short paragraphs telling the story → POV punchline → CTA on its own line.
 Short sentences. Line breaks. Operator-respecting. No jargon padding.
-Plain text only — no markdown. End with the CTA "vytalmed.co/diagnose" on its own line.`,
+Plain text only — no markdown. End with the CTA "marcoslacayobosche.com/diagnose" on its own line.`,
 
     'article': `📝 ARTICLE (1000-1500 word blog post)
 Structure:
@@ -242,7 +242,7 @@ Structure:
   INTRO: 2-3 paragraphs framing the operator pain
   3-4 SECTION SUBHEADERS: each with 150-250 words of substantive content
   CLOSING POV: one-paragraph anti-hype punchline
-  CTA: link to vytalmed.co/diagnose
+  CTA: link to marcoslacayobosche.com/diagnose
 Tone: operator-respecting, anti-hype, anti-vendor. Specific over abstract.
 Use markdown for the headline (#) and subheaders (##).`
 };

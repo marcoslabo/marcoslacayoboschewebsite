@@ -121,7 +121,7 @@ ${pillarBlock}
 RULES FOR ALL FOUR DRAFTS:
 - Reference the viral piece (you can credit the source or paraphrase the claim)
 - Add Marcos's operator-perspective twist
-- End with a clear CTA to vytalmed.co/diagnose ("Diagnose your workflow in 60 seconds")
+- End with a clear CTA to marcoslacayobosche.com/diagnose ("Diagnose your workflow in 60 seconds")
 - No emojis except where natural for the platform (sparingly)
 - No hype words ("revolutionary", "game-changer", "unlock", etc.)
 - Specificity wins: name real workflows (faxes, HL7, prior auth, etc.) not abstractions
@@ -131,17 +131,17 @@ Format as 6 numbered slides. Each slide: short headline + 1-2 supporting lines.
   SLIDE 1 (HOOK): one sharp claim, max 8 words, no period
   SLIDE 2 (SETUP): the operator pain in 1-2 sentences
   SLIDE 3-5 (BODY): three substantive points — each a short headline + 1-2 supporting lines
-  SLIDE 6 (CTA): one-line takeaway + "Diagnose your workflow → vytalmed.co/diagnose"
+  SLIDE 6 (CTA): one-line takeaway + "Diagnose your workflow → marcoslacayobosche.com/diagnose"
 Render as plain text with "SLIDE N:" labels and blank lines between.
 
 DRAFT 2 — video-script (for 60-90 sec talking-head, run through Submagic)
 Format: spoken script with [pause], [emphasis], [b-roll: description] cues.
 Structure: HOOK (5 sec) → CLAIM (15 sec) → STORY/EXAMPLE (30 sec) → POV (15 sec) → CTA (10 sec).
-Open with a contrarian or surprising line. End with: "Diagnose your workflow at vytalmed.co/diagnose."
+Open with a contrarian or surprising line. End with: "Diagnose your workflow at marcoslacayobosche.com/diagnose."
 
 DRAFT 3 — linkedin (text long-form post, 300-500 words)
 Structure: Hook line (one line, blank line after) → 2-3 short paragraphs telling the story → POV punchline → CTA on its own line.
-Short sentences, line breaks, operator-respecting, no jargon padding. CTA on last line as plain text "vytalmed.co/diagnose" (LinkedIn demotes external links in the body).
+Short sentences, line breaks, operator-respecting, no jargon padding. CTA on last line as plain text "marcoslacayobosche.com/diagnose" (LinkedIn demotes external links in the body).
 
 DRAFT 4 — article (1000-1500 word blog post)
 Structure:
@@ -149,7 +149,7 @@ Structure:
   INTRO: 2-3 paragraphs framing the operator pain
   3-4 SECTION SUBHEADERS (markdown ##): each with 150-250 words of substantive content
   CLOSING POV: one-paragraph anti-hype punchline
-  CTA: link to vytalmed.co/diagnose
+  CTA: link to marcoslacayobosche.com/diagnose
 Tone: operator-respecting, anti-hype, anti-vendor. Specific over abstract.
 
 RETURN JSON ONLY (no markdown fences):

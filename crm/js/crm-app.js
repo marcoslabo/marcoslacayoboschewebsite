@@ -1935,7 +1935,7 @@ class CRMApp {
         if (existing) existing.remove();
 
         const formatMeta = {
-            'carousel':     { label: '📊 Carousel', hint: '6 slides → Canva PDF for LinkedIn carousel' },
+            'carousel':     { label: '📊 Carousel', hint: '6 slides — click "View design" for the styled PDF' },
             'video-script': { label: '🎬 Video Script', hint: 'For 60-90s talking-head → Submagic' },
             'linkedin':     { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words' },
             'article':      { label: '📝 Article', hint: '1000-1500 word blog post with markdown headings' }
@@ -1954,6 +1954,7 @@ class CRMApp {
                             <div style="font-size:11px; color:#94a3b8;">${meta.hint}</div>
                         </div>
                         <div style="display:flex; gap:6px;">
+                            ${angle === 'carousel' ? `<a href="/carousel/?id=${viralInputId}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">👁 View design</a>` : ''}
                             <button onclick="window.crmApp.copyDraft('${d.id}')" class="btn btn-primary btn-sm">📋 Copy</button>
                             <button onclick="window.crmApp.markDraftPosted('${d.id}', '${viralInputId}')" class="btn ${isPosted ? 'btn-ghost' : 'btn-secondary'} btn-sm">
                                 ${isPosted ? '✓ Posted' : 'Mark posted'}
