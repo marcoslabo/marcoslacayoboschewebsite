@@ -70,38 +70,45 @@
             position: relative;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 16px 48px rgba(0, 0, 0, 0.15);
             display: flex; flex-direction: column;
-            padding: 8% 9%;
+            padding: 7% 9% 6%;
         }
 
-        /* === BRAND HEADER (every slide gets this) === */
+        /* === BRAND HEADER (in-flow, not absolute — prevents overlap with text) === */
         .slide .brand-row {
-            position: absolute; top: 6%; left: 9%; right: 9%;
             display: flex; align-items: center; justify-content: space-between;
-            gap: 12px;
+            gap: 12px; flex-shrink: 0;
+            margin-bottom: 6%;
         }
         .slide .brand-logo {
-            height: 28px; width: auto;
+            height: 26px; width: auto;
         }
         .slide .brand-logo-fallback {
             display: flex; align-items: center; gap: 8px;
-            font-size: 12px; font-weight: 800;
+            font-size: 11px; font-weight: 800;
             letter-spacing: 1.5px; text-transform: uppercase;
         }
         .slide .brand-dot {
-            width: 10px; height: 10px; border-radius: 50%;
+            width: 9px; height: 9px; border-radius: 50%;
             background: var(--vm-green);
         }
         .slide .page-num {
-            font-size: 12px; font-weight: 700; letter-spacing: 1px;
+            font-size: 11px; font-weight: 700; letter-spacing: 1px;
             padding: 4px 10px; border-radius: 999px;
             background: rgba(255,255,255,0.12);
         }
 
+        /* Slide content area takes remaining vertical space */
+        .slide .slide-content {
+            flex: 1;
+            display: flex; flex-direction: column;
+            min-height: 0;
+        }
+
         /* Footer with URL on body slides */
         .slide .footer-url {
-            position: absolute; bottom: 6%; left: 9%;
-            font-size: 12px; font-weight: 600; opacity: 0.45;
+            font-size: 11px; font-weight: 600; opacity: 0.5;
             letter-spacing: 0.5px;
+            margin-top: 18px;
         }
 
         /* === THEME COLOR VARIABLES === */
@@ -120,16 +127,16 @@
                 radial-gradient(circle at 80% 90%, var(--accent-dark) -40%, transparent 50%),
                 linear-gradient(135deg, #0a0f1f 0%, #0f172a 50%, #1e1b4b 100%);
             color: white;
-            justify-content: center;
         }
+        .slide.hook.variant-A .slide-content { justify-content: center; }
         .slide.hook.variant-A .headline {
-            font-size: clamp(36px, 10vw, 110px);
-            font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+            font-size: clamp(28px, 6.5vw, 72px);
+            font-weight: 900; line-height: 1.05; letter-spacing: -0.025em;
         }
         .slide.hook.variant-A .headline .accent-word { color: var(--accent-light); }
         .slide.hook.variant-A .body {
-            margin-top: 20px;
-            font-size: clamp(16px, 3.5vw, 32px);
+            margin-top: 18px;
+            font-size: clamp(14px, 2.4vw, 22px);
             font-weight: 500; opacity: 0.85; max-width: 92%; line-height: 1.4;
         }
 
@@ -142,33 +149,34 @@
             content: ''; position: absolute; left: 0; top: 0; bottom: 0;
             width: 6%; background: linear-gradient(180deg, var(--accent), var(--accent-dark));
         }
+        .slide.hook.variant-B .slide-content { justify-content: center; }
         .slide.hook.variant-B .headline {
-            font-size: clamp(34px, 9.5vw, 100px);
-            font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+            font-size: clamp(28px, 6.2vw, 68px);
+            font-weight: 900; line-height: 1.05; letter-spacing: -0.025em;
         }
         .slide.hook.variant-B .headline .accent-word { color: var(--accent); }
         .slide.hook.variant-B .body {
-            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
+            margin-top: 18px; font-size: clamp(14px, 2.4vw, 22px);
             font-weight: 500; opacity: 0.85; max-width: 92%; line-height: 1.4;
         }
-        /* Watermark dot-cluster */
         .slide.hook.variant-B .watermark {
             position: absolute; right: -8%; bottom: -8%;
             width: 60%; opacity: 0.08; color: var(--accent);
+            pointer-events: none;
         }
 
         /* Variant C: top color block + bottom dark, split design */
         .slide.hook.variant-C {
-            background: linear-gradient(180deg, var(--accent) 0%, var(--accent) 35%, #0a0f1f 35%, #0a0f1f 100%);
+            background: linear-gradient(180deg, var(--accent) 0%, var(--accent) 30%, #0a0f1f 30%, #0a0f1f 100%);
             color: white;
         }
+        .slide.hook.variant-C .slide-content { justify-content: center; padding-top: 12%; }
         .slide.hook.variant-C .headline {
-            margin-top: 18%;
-            font-size: clamp(34px, 9vw, 96px);
-            font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+            font-size: clamp(28px, 6vw, 64px);
+            font-weight: 900; line-height: 1.05; letter-spacing: -0.025em;
         }
         .slide.hook.variant-C .body {
-            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
+            margin-top: 18px; font-size: clamp(14px, 2.4vw, 22px);
             font-weight: 500; opacity: 0.85; max-width: 92%; line-height: 1.4;
         }
 
@@ -178,93 +186,98 @@
             background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
             color: var(--navy);
             border-left: 8px solid var(--accent);
-            justify-content: center;
         }
+        .slide.setup.variant-A .slide-content { justify-content: center; }
         .slide.setup.variant-A .headline {
-            font-size: clamp(28px, 7vw, 72px);
+            font-size: clamp(22px, 4.8vw, 48px);
             font-weight: 800; line-height: 1.15; letter-spacing: -0.02em;
             color: var(--navy);
         }
         .slide.setup.variant-A .body {
-            margin-top: 22px; font-size: clamp(16px, 3.2vw, 30px);
-            font-weight: 500; color: #475569; line-height: 1.5; max-width: 95%;
+            margin-top: 18px; font-size: clamp(14px, 2.4vw, 22px);
+            font-weight: 500; color: #475569; line-height: 1.55; max-width: 95%;
         }
 
         /* Variant B: pull-quote style with giant quotation mark */
         .slide.setup.variant-B {
             background: #ffffff; color: var(--navy);
-            justify-content: center; position: relative;
+            position: relative;
         }
         .slide.setup.variant-B::before {
             content: '"';
-            position: absolute; top: 4%; left: 6%;
+            position: absolute; top: 2%; left: 6%;
             font-family: Georgia, serif;
-            font-size: clamp(160px, 28vw, 320px);
+            font-size: clamp(120px, 22vw, 240px);
             font-weight: 700;
             color: var(--accent); opacity: 0.18; line-height: 1;
+            pointer-events: none;
         }
+        .slide.setup.variant-B .slide-content { justify-content: center; }
         .slide.setup.variant-B .headline {
-            font-size: clamp(28px, 7vw, 68px);
+            font-size: clamp(22px, 4.8vw, 46px);
             font-weight: 800; line-height: 1.2; letter-spacing: -0.02em;
             color: var(--navy); position: relative;
         }
         .slide.setup.variant-B .body {
-            margin-top: 22px; font-size: clamp(16px, 3.2vw, 28px);
-            font-weight: 500; color: #475569; line-height: 1.5; position: relative;
+            margin-top: 18px; font-size: clamp(14px, 2.4vw, 22px);
+            font-weight: 500; color: #475569; line-height: 1.55; position: relative;
         }
 
         /* === SLIDE TYPE: BODY === */
         /* Variant A: numbered list / big number watermark */
         .slide.body.variant-A {
             background: #fafafa; color: var(--navy);
-            padding-top: 18%;
         }
+        .slide.body.variant-A .slide-content { justify-content: center; padding-top: 4%; }
         .slide.body.variant-A .slide-num-big {
-            position: absolute; top: 8%; right: 7%;
-            font-size: clamp(80px, 18vw, 220px);
+            position: absolute; top: 4%; right: 5%;
+            font-size: clamp(60px, 12vw, 140px);
             font-weight: 900; line-height: 1; letter-spacing: -0.04em;
-            color: var(--accent); opacity: 0.15;
+            color: var(--accent); opacity: 0.12;
+            pointer-events: none;
         }
         .slide.body.variant-A .accent-bar {
-            width: 64px; height: 6px; border-radius: 999px;
-            background: var(--accent); margin-bottom: 24px;
+            width: 56px; height: 5px; border-radius: 999px;
+            background: var(--accent); margin-bottom: 20px;
         }
         .slide.body.variant-A .headline {
-            font-size: clamp(26px, 7vw, 68px);
-            font-weight: 800; line-height: 1.15; letter-spacing: -0.02em;
+            font-size: clamp(22px, 4.8vw, 44px);
+            font-weight: 800; line-height: 1.2; letter-spacing: -0.02em;
         }
         .slide.body.variant-A .body {
-            margin-top: 22px; font-size: clamp(15px, 3vw, 28px);
+            margin-top: 16px; font-size: clamp(14px, 2.4vw, 22px);
             font-weight: 500; color: #334155; line-height: 1.55;
         }
 
         /* Variant B: split — accent color top half + content bottom */
         .slide.body.variant-B {
             background: white; color: var(--navy);
-            padding: 0; flex-direction: column;
+            padding: 0;
         }
         .slide.body.variant-B .top-half {
             background: linear-gradient(135deg, var(--accent), var(--accent-dark));
             color: white;
-            padding: 9% 9%; flex: 0 0 40%;
-            display: flex; flex-direction: column; justify-content: flex-end; position: relative;
+            padding: 7% 9%; flex: 0 0 38%;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative;
         }
+        .slide.body.variant-B .top-half .brand-row { margin-bottom: 0; }
         .slide.body.variant-B .bot-half {
-            padding: 7% 9% 9%; flex: 1;
+            padding: 6% 9% 7%; flex: 1;
             display: flex; flex-direction: column; justify-content: center;
         }
         .slide.body.variant-B .slide-num-big {
-            position: absolute; top: 12%; right: 9%;
-            font-size: clamp(48px, 11vw, 130px); font-weight: 900; line-height: 1;
+            position: absolute; top: 8%; right: 7%;
+            font-size: clamp(40px, 8vw, 90px); font-weight: 900; line-height: 1;
             opacity: 0.35;
         }
         .slide.body.variant-B .headline {
-            font-size: clamp(26px, 7vw, 64px);
-            font-weight: 900; line-height: 1.1; letter-spacing: -0.02em;
+            font-size: clamp(22px, 4.8vw, 44px);
+            font-weight: 900; line-height: 1.15; letter-spacing: -0.02em;
             color: white;
         }
         .slide.body.variant-B .body {
-            font-size: clamp(15px, 3vw, 28px);
+            font-size: clamp(14px, 2.4vw, 22px);
             font-weight: 500; color: #334155; line-height: 1.55;
         }
 
@@ -275,47 +288,49 @@
                 radial-gradient(circle at 30% 30%, var(--accent) -30%, transparent 60%),
                 linear-gradient(135deg, var(--accent-dark) 0%, #0a0f1f 70%);
             color: white;
-            justify-content: center;
         }
+        .slide.cta.variant-A .slide-content { justify-content: center; }
         .slide.cta.variant-A .headline {
-            font-size: clamp(34px, 9vw, 92px);
+            font-size: clamp(26px, 6vw, 60px);
             font-weight: 900; line-height: 1.1; letter-spacing: -0.025em;
         }
         .slide.cta.variant-A .body {
-            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
-            font-weight: 500; opacity: 0.85; line-height: 1.4;
+            margin-top: 18px; font-size: clamp(14px, 2.4vw, 22px);
+            font-weight: 500; opacity: 0.85; line-height: 1.45;
         }
         .slide.cta.variant-A .cta-pill {
-            display: inline-block; margin-top: 36px;
-            padding: 20px 32px; background: var(--vm-green); color: var(--navy);
-            border-radius: 18px;
-            font-size: clamp(16px, 3.2vw, 30px); font-weight: 800; letter-spacing: -0.01em;
+            display: inline-block; margin-top: 28px;
+            padding: 16px 26px; background: var(--vm-green); color: var(--navy);
+            border-radius: 14px;
+            font-size: clamp(14px, 2.4vw, 22px); font-weight: 800; letter-spacing: -0.01em;
             box-shadow: 0 6px 24px rgba(34, 197, 94, 0.4);
+            align-self: flex-start;
         }
 
         /* Variant B: minimal — big white text + tiny green underline link */
         .slide.cta.variant-B {
             background: #0a0f1f; color: white;
-            justify-content: center;
         }
         .slide.cta.variant-B::before {
-            content: ''; position: absolute; inset: 6%;
+            content: ''; position: absolute; inset: 5%;
             border: 2px solid var(--accent); border-radius: 18px;
-            opacity: 0.18;
+            opacity: 0.2; pointer-events: none;
         }
+        .slide.cta.variant-B .slide-content { justify-content: center; }
         .slide.cta.variant-B .headline {
-            font-size: clamp(34px, 9vw, 96px);
+            font-size: clamp(26px, 6vw, 60px);
             font-weight: 900; line-height: 1.1; letter-spacing: -0.025em;
+            position: relative;
         }
         .slide.cta.variant-B .body {
-            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
-            font-weight: 500; opacity: 0.85; line-height: 1.4;
+            margin-top: 18px; font-size: clamp(14px, 2.4vw, 22px);
+            font-weight: 500; opacity: 0.85; line-height: 1.45; position: relative;
         }
         .slide.cta.variant-B .url-link {
-            display: inline-block; margin-top: 32px;
-            font-size: clamp(16px, 3vw, 28px); font-weight: 800;
+            display: inline-block; margin-top: 26px;
+            font-size: clamp(14px, 2.4vw, 22px); font-weight: 800;
             color: var(--vm-green); border-bottom: 3px solid var(--vm-green);
-            padding-bottom: 4px;
+            padding-bottom: 4px; position: relative; align-self: flex-start;
         }
 
         /* Loader / error */
@@ -516,8 +531,10 @@ function slideHtml(s, theme, total, idx) {
         return `
             <div class="slide hook variant-${variant} theme-${theme}">
                 ${brand}
-                <div class="headline">${headlineHtml}</div>
-                ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                <div class="slide-content">
+                    <div class="headline">${headlineHtml}</div>
+                    ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                </div>
                 ${watermark}
             </div>`;
     }
@@ -525,8 +542,10 @@ function slideHtml(s, theme, total, idx) {
         return `
             <div class="slide setup variant-${variant} theme-${theme}">
                 ${brandDark}
-                <div class="headline">${esc(s.headline)}</div>
-                ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                <div class="slide-content">
+                    <div class="headline">${esc(s.headline)}</div>
+                    ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                </div>
             </div>`;
     }
     if (cls === 'cta') {
@@ -539,9 +558,11 @@ function slideHtml(s, theme, total, idx) {
         return `
             <div class="slide cta variant-${variant} theme-${theme}">
                 ${brand}
-                <div class="headline">${esc(s.headline)}</div>
-                ${bodyClean ? `<div class="body">${esc(bodyClean)}</div>` : ''}
-                ${ctaEl}
+                <div class="slide-content">
+                    <div class="headline">${esc(s.headline)}</div>
+                    ${bodyClean ? `<div class="body">${esc(bodyClean)}</div>` : ''}
+                    ${ctaEl}
+                </div>
             </div>`;
     }
     // BODY
@@ -555,7 +576,7 @@ function slideHtml(s, theme, total, idx) {
                 </div>
                 <div class="bot-half">
                     ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
-                    <div class="footer-url" style="color: #64748b; position: static; margin-top: 16px;">marcoslacayobosche.com/diagnose</div>
+                    <div class="footer-url" style="color: #64748b;">marcoslacayobosche.com/diagnose</div>
                 </div>
             </div>`;
     }
@@ -563,10 +584,12 @@ function slideHtml(s, theme, total, idx) {
         <div class="slide body variant-A theme-${theme}">
             ${brandDark}
             <div class="slide-num-big">0${s.n}</div>
-            <div class="accent-bar"></div>
-            <div class="headline">${esc(s.headline)}</div>
-            ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
-            <div class="footer-url" style="color: #94a3b8;">marcoslacayobosche.com/diagnose</div>
+            <div class="slide-content">
+                <div class="accent-bar"></div>
+                <div class="headline">${esc(s.headline)}</div>
+                ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                <div class="footer-url" style="color: #94a3b8;">marcoslacayobosche.com/diagnose</div>
+            </div>
         </div>`;
 }
 
