@@ -13,11 +13,8 @@
     <style>
         :root {
             --bg-page: #0a0a0f;
-            --accent: #22c55e;
-            --purple: #6d28d9;
-            --light-purple: #a78bfa;
             --navy: #0f172a;
-            --cream: #fef3c7;
+            --vm-green: #22c55e;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body {
@@ -31,7 +28,7 @@
         /* Toolbar */
         .toolbar {
             position: sticky; top: 0; z-index: 100;
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
             padding: 14px 24px;
             background: rgba(15, 23, 42, 0.92);
             backdrop-filter: blur(20px);
@@ -39,19 +36,22 @@
             border-bottom: 1px solid rgba(148, 163, 184, 0.15);
         }
         .toolbar h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+        .toolbar .theme-tag {
+            font-size: 11px; padding: 4px 10px; border-radius: 999px;
+            background: rgba(255,255,255,0.08); color: #cbd5e1;
+            font-weight: 600; letter-spacing: 0.5px;
+        }
         .toolbar .spacer { flex: 1; }
         .btn {
             display: inline-flex; align-items: center; gap: 8px;
-            padding: 10px 16px;
-            border-radius: 10px;
+            padding: 10px 16px; border-radius: 10px;
             font-family: inherit; font-size: 13px; font-weight: 700;
             text-decoration: none; cursor: pointer; border: none;
             transition: transform 0.12s, box-shadow 0.12s;
         }
-        .btn-primary { background: var(--accent); color: var(--navy); box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3); }
+        .btn-primary { background: var(--vm-green); color: var(--navy); box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3); }
         .btn-primary:hover { transform: translateY(-1px); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .btn-ghost { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; }
 
         /* Slides container */
         .slides {
@@ -73,149 +73,256 @@
             padding: 8% 9%;
         }
 
-        .slide .brand {
-            position: absolute; top: 6%; left: 9%;
-            display: flex; align-items: center; gap: 10px;
-            font-size: clamp(11px, 1.6vw, 18px); font-weight: 700;
+        /* === BRAND HEADER (every slide gets this) === */
+        .slide .brand-row {
+            position: absolute; top: 6%; left: 9%; right: 9%;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px;
+        }
+        .slide .brand-logo {
+            height: 28px; width: auto;
+        }
+        .slide .brand-logo-fallback {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 800;
             letter-spacing: 1.5px; text-transform: uppercase;
-            opacity: 0.85;
         }
         .slide .brand-dot {
-            width: clamp(8px, 1vw, 12px); height: clamp(8px, 1vw, 12px); border-radius: 50%;
-            background: var(--accent);
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--vm-green);
         }
         .slide .page-num {
-            position: absolute; bottom: 6%; right: 9%;
-            font-size: clamp(11px, 1.6vw, 18px); font-weight: 600; opacity: 0.5;
-            letter-spacing: 1px;
+            font-size: 12px; font-weight: 700; letter-spacing: 1px;
+            padding: 4px 10px; border-radius: 999px;
+            background: rgba(255,255,255,0.12);
         }
-        .slide .footer-tag {
+
+        /* Footer with URL on body slides */
+        .slide .footer-url {
             position: absolute; bottom: 6%; left: 9%;
-            font-size: clamp(11px, 1.6vw, 18px); font-weight: 500; opacity: 0.5;
+            font-size: 12px; font-weight: 600; opacity: 0.45;
             letter-spacing: 0.5px;
         }
 
-        /* Slide types */
-        .slide-hook {
+        /* === THEME COLOR VARIABLES === */
+        .theme-vytaldocs   { --accent: #f97316; --accent-light: #fb923c; --accent-dark: #c2410c; }
+        .theme-vytalbridge { --accent: #a855f7; --accent-light: #c084fc; --accent-dark: #7e22ce; }
+        .theme-vytalshift  { --accent: #3b82f6; --accent-light: #60a5fa; --accent-dark: #1d4ed8; }
+        .theme-vytalmap    { --accent: #ec4899; --accent-light: #f472b6; --accent-dark: #be185d; }
+        .theme-vytalsurge  { --accent: #22c55e; --accent-light: #4ade80; --accent-dark: #15803d; }
+        .theme-vytalform   { --accent: #06b6d4; --accent-light: #22d3ee; --accent-dark: #0e7490; }
+
+        /* === SLIDE TYPE: HOOK === */
+        /* Variant A: center-mega-text on dark bg with accent glow */
+        .slide.hook.variant-A {
             background:
-                radial-gradient(circle at 20% 10%, rgba(167, 139, 250, 0.25), transparent 50%),
-                radial-gradient(circle at 80% 90%, rgba(34, 197, 94, 0.18), transparent 50%),
-                linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4c1d95 100%);
+                radial-gradient(circle at 20% 10%, var(--accent) -30%, transparent 50%),
+                radial-gradient(circle at 80% 90%, var(--accent-dark) -40%, transparent 50%),
+                linear-gradient(135deg, #0a0f1f 0%, #0f172a 50%, #1e1b4b 100%);
             color: white;
             justify-content: center;
-            text-align: left;
         }
-        .slide-hook .headline {
+        .slide.hook.variant-A .headline {
             font-size: clamp(36px, 10vw, 110px);
-            font-weight: 900;
-            line-height: 1.05;
-            letter-spacing: -0.03em;
+            font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
         }
-        .slide-hook .body {
+        .slide.hook.variant-A .headline .accent-word { color: var(--accent-light); }
+        .slide.hook.variant-A .body {
             margin-top: 20px;
             font-size: clamp(16px, 3.5vw, 32px);
-            font-weight: 500;
-            opacity: 0.85;
-            max-width: 90%;
-            line-height: 1.4;
+            font-weight: 500; opacity: 0.85; max-width: 92%; line-height: 1.4;
         }
 
-        .slide-setup {
-            background: linear-gradient(180deg, #f8fafc 0%, #ede9fe 100%);
+        /* Variant B: left-aligned with module-color side bar + watermark */
+        .slide.hook.variant-B {
+            background: #0a0f1f; color: white;
+            padding-left: 14%;
+        }
+        .slide.hook.variant-B::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 6%; background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+        }
+        .slide.hook.variant-B .headline {
+            font-size: clamp(34px, 9.5vw, 100px);
+            font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+        }
+        .slide.hook.variant-B .headline .accent-word { color: var(--accent); }
+        .slide.hook.variant-B .body {
+            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
+            font-weight: 500; opacity: 0.85; max-width: 92%; line-height: 1.4;
+        }
+        /* Watermark dot-cluster */
+        .slide.hook.variant-B .watermark {
+            position: absolute; right: -8%; bottom: -8%;
+            width: 60%; opacity: 0.08; color: var(--accent);
+        }
+
+        /* Variant C: top color block + bottom dark, split design */
+        .slide.hook.variant-C {
+            background: linear-gradient(180deg, var(--accent) 0%, var(--accent) 35%, #0a0f1f 35%, #0a0f1f 100%);
+            color: white;
+        }
+        .slide.hook.variant-C .headline {
+            margin-top: 18%;
+            font-size: clamp(34px, 9vw, 96px);
+            font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+        }
+        .slide.hook.variant-C .body {
+            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
+            font-weight: 500; opacity: 0.85; max-width: 92%; line-height: 1.4;
+        }
+
+        /* === SLIDE TYPE: SETUP === */
+        /* Variant A: standard with accent border bar */
+        .slide.setup.variant-A {
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
             color: var(--navy);
+            border-left: 8px solid var(--accent);
             justify-content: center;
-            border-left: 6px solid var(--purple);
         }
-        .slide-setup .headline {
+        .slide.setup.variant-A .headline {
             font-size: clamp(28px, 7vw, 72px);
-            font-weight: 800;
-            line-height: 1.15;
-            letter-spacing: -0.02em;
+            font-weight: 800; line-height: 1.15; letter-spacing: -0.02em;
             color: var(--navy);
         }
-        .slide-setup .body {
-            margin-top: 22px;
-            font-size: clamp(16px, 3.2vw, 30px);
-            font-weight: 500;
-            color: #475569;
-            line-height: 1.5;
-            max-width: 95%;
+        .slide.setup.variant-A .body {
+            margin-top: 22px; font-size: clamp(16px, 3.2vw, 30px);
+            font-weight: 500; color: #475569; line-height: 1.5; max-width: 95%;
         }
 
-        /* Body slides — three variants for visual rhythm */
-        .slide-body {
-            color: var(--navy);
-            justify-content: flex-start;
+        /* Variant B: pull-quote style with giant quotation mark */
+        .slide.setup.variant-B {
+            background: #ffffff; color: var(--navy);
+            justify-content: center; position: relative;
+        }
+        .slide.setup.variant-B::before {
+            content: '"';
+            position: absolute; top: 4%; left: 6%;
+            font-family: Georgia, serif;
+            font-size: clamp(160px, 28vw, 320px);
+            font-weight: 700;
+            color: var(--accent); opacity: 0.18; line-height: 1;
+        }
+        .slide.setup.variant-B .headline {
+            font-size: clamp(28px, 7vw, 68px);
+            font-weight: 800; line-height: 1.2; letter-spacing: -0.02em;
+            color: var(--navy); position: relative;
+        }
+        .slide.setup.variant-B .body {
+            margin-top: 22px; font-size: clamp(16px, 3.2vw, 28px);
+            font-weight: 500; color: #475569; line-height: 1.5; position: relative;
+        }
+
+        /* === SLIDE TYPE: BODY === */
+        /* Variant A: numbered list / big number watermark */
+        .slide.body.variant-A {
+            background: #fafafa; color: var(--navy);
             padding-top: 18%;
         }
-        .slide-body-1 { background: #fefce8; }
-        .slide-body-1 .accent-bar { background: #eab308; }
-        .slide-body-2 { background: #fce7f3; }
-        .slide-body-2 .accent-bar { background: #ec4899; }
-        .slide-body-3 { background: #dbeafe; }
-        .slide-body-3 .accent-bar { background: #2563eb; }
-        .slide-body .accent-bar {
-            width: 56px; height: 5px;
-            border-radius: 999px;
-            margin-bottom: 24px;
+        .slide.body.variant-A .slide-num-big {
+            position: absolute; top: 8%; right: 7%;
+            font-size: clamp(80px, 18vw, 220px);
+            font-weight: 900; line-height: 1; letter-spacing: -0.04em;
+            color: var(--accent); opacity: 0.15;
         }
-        .slide-body .headline {
+        .slide.body.variant-A .accent-bar {
+            width: 64px; height: 6px; border-radius: 999px;
+            background: var(--accent); margin-bottom: 24px;
+        }
+        .slide.body.variant-A .headline {
             font-size: clamp(26px, 7vw, 68px);
-            font-weight: 800;
-            line-height: 1.15;
-            letter-spacing: -0.02em;
+            font-weight: 800; line-height: 1.15; letter-spacing: -0.02em;
         }
-        .slide-body .body {
-            margin-top: 22px;
-            font-size: clamp(15px, 3vw, 28px);
-            font-weight: 500;
-            color: #334155;
-            line-height: 1.5;
-        }
-        .slide-body .slide-num-big {
-            position: absolute; top: 6%; right: 9%;
-            font-size: clamp(48px, 12vw, 140px);
-            font-weight: 900;
-            opacity: 0.08;
-            line-height: 1;
+        .slide.body.variant-A .body {
+            margin-top: 22px; font-size: clamp(15px, 3vw, 28px);
+            font-weight: 500; color: #334155; line-height: 1.55;
         }
 
-        .slide-cta {
+        /* Variant B: split — accent color top half + content bottom */
+        .slide.body.variant-B {
+            background: white; color: var(--navy);
+            padding: 0; flex-direction: column;
+        }
+        .slide.body.variant-B .top-half {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: white;
+            padding: 9% 9%; flex: 0 0 40%;
+            display: flex; flex-direction: column; justify-content: flex-end; position: relative;
+        }
+        .slide.body.variant-B .bot-half {
+            padding: 7% 9% 9%; flex: 1;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .slide.body.variant-B .slide-num-big {
+            position: absolute; top: 12%; right: 9%;
+            font-size: clamp(48px, 11vw, 130px); font-weight: 900; line-height: 1;
+            opacity: 0.35;
+        }
+        .slide.body.variant-B .headline {
+            font-size: clamp(26px, 7vw, 64px);
+            font-weight: 900; line-height: 1.1; letter-spacing: -0.02em;
+            color: white;
+        }
+        .slide.body.variant-B .body {
+            font-size: clamp(15px, 3vw, 28px);
+            font-weight: 500; color: #334155; line-height: 1.55;
+        }
+
+        /* === SLIDE TYPE: CTA === */
+        /* Variant A: big button-prominent */
+        .slide.cta.variant-A {
             background:
-                radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.3), transparent 60%),
-                linear-gradient(135deg, #6d28d9 0%, #4c1d95 40%, #064e3b 100%);
+                radial-gradient(circle at 30% 30%, var(--accent) -30%, transparent 60%),
+                linear-gradient(135deg, var(--accent-dark) 0%, #0a0f1f 70%);
             color: white;
             justify-content: center;
-            text-align: left;
         }
-        .slide-cta .headline {
+        .slide.cta.variant-A .headline {
             font-size: clamp(34px, 9vw, 92px);
-            font-weight: 900;
-            line-height: 1.1;
-            letter-spacing: -0.025em;
+            font-weight: 900; line-height: 1.1; letter-spacing: -0.025em;
         }
-        .slide-cta .body {
-            margin-top: 20px;
-            font-size: clamp(16px, 3.2vw, 30px);
-            font-weight: 500;
-            opacity: 0.85;
-            line-height: 1.4;
+        .slide.cta.variant-A .body {
+            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
+            font-weight: 500; opacity: 0.85; line-height: 1.4;
         }
-        .slide-cta .cta-pill {
-            display: inline-block;
-            margin-top: 36px;
-            padding: 20px 32px;
-            background: var(--accent);
-            color: var(--navy);
+        .slide.cta.variant-A .cta-pill {
+            display: inline-block; margin-top: 36px;
+            padding: 20px 32px; background: var(--vm-green); color: var(--navy);
             border-radius: 18px;
-            font-size: clamp(16px, 3.2vw, 30px);
-            font-weight: 800;
-            letter-spacing: -0.01em;
+            font-size: clamp(16px, 3.2vw, 30px); font-weight: 800; letter-spacing: -0.01em;
             box-shadow: 0 6px 24px rgba(34, 197, 94, 0.4);
         }
 
+        /* Variant B: minimal — big white text + tiny green underline link */
+        .slide.cta.variant-B {
+            background: #0a0f1f; color: white;
+            justify-content: center;
+        }
+        .slide.cta.variant-B::before {
+            content: ''; position: absolute; inset: 6%;
+            border: 2px solid var(--accent); border-radius: 18px;
+            opacity: 0.18;
+        }
+        .slide.cta.variant-B .headline {
+            font-size: clamp(34px, 9vw, 96px);
+            font-weight: 900; line-height: 1.1; letter-spacing: -0.025em;
+        }
+        .slide.cta.variant-B .body {
+            margin-top: 20px; font-size: clamp(16px, 3.2vw, 30px);
+            font-weight: 500; opacity: 0.85; line-height: 1.4;
+        }
+        .slide.cta.variant-B .url-link {
+            display: inline-block; margin-top: 32px;
+            font-size: clamp(16px, 3vw, 28px); font-weight: 800;
+            color: var(--vm-green); border-bottom: 3px solid var(--vm-green);
+            padding-bottom: 4px;
+        }
+
+        /* Loader / error */
         .loader { text-align: center; padding: 80px 20px; color: #94a3b8; }
-        .error-box { max-width: 480px; margin: 60px auto; padding: 24px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; color: #fca5a5; text-align: center; }
+        .error-box { max-width: 480px; margin: 60px auto; padding: 24px;
+            background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 14px; color: #fca5a5; text-align: center; }
 
         @media (max-width: 540px) {
             .slides { padding: 0 12px 60px; margin: 24px auto; }
@@ -224,7 +331,6 @@
             .btn { padding: 8px 12px; font-size: 12px; }
         }
 
-        /* Print: each slide on its own page for browser PDF fallback */
         @media print {
             .toolbar { display: none; }
             body, html { background: white; }
@@ -232,8 +338,7 @@
             .slide {
                 width: 1080px; height: 1350px; aspect-ratio: auto;
                 border-radius: 0; box-shadow: none;
-                page-break-after: always;
-                break-after: page;
+                page-break-after: always; break-after: page;
             }
         }
     </style>
@@ -242,6 +347,7 @@
 
 <header class="toolbar">
     <h1>🎯 VytalMed Carousel</h1>
+    <span id="themeTag" class="theme-tag"></span>
     <div class="spacer"></div>
     <button id="downloadBtn" class="btn btn-primary" disabled>📥 Download PDF</button>
 </header>
@@ -250,6 +356,20 @@
     <div class="loader">Loading carousel…</div>
 </main>
 
+<!-- SVG defs for dot-cluster decorative motif (reused across slides) -->
+<svg width="0" height="0" style="position:absolute;">
+    <defs>
+        <symbol id="dot-cluster" viewBox="0 0 200 240">
+            <circle cx="50" cy="30" r="22" fill="currentColor" opacity="0.4"/>
+            <circle cx="120" cy="30" r="22" fill="currentColor" opacity="0.7"/>
+            <ellipse cx="85" cy="80" rx="50" ry="22" fill="currentColor" opacity="0.5"/>
+            <circle cx="50" cy="140" r="22" fill="currentColor" opacity="0.5"/>
+            <ellipse cx="50" cy="195" rx="22" ry="36" fill="currentColor" opacity="0.6"/>
+            <circle cx="120" cy="140" r="22" fill="currentColor" opacity="0.4"/>
+        </symbol>
+    </defs>
+</svg>
+
 <script>
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
@@ -257,6 +377,24 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(window.location.search);
 const viralInputId = params.get('id');
+
+const THEMES = ['vytaldocs','vytalbridge','vytalshift','vytalmap','vytalsurge','vytalform'];
+const THEME_LABELS = {
+    vytaldocs:   'VytalDocs · Orange',
+    vytalbridge: 'VytalBridge · Purple',
+    vytalshift:  'VytalShift · Blue',
+    vytalmap:    'VytalMap · Pink',
+    vytalsurge:  'VytalSurge · Green',
+    vytalform:   'VytalForm · Teal'
+};
+
+// Layout variant pools per slide type
+const VARIANTS = {
+    hook: ['A','B','C'],
+    setup: ['A','B'],
+    body: ['A','B'],
+    cta: ['A','B']
+};
 
 if (!viralInputId) {
     $('content').innerHTML = '<div class="error-box">Missing <code>?id=</code> param. Open a carousel from the Inbox.</div>';
@@ -280,12 +418,13 @@ async function init() {
             return;
         }
         const draft = data[0].edited_text || data[0].draft_text;
-        const slides = parseSlides(draft);
+        const { theme, slides } = parseDraft(draft);
         if (slides.length === 0) {
             $('content').innerHTML = '<div class="error-box">Could not parse slides from the carousel draft.</div>';
             return;
         }
-        renderSlides(slides);
+        $('themeTag').textContent = THEME_LABELS[theme] || theme;
+        renderSlides(slides, theme);
         $('downloadBtn').disabled = false;
         $('downloadBtn').addEventListener('click', downloadPDF);
     } catch (e) {
@@ -294,7 +433,17 @@ async function init() {
     }
 }
 
-function parseSlides(text) {
+function parseDraft(text) {
+    // Look for THEME: vytalXxx on any of the first few lines
+    let theme = null;
+    const themeMatch = text.match(/^\s*THEME:\s*([a-zA-Z]+)/m);
+    if (themeMatch) {
+        const t = themeMatch[1].toLowerCase();
+        if (THEMES.includes(t)) theme = t;
+    }
+    // Hash-based fallback if Claude didn't tag
+    if (!theme) theme = THEMES[hashString(viralInputId) % THEMES.length];
+
     // Match: "SLIDE 1 (HOOK):  content..." across the text
     const re = /SLIDE\s+(\d+)\s*(?:\(([^)]+)\))?\s*:?\s*([\s\S]*?)(?=\n\s*SLIDE\s+\d+|$)/gi;
     const out = [];
@@ -304,70 +453,132 @@ function parseSlides(text) {
         const type = (m[2] || '').trim().toUpperCase();
         const content = (m[3] || '').trim();
         const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
-        // Strip leading markdown bold/asterisks
         const clean = lines.map(l => l.replace(/^\*\*|\*\*$/g, '').replace(/^[#-]+\s*/, ''));
         const headline = clean[0] || '';
         const body = clean.slice(1).join('\n');
         out.push({ n: num, type, headline, body });
     }
-    return out.sort((a, b) => a.n - b.n);
+    return { theme, slides: out.sort((a, b) => a.n - b.n) };
 }
 
-function renderSlides(slides) {
-    const html = `<div class="slides">${slides.map(slideHtml).join('')}</div>`;
+function hashString(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+}
+
+function pickVariant(slideType, slideNum) {
+    const pool = VARIANTS[slideType] || ['A'];
+    return pool[hashString(viralInputId + ':' + slideType + slideNum) % pool.length];
+}
+
+function classifySlide(s) {
+    const t = s.type;
+    if (t === 'HOOK' || s.n === 1) return 'hook';
+    if (t === 'SETUP' || s.n === 2) return 'setup';
+    if (t === 'CTA' || s.n === 6) return 'cta';
+    return 'body';
+}
+
+function renderSlides(slides, theme) {
+    const total = slides.length;
+    const html = `<div class="slides">${slides.map((s, idx) => slideHtml(s, theme, total, idx)).join('')}</div>`;
     $('content').innerHTML = html;
 }
 
-function slideHtml(s) {
-    const t = s.type;
-    const total = 6;
+function slideHtml(s, theme, total, idx) {
+    const cls = classifySlide(s);
+    const variant = pickVariant(cls, s.n);
     const pageNum = `${s.n} / ${total}`;
-    // Choose the right slide style
-    if (t === 'HOOK' || s.n === 1) {
+    const brand = `
+        <div class="brand-row">
+            <img src="/images/vytalmed/vytalmed-logo-white.png" alt="VytalMed" class="brand-logo"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="brand-logo-fallback" style="display:none;"><span class="brand-dot"></span> VYTALMED</div>
+            <div class="page-num">${pageNum}</div>
+        </div>
+    `;
+    const brandDark = `
+        <div class="brand-row" style="color: #0f172a;">
+            <img src="/images/vytalmed/vytalmed-logo.png" alt="VytalMed" class="brand-logo"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="brand-logo-fallback" style="display:none; color: #0f172a;"><span class="brand-dot"></span> VYTALMED</div>
+            <div class="page-num" style="background: rgba(15,23,42,0.08); color: #0f172a;">${pageNum}</div>
+        </div>
+    `;
+
+    if (cls === 'hook') {
+        const accentSplit = splitHeadlineAccent(s.headline);
+        const headlineHtml = accentSplit ? `${esc(accentSplit.before)}<span class="accent-word">${esc(accentSplit.accent)}</span>${esc(accentSplit.after)}` : esc(s.headline);
+        const watermark = variant === 'B'
+            ? `<svg class="watermark" viewBox="0 0 200 240"><use href="#dot-cluster"/></svg>`
+            : '';
         return `
-            <div class="slide slide-hook" data-slide="${s.n}">
-                <div class="brand"><span class="brand-dot"></span> VYTALMED</div>
-                <div class="headline">${esc(s.headline)}</div>
+            <div class="slide hook variant-${variant} theme-${theme}">
+                ${brand}
+                <div class="headline">${headlineHtml}</div>
                 ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
-                <div class="page-num">${pageNum}</div>
+                ${watermark}
             </div>`;
     }
-    if (t === 'SETUP' || s.n === 2) {
+    if (cls === 'setup') {
         return `
-            <div class="slide slide-setup" data-slide="${s.n}">
-                <div class="brand" style="color: #6d28d9;"><span class="brand-dot"></span> VYTALMED</div>
+            <div class="slide setup variant-${variant} theme-${theme}">
+                ${brandDark}
                 <div class="headline">${esc(s.headline)}</div>
                 ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
-                <div class="page-num" style="color: #475569; opacity: 0.5;">${pageNum}</div>
             </div>`;
     }
-    if (t === 'CTA' || s.n === total) {
-        // Extract URL from body if present, otherwise use a default
+    if (cls === 'cta') {
         const urlMatch = (s.body + ' ' + s.headline).match(/(marcoslacayobosche\.com\/diagnose|vytalmed\.co\/diagnose)/i);
         const url = urlMatch ? urlMatch[1] : 'marcoslacayobosche.com/diagnose';
-        // Body text without the URL chunk
         let bodyClean = s.body.replace(/[→\-]?\s*(marcoslacayobosche\.com\/diagnose|vytalmed\.co\/diagnose)/i, '').trim();
+        const ctaEl = variant === 'A'
+            ? `<div class="cta-pill">→ ${esc(url)}</div>`
+            : `<div class="url-link">→ ${esc(url)}</div>`;
         return `
-            <div class="slide slide-cta" data-slide="${s.n}">
-                <div class="brand"><span class="brand-dot"></span> VYTALMED</div>
+            <div class="slide cta variant-${variant} theme-${theme}">
+                ${brand}
                 <div class="headline">${esc(s.headline)}</div>
                 ${bodyClean ? `<div class="body">${esc(bodyClean)}</div>` : ''}
-                <div class="cta-pill">→ ${esc(url)}</div>
-                <div class="page-num">${pageNum}</div>
+                ${ctaEl}
             </div>`;
     }
-    // BODY (slides 3, 4, 5)
-    const bodyVariant = ((s.n - 3) % 3) + 1;  // 1 → yellow, 2 → pink, 3 → blue
+    // BODY
+    if (variant === 'B') {
+        return `
+            <div class="slide body variant-B theme-${theme}">
+                <div class="top-half">
+                    ${brand}
+                    <div class="slide-num-big">0${s.n}</div>
+                    <div class="headline">${esc(s.headline)}</div>
+                </div>
+                <div class="bot-half">
+                    ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
+                    <div class="footer-url" style="color: #64748b; position: static; margin-top: 16px;">marcoslacayobosche.com/diagnose</div>
+                </div>
+            </div>`;
+    }
     return `
-        <div class="slide slide-body slide-body-${bodyVariant}" data-slide="${s.n}">
-            <div class="brand" style="color: #475569;"><span class="brand-dot"></span> VYTALMED</div>
+        <div class="slide body variant-A theme-${theme}">
+            ${brandDark}
             <div class="slide-num-big">0${s.n}</div>
             <div class="accent-bar"></div>
             <div class="headline">${esc(s.headline)}</div>
             ${s.body ? `<div class="body">${esc(s.body)}</div>` : ''}
-            <div class="footer-tag">marcoslacayobosche.com/diagnose</div>
-            <div class="page-num" style="color: #475569; opacity: 0.5;">${pageNum}</div>
+            <div class="footer-url" style="color: #94a3b8;">marcoslacayobosche.com/diagnose</div>
         </div>`;
+}
+
+// Pull the first chunk (word or short phrase) of the headline as the accent
+function splitHeadlineAccent(headline) {
+    if (!headline) return null;
+    // Try to accent the leading number ("3 mistakes...") or the first 1-3 words
+    const numMatch = headline.match(/^(\d+\+?)/);
+    if (numMatch) {
+        return { before: '', accent: numMatch[1], after: headline.slice(numMatch[1].length) };
+    }
+    return null;  // no accent split — render plain
 }
 
 function esc(s) {
@@ -376,22 +587,16 @@ function esc(s) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// PDF download — render each slide at TRUE 1080x1350 by forcing the element
-// dimensions during capture, then stack into a portrait PDF.
+// PDF download
 async function downloadPDF() {
     const btn = $('downloadBtn');
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = '⏳ Rendering…';
 
-    // Create an offscreen stage where each slide can be temporarily sized to
-    // its full PDF dimensions without visual flash in the main UI.
     const stage = document.createElement('div');
-    stage.style.cssText = `
-        position: fixed; top: 0; left: -9999px;
-        width: 1080px; height: 1350px;
-        z-index: -1; visibility: visible;
-    `;
+    stage.style.cssText = `position: fixed; top: 0; left: -9999px;
+        width: 1080px; height: 1350px; z-index: -1; visibility: visible;`;
     document.body.appendChild(stage);
 
     try {
@@ -401,15 +606,12 @@ async function downloadPDF() {
 
         for (let i = 0; i < slides.length; i++) {
             btn.textContent = `⏳ Slide ${i + 1}/${slides.length}…`;
-
-            // Clone the slide into the offscreen stage at full 1080x1350
             const clone = slides[i].cloneNode(true);
             clone.style.width = '1080px';
             clone.style.height = '1350px';
             clone.style.aspectRatio = 'auto';
             clone.style.borderRadius = '0';
             clone.style.boxShadow = 'none';
-            // Wait a tick so styles apply
             stage.innerHTML = '';
             stage.appendChild(clone);
             await new Promise(r => requestAnimationFrame(r));
@@ -417,10 +619,8 @@ async function downloadPDF() {
             const canvas = await html2canvas(clone, {
                 width: 1080, height: 1350,
                 windowWidth: 1080, windowHeight: 1350,
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                logging: false
+                scale: 2, backgroundColor: '#ffffff',
+                useCORS: true, logging: false
             });
             const img = canvas.toDataURL('image/jpeg', 0.92);
             if (i > 0) pdf.addPage([1080, 1350], 'portrait');

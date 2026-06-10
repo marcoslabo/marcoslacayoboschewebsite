@@ -231,6 +231,17 @@ ${source.content}`;
 const FORMAT_SPECS = {
     'carousel': `📊 CAROUSEL (6-slide LinkedIn carousel — TEACHES a framework or lesson)
 
+FIRST LINE: pick the VytalMed module that best matches this topic. Format exactly:
+  THEME: vytaldocs     (faxes, documents, intake, OCR, paperwork)
+  THEME: vytalbridge   (HL7, FHIR, EHR integration, interoperability, "every system speaks a different language")
+  THEME: vytalshift    (scheduling, capacity, shifts, workforce planning)
+  THEME: vytalmap      (clinical data, reporting, dictation, charting, structured reports)
+  THEME: vytalsurge    (staffing, overflow, SLA, escalation, after-hours, surge capacity)
+  THEME: vytalform     (intake forms, patient surveys, screening, registration)
+If unsure, default: THEME: vytalbridge
+
+Then leave a blank line and continue.
+
 Pick ONE teachable framework from the source: "3 mistakes", "5 questions", "2 patterns", "3 fixes", "the 4-step breakdown", etc.
 
 SLIDE 1 (HOOK): the framework name or sharp claim. Max 8 words. Curiosity-driven.

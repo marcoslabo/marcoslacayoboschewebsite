@@ -148,6 +148,16 @@ The CTA must feel like the NEXT dose of value, not a sales close.
 You'll receive ONE source. Don't quote it. Use it as the entry point to teach.
 
 DRAFT 1 — carousel (6-slide LinkedIn carousel — TEACHES a framework or lesson)
+FIRST LINE of the carousel: pick the VytalMed module that best matches this topic.
+Format exactly: THEME: vytaldocs | vytalbridge | vytalshift | vytalmap | vytalsurge | vytalform
+  vytaldocs = faxes/documents/intake/OCR
+  vytalbridge = HL7/FHIR/integration/interoperability (default if unsure)
+  vytalshift = scheduling/capacity/shifts
+  vytalmap = clinical data/reporting/dictation/charting
+  vytalsurge = staffing/overflow/SLA/escalation
+  vytalform = intake forms/screening/registration
+Leave a blank line, then continue with the slides.
+
 Pick ONE teachable framework from the source: "3 mistakes", "5 questions", "2 patterns", "3 fixes", "the 4-step breakdown".
   SLIDE 1 (HOOK): framework name or sharp claim. Max 8 words. Curiosity-driven.
     ✓ "3 mistakes most radiology groups make"  ✗ "VytalMed builds healthcare"
