@@ -37,8 +37,15 @@ export default async function handler(req, res) {
             try {
                 source = await fetchUrlContent(trimmed);
             } catch (e) {
-                // If URL fetch fails (LinkedIn auth wall, Twitter, etc.), fall back to using URL itself as text
-                source = { title: trimmed.slice(0, 100), content: `(URL — fetch failed, using URL only): ${trimmed}`, url: trimmed };
+                // Paywalls (WSJ, NYT) + auth walls (LinkedIn, X) often block server-side fetch.
+                // Extract names + topic hints from the URL slug as a fallback so Claude can
+                // still reference the actual subject of the article by name.
+                const slugInfo = extractSlugHints(trimmed);
+                source = {
+                    title: slugInfo.likelyTitle || trimmed.slice(0, 100),
+                    content: `URL: ${trimmed}\n\nThe page could not be fetched (likely paywall or auth wall). However the URL itself contains useful clues:\n\nApparent subject from URL slug: ${slugInfo.subject}\nLikely named entities: ${slugInfo.entities.join(', ') || '(none parsed)'}\n\nUse these entities by name in your content. Treat them as the actual subjects of the article. If a slug term looks like a company name (capitalized in URL, or sits next to "with"/"partners"/"acquires"/"raises"), name it explicitly.`,
+                    url: trimmed
+                };
             }
         } else {
             // Use first line / 80 chars as title
@@ -151,6 +158,51 @@ function decodeEntities(s) {
     return String(s || '')
         .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
+}
+
+// Pull names + topic from URL when the page itself is unreachable.
+// E.g. "nvidia-is-developing-an-ai-healthcare-model-with-startup-abridge-6db38c1b"
+//      → subject: "nvidia is developing an ai healthcare model with startup abridge"
+//      → entities: ["Nvidia", "Abridge"]
+function extractSlugHints(url) {
+    try {
+        const u = new URL(url);
+        const segments = u.pathname.split('/').filter(Boolean);
+        // Use the longest path segment — usually the article slug
+        const slug = segments.sort((a, b) => b.length - a.length)[0] || '';
+        // Strip trailing hash ids (e.g. "-6db38c1b") that aren't real words
+        const cleaned = slug.replace(/-[a-f0-9]{6,}$/i, '').replace(/[-_]/g, ' ').replace(/\.[a-z]+$/, '').trim();
+
+        // Common connector words that suggest a named entity is adjacent
+        const connectors = ['with', 'and', 'partners', 'acquires', 'buys', 'raises', 'launches', 'sues', 'vs', 'startup', 'company', 'announces'];
+        const stopwords = new Set(['the','a','an','is','are','was','were','to','of','for','from','in','on','at','by','as','it','its','that','this','these','those','will','can','has','have','had','be','been','being','their','his','her','our','your','my','what','who','why','how','when','where','about','into','out','up','down','over','under','through','during','before','after','above','below']);
+
+        const words = cleaned.split(/\s+/);
+        const entities = new Set();
+
+        words.forEach((w, i) => {
+            if (!w || w.length < 3 || stopwords.has(w.toLowerCase())) return;
+            // Words near a connector are likely entities
+            const prev = (words[i - 1] || '').toLowerCase();
+            const next = (words[i + 1] || '').toLowerCase();
+            if (connectors.includes(prev) || connectors.includes(next)) {
+                entities.add(w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+            }
+        });
+
+        // Also: first noun-ish word is often the main subject
+        if (words[0] && words[0].length >= 3 && !stopwords.has(words[0].toLowerCase())) {
+            entities.add(words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase());
+        }
+
+        return {
+            subject: cleaned || u.hostname,
+            entities: [...entities],
+            likelyTitle: cleaned.replace(/\b\w/g, c => c.toUpperCase())
+        };
+    } catch {
+        return { subject: url, entities: [], likelyTitle: '' };
+    }
 }
 
 function supabaseHeaders() {
