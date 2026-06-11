@@ -180,6 +180,13 @@ WORLD VIEW (anchor to these — never quote them verbatim, but echo the thinking
 - Staff burn hours on work that should be automated.
 - Generalists pay tuition every healthcare project.
 
+CONTENT RULE — CRITICAL:
+The content is about the SOURCE the user gave you. Stay on that topic.
+- Name the source's people, companies, and products by name when relevant.
+- Add VytalMed POV (anti-vendor, operator-first) to how you TEACH the topic.
+- Do NOT redirect the content to be about VytalMed or its modules.
+- VytalMed only appears in the closing CTA — never as the subject of the post.
+
 HORMOZI-STYLE VOICE RULES (apply to every format):
 - Short sentences. Hard hits. Sentence fragments for emphasis. Like this.
 - Frameworks and numbered lists: "3 mistakes", "5 questions", "2 ways". Numbered.
@@ -189,7 +196,7 @@ HORMOZI-STYLE VOICE RULES (apply to every format):
 - Name real workflows (faxes, HL7, prior auth, denials, intake) over abstractions.
 - NEVER use: "revolutionary", "game-changer", "unlock", "transformative", "leverage", "synergy".
 - No emojis (sparingly, only when natural to the platform).
-- TEACH first. The reader should learn something whether or not they ever hire VytalMed.
+- TEACH first. The reader should learn something about the SOURCE whether or not they ever hire VytalMed.
 
 CTA STYLE — soft offer, not sales pitch:
 DON'T write: "Hire us", "Book a demo", "Get a quote", "Schedule a call"
@@ -229,22 +236,36 @@ ${source.content}`;
 }
 
 const FORMAT_SPECS = {
-    'carousel': `📊 CAROUSEL (6-slide LinkedIn carousel — TEACHES a framework or lesson)
+    'carousel': `📊 CAROUSEL (6-slide LinkedIn carousel — TEACHES about the SOURCE topic)
 
-FIRST LINE: pick the VytalMed module that best matches this topic. Format exactly:
-  THEME: vytaldocs     (faxes, documents, intake, OCR, paperwork)
-  THEME: vytalbridge   (HL7, FHIR, EHR integration, interoperability, "every system speaks a different language")
-  THEME: vytalshift    (scheduling, capacity, shifts, workforce planning)
-  THEME: vytalmap      (clinical data, reporting, dictation, charting, structured reports)
-  THEME: vytalsurge    (staffing, overflow, SLA, escalation, after-hours, surge capacity)
-  THEME: vytalform     (intake forms, patient surveys, screening, registration)
+═══ CRITICAL — KEEP THESE TWO THINGS SEPARATE ═══
+
+1. CONTENT (slides 1-6): must be ABOUT THE SOURCE TOPIC.
+   - Name the source people/companies/products by name when relevant
+   - Teach what the source is actually about + add operator POV
+   - DO NOT hijack the content to be about VytalMed or its modules
+   - The reader learns about the source — not VytalMed's product line
+
+2. THEME (just a visual color hint — doesn't change content):
+   Pick which VytalMed module's COLOR most loosely matches the source's
+   domain. This only affects visual design, not what the carousel says.
+
+═══════════════════════════════════════════════════
+
+FIRST LINE — visual theme only:
+  THEME: vytaldocs     (orange — source about: documents, intake, OCR, paperwork)
+  THEME: vytalbridge   (purple — source about: integration, interop, EHR connection)
+  THEME: vytalshift    (blue — source about: scheduling, capacity, workforce)
+  THEME: vytalmap      (pink — source about: clinical data, AI scribes, dictation)
+  THEME: vytalsurge    (green — source about: staffing, overflow, scale)
+  THEME: vytalform     (teal — source about: forms, screening, registration)
 If unsure, default: THEME: vytalbridge
 
-Then leave a blank line and continue.
+Leave a blank line, then continue with the carousel slides.
 
-Pick ONE teachable framework from the source: "3 mistakes", "5 questions", "2 patterns", "3 fixes", "the 4-step breakdown", etc.
+Pick ONE teachable framework drawn from the SOURCE itself: "3 things [source] gets right", "Why [source] matters", "5 questions [source] raises", etc.
 
-SLIDE 1 (HOOK): the framework name or sharp claim. Max 8 words. Curiosity-driven.
+SLIDE 1 (HOOK): a sharp claim or framework name about the SOURCE. Max 8 words. Curiosity-driven.
   ✓ "3 mistakes most radiology groups make"
   ✓ "Why your EHR ships 60% solved"
   ✓ "The 14-system problem"
