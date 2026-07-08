@@ -944,7 +944,7 @@ class CRMDB {
             .from('post_drafts')
             .select('*')
             .eq('viral_input_id', viralInputId)
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: false });
         if (error) { console.error('drafts fetch failed:', error); return []; }
         return data || [];
     }

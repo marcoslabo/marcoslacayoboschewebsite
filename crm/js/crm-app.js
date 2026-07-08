@@ -1938,7 +1938,7 @@ class CRMApp {
             'carousel':     { label: '📊 Carousel', hint: '6 slides — click "View design" for the styled PDF' },
             'video-script': { label: '🎬 Video Script', hint: 'For 60-90s talking-head → Submagic' },
             'linkedin':     { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words' },
-            'article':      { label: '📝 Article', hint: '1000-1500 word blog post with markdown headings' }
+            'article':      { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' }
         };
 
         const sections = ['carousel', 'video-script', 'linkedin', 'article'].map(angle => {
