@@ -363,12 +363,14 @@ Plain text only — LinkedIn doesn't render markdown. Short sentences. Line brea
 
     'article': `📝 ARTICLE (1000-1500 word blog post — TEACHES a framework)
 
-Structure:
-  HEADLINE (markdown #): the lesson in one sharp line — names the framework
-  INTRO (2-3 paragraphs): set up the operator pain with specifics; preview what they'll learn
-  3-4 SECTION SUBHEADERS (markdown ##): each is ONE element of the framework (~150-250 words). Teach + one short example.
-  CLOSING (one short paragraph): the meta-lesson — pulling it together
-  CTA (last line, separate):
+Structure — PLAIN TEXT ONLY. No markdown symbols (no #, no ##, no **, no bold syntax).
+The user will bold titles themselves when publishing.
+
+  HEADLINE: strong lesson-driven title on its own line at the top. Plain text.
+  INTRO (2-3 paragraphs): set up the operator pain with specifics; preview what they'll learn.
+  3-4 NUMBERED SECTIONS: each starts with a line like "1. Section title", "2. Section title", "3. Section title" — on its own line, followed by a blank line, then ~150-250 words that teach + one short example.
+  CLOSING: label it "The meta-lesson" on its own line, blank line, then one short paragraph pulling it together.
+  CTA (last line, separate, blank line above):
     "Want to see where your workflow lands? Run the diagnostic → marcoslacayobosche.com/diagnose"
 
 Tone: Hormozi explaining sales in long-form. Anti-fluff. Specific. The whole article must be useful even to someone who never clicks the CTA.`

@@ -202,12 +202,13 @@ Structure:
 Plain text only. Short sentences. Line breaks. No jargon. The reader must learn ONE specific thing.
 
 DRAFT 4 — article (1000-1500 word blog post — TEACHES a framework)
+PLAIN TEXT ONLY. No markdown symbols (no #, no ##, no **). User bolds titles themselves when publishing.
 Structure:
-  HEADLINE (markdown #): the lesson in one sharp line — names the framework
-  INTRO (2-3 paragraphs): set up operator pain with specifics; preview what they'll learn
-  3-4 SECTION SUBHEADERS (markdown ##): each is ONE element of the framework (~150-250 words). Teach + one short example.
-  CLOSING (one short paragraph): the meta-lesson
-  CTA (last line, separate): "Want to see where your workflow lands? Run the diagnostic → marcoslacayobosche.com/diagnose"
+  HEADLINE: strong lesson-driven title on its own line at the top.
+  INTRO (2-3 paragraphs): set up operator pain with specifics; preview what they'll learn.
+  3-4 NUMBERED SECTIONS: each starts with "1. Section title", "2. Section title", "3. Section title" on its own line, blank line, then ~150-250 words that teach + one short example.
+  CLOSING: label it "The meta-lesson" on its own line, blank line, then one short paragraph.
+  CTA (last line, separate, blank line above): "Want to see where your workflow lands? Run the diagnostic → marcoslacayobosche.com/diagnose"
 Tone: Hormozi explaining sales in long-form. Anti-fluff. Specific. Useful even to someone who never clicks.
 
 RETURN JSON ONLY (no markdown fences):
