@@ -1908,7 +1908,7 @@ class CRMApp {
 
     async generateDraftsFor(id) {
         // Confirm before burning Claude tokens
-        if (!confirm('Generate 4 platform drafts (video script + LinkedIn + YouTube + Instagram)?')) return;
+        if (!confirm('Regenerate 4 drafts (carousel + video script + LinkedIn + article)?')) return;
         const btn = event?.target;
         if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
         try {
