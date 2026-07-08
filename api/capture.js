@@ -35,7 +35,9 @@ export default async function handler(req, res) {
         let source = { title: '', content: trimmed, url: null };
         if (looksLikeUrl) {
             try {
-                source = await fetchUrlContent(trimmed);
+                source = isYouTubeUrl(trimmed)
+                    ? await fetchYouTubeContent(trimmed)
+                    : await fetchUrlContent(trimmed);
             } catch (e) {
                 // Paywalls (WSJ, NYT) + auth walls (LinkedIn, X) often block server-side fetch.
                 // Extract names + topic hints from the URL slug as a fallback so Claude can
@@ -152,6 +154,69 @@ async function fetchUrlContent(url) {
 
     const content = (ogDesc ? ogDesc + '\n\n' : '') + decodeEntities(stripped).slice(0, 2500);
     return { title, content, url };
+}
+
+// YouTube pages are JS-rendered, so the raw HTML fetch returns almost nothing.
+// oEmbed gives us title + channel name without an API key. Combined with any
+// og:description we can still scrape from the raw HTML, Claude has enough
+// to write real content instead of a post about "the empty page it got".
+function isYouTubeUrl(url) {
+    try {
+        const h = new URL(url).hostname.toLowerCase();
+        return h === 'youtu.be' || h === 'youtube.com' || h.endsWith('.youtube.com');
+    } catch { return false; }
+}
+
+async function fetchYouTubeContent(url) {
+    let title = '';
+    let author = '';
+    let ogDesc = '';
+
+    // 1. oEmbed — reliable title + author, no API key
+    try {
+        const oembedResp = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VytalMedCapture/1.0)' }
+        });
+        if (oembedResp.ok) {
+            const data = await oembedResp.json();
+            title = (data.title || '').trim();
+            author = (data.author_name || '').trim();
+        }
+    } catch (_) { /* fall through */ }
+
+    // 2. Raw page fetch for og:description (works even though the body is JS-rendered)
+    try {
+        const r = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; VytalMedCapture/1.0; +https://vytalmed.co)',
+                'Accept': 'text/html,application/xhtml+xml'
+            },
+            redirect: 'follow'
+        });
+        if (r.ok) {
+            const html = await r.text();
+            const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+            if (ogDescMatch) ogDesc = decodeEntities(ogDescMatch[1]).trim();
+            if (!title) {
+                const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+                if (ogTitleMatch) title = decodeEntities(ogTitleMatch[1]).trim();
+            }
+        }
+    } catch (_) { /* fall through */ }
+
+    if (!title && !ogDesc) {
+        throw new Error('YouTube page returned no title/description');
+    }
+
+    const content = [
+        `YouTube video: ${title || '(no title)'}`,
+        author ? `Channel: ${author}` : '',
+        ogDesc ? `\nDescription:\n${ogDesc}` : '',
+        `\nSource URL: ${url}`,
+        `\nNote: this is a YouTube video. Treat the title + description above as the subject. Teach what the video is about. Do not write a post about "the source was empty" — you have the title, use it.`
+    ].filter(Boolean).join('\n');
+
+    return { title: title || 'YouTube video', content, url };
 }
 
 function decodeEntities(s) {
