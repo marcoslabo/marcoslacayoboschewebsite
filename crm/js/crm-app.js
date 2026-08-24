@@ -1935,12 +1935,15 @@ class CRMApp {
         if (existing) existing.remove();
 
         const formatMeta = {
-            'carousel': { label: '📊 Carousel', hint: '6 slides — click "View design" for the styled PDF' },
-            'linkedin': { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words. Includes FIRST COMMENT + HASHTAGS blocks.' },
-            'article':  { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' }
+            'carousel':          { label: '📊 Carousel', hint: '6 slides — click "View design" for the styled PDF' },
+            'linkedin':          { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words. Includes FIRST COMMENT + HASHTAGS blocks.' },
+            'linkedin-question': { label: '💬 LinkedIn Question', hint: 'Short, casual — built for comments' },
+            'linkedin-short':    { label: '⚡ LinkedIn Short', hint: '2-4 lines · one sharp thought' },
+            'linkedin-story':    { label: '📖 LinkedIn Story', hint: 'Mini-story with a lesson' },
+            'article':           { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' }
         };
 
-        const sections = ['carousel', 'linkedin', 'article'].map(angle => {
+        const sections = ['carousel', 'linkedin', 'linkedin-question', 'linkedin-short', 'linkedin-story', 'article'].map(angle => {
             const d = drafts.find(x => x.angle === angle);
             if (!d) return '';
             const meta = formatMeta[angle];

@@ -24,7 +24,10 @@ import { callClaude } from '../lib/anthropic.js';
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
 
-const VALID_FORMATS = ['carousel', 'linkedin', 'article'];
+const VALID_FORMATS = ['carousel', 'linkedin', 'linkedin-question', 'linkedin-short', 'linkedin-story', 'article'];
+// Default fallback when no formats field is sent — keeps the historical 3-draft output.
+// The new linkedin-* variants are opt-in: only generated when explicitly requested.
+const DEFAULT_FORMATS = ['carousel', 'linkedin', 'article'];
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -34,7 +37,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'input (URL or text) is required' });
     }
     const cleanTakeaway = typeof takeaway === 'string' ? takeaway.trim() : '';
-    const cleanFormats = (formats || VALID_FORMATS).filter(f => VALID_FORMATS.includes(f));
+    const cleanFormats = (formats || DEFAULT_FORMATS).filter(f => VALID_FORMATS.includes(f));
     if (cleanFormats.length === 0) {
         return res.status(400).json({ error: 'At least one valid format required' });
     }
@@ -364,6 +367,8 @@ HORMOZI-STYLE VOICE RULES (apply to every format):
 
 VARY THE SHAPE — don't make every post the same template. Rotate naturally between: a short personal story, a quick tactical tip, a contrarian take, a genuine observation, or a small framework. Sound like a real person talking, not a content machine. Hormozi's SPIRIT (clear, specific, no fluff, teaches something) — but casual, human, and different each time. It's fine to be conversational. Avoid formulaic openers repeated across posts.
 
+MATCH THE ENERGY TO THE FORMAT: teach posts are value-dense; question and short posts are casual, human, and light; story posts are narrative. Never force a framework into a casual format.
+
 CTA STYLE — soft offer, not sales pitch:
 DON'T write: "Hire us", "Book a demo", "Get a quote", "Schedule a call"
 DO write things like:
@@ -470,6 +475,37 @@ STRUCTURE:
   HASHTAGS: a separate labeled line "HASHTAGS:" with 3-5 targeted tags mixing niche + broad, chosen for the post topic. e.g. #Radiology #HealthcareIT #RadiologyLeaders #MedicalImaging #HealthcareOperations
 
 PLATFORM RULES: plain text only (no markdown). Short sentences. Every example/number lives in the enterprise-radiology world (multi-site, consolidation, referral capture, prior auth, report delivery, standardization). Reader learns ONE usable thing.`,
+
+    'linkedin-question': `💬 LINKEDIN QUESTION POST (short, casual, conversation-starter — built for comments)
+A low-effort, human, first-person post that asks the audience a genuine question. The goal is engagement and comments, not teaching a framework.
+STRUCTURE:
+  - Open with a casual, real, first-person hook — a small personal situation or honest admission. Conversational, like talking to a peer. (e.g. "A friend keeps pushing me to run a webinar. Honestly? I don't love them.")
+  - 2-4 short lines giving quick context or your honest take.
+  - End with an open question inviting the audience to weigh in.
+  - Keep it in the enterprise-radiology world where natural, but it can be lighter/more personal than a teach post.
+  - Plain text. Short lines. No CTA, no link. Feels like a real person, not marketing.
+  - HASHTAGS: a separate line labeled "HASHTAGS:" with 2-3 light, relevant tags.`,
+
+    'linkedin-short': `⚡ LINKEDIN SHORT POST (2-4 lines, one sharp thought)
+A punchy, standalone observation or truth. No framework, no setup. Just one idea that lands.
+STRUCTURE:
+  - 2-4 short lines max. One sharp, specific, slightly contrarian insight from the enterprise-radiology world.
+  - The kind of line that makes a radiology leader stop scrolling and think "true."
+  - Example shape: "The admin team knows how the workflow actually runs. Leadership knows how they think it runs. Build for the wrong one and you rebuild everything."
+  - Plain text. No CTA in body. Optional single question line at the end to spark comments.
+  - HASHTAGS: a separate line labeled "HASHTAGS:" with 2-3 relevant tags.`,
+
+    'linkedin-story': `📖 LINKEDIN STORY POST (a short first-person mini-story with a lesson)
+A narrative post — Marcos tells a short, real story from the field that carries a lesson. Story first, lesson second.
+STRUCTURE:
+  HOOK (first line): drop into the moment or the tension. (e.g. "Had a client who swore the whole workflow was in his head.")
+  STORY (2-4 short paragraphs): what happened, told simply and specifically. Real details, enterprise-radiology world. Do NOT fabricate specific numbers or names — keep it true to Marcos's actual experience if in teach mode.
+  LESSON (1 short paragraph): the takeaway, stated plainly.
+  ENGAGEMENT (one line): a question inviting others to share their version.
+  Output the body WITHOUT a raw URL.
+  FIRST COMMENT: separate line labeled "FIRST COMMENT:" with an optional soft CTA + link for the first comment (not the body).
+  HASHTAGS: separate line labeled "HASHTAGS:" with 3-5 relevant tags.
+  Plain text only. Short lines, white space, mobile-first.`,
 
     'article': `📝 ARTICLE (1000-1500 word blog post — TEACHES a framework)
 
