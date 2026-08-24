@@ -1,6 +1,16 @@
 // ==========================================================================
 // POST /api/capture
-// Body: { input: "URL or text", formats: ["carousel","video-script","linkedin","article"] }
+// Body: {
+//   input: "URL or text",
+//   takeaway: "optional — Marcos's own take/POV/teachable moment",
+//   formats: ["carousel","linkedin","article"]
+// }
+//
+// Mode is INFERRED, not passed:
+//   - URL only            → 'react'  (teach ABOUT the source)
+//   - Text only           → 'teach'  (shape Marcos's raw notes)
+//   - URL + takeaway      → 'hybrid' (source for context, structure around take)
+//   - Text + takeaway     → 'teach'  (merge both into one lesson in his voice)
 //
 // 1. If input is a URL, fetches the page and extracts title + main text.
 //    Otherwise treats input as raw text the user pasted.
@@ -14,15 +24,16 @@ import { callClaude } from '../lib/anthropic.js';
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
 
-const VALID_FORMATS = ['carousel', 'video-script', 'linkedin', 'article'];
+const VALID_FORMATS = ['carousel', 'linkedin', 'article'];
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { input, formats } = req.body || {};
+    const { input, formats, takeaway } = req.body || {};
     if (!input || typeof input !== 'string') {
         return res.status(400).json({ error: 'input (URL or text) is required' });
     }
+    const cleanTakeaway = typeof takeaway === 'string' ? takeaway.trim() : '';
     const cleanFormats = (formats || VALID_FORMATS).filter(f => VALID_FORMATS.includes(f));
     if (cleanFormats.length === 0) {
         return res.status(400).json({ error: 'At least one valid format required' });
@@ -84,8 +95,9 @@ export default async function handler(req, res) {
         const viralInputId = inserted[0]?.id;
         if (!viralInputId) throw new Error('No viral_input_id returned');
 
-        // 3. Generate drafts (Claude)
-        const drafts = await generateDrafts(source, cleanFormats);
+        // 3. Generate drafts (Claude) — mode inferred from what came in
+        const mode = inferMode(source, cleanTakeaway);
+        const drafts = await generateDrafts(source, cleanFormats, cleanTakeaway, mode);
 
         // 4. Insert drafts
         const rows = cleanFormats.map(angle => ({
@@ -282,12 +294,52 @@ function supabaseHeaders() {
 // ============================================================================
 // Claude — generate the requested formats
 // ============================================================================
-async function generateDrafts(source, formats) {
+
+// Infer mode from what was submitted. No client flag needed.
+function inferMode(source, takeaway) {
+    const hasUrl = !!source.url;
+    const hasTake = !!takeaway;
+    if (hasUrl && hasTake) return 'hybrid';
+    if (hasUrl) return 'react';
+    return 'teach'; // raw text, with or without a takeaway
+}
+
+const CONTENT_RULES = {
+    react: `CONTENT RULE — REACT MODE (CRITICAL):
+The content is about the SOURCE the user gave you. Stay on that topic.
+- Name the source's people, companies, and products by name when relevant.
+- Add VytalMed POV (anti-vendor, operator-first) to how you TEACH the topic.
+- Do NOT redirect the content to be about VytalMed or its modules.
+- VytalMed only appears in the closing CTA — never as the subject of the post.`,
+
+    teach: `CONTENT RULE — TEACH MODE (CRITICAL):
+The input is Marcos's OWN lesson, experience, or observation — rough notes, written casually. Your job is to shape HIS thinking into a clear, compelling post.
+- Stay true to what Marcos actually said. Do NOT invent facts, numbers, or claims he didn't make. If he didn't give a number, don't fabricate one.
+- Clean it up, structure it, sharpen it — but keep his insight and his voice.
+- Write in first person as Marcos sharing something he learned or believes.
+- You may add light framing and structure, but the substance must be HIS.
+- VytalMed only appears in the closing CTA — never as the subject.`,
+
+    hybrid: `CONTENT RULE — HYBRID MODE (CRITICAL):
+You have BOTH an external source AND Marcos's own take on it. Weave them together.
+- Reference the source's key facts, people, and companies by name when relevant.
+- Structure the post around MARCOS'S insight, not the source's narrative arc.
+- Do NOT invent facts, numbers, or claims he didn't make. If he didn't give a number, don't make one up.
+- Write in first person as Marcos reacting to and teaching from the source.
+- The source is context; his take is the through-line.
+- VytalMed only appears in the closing CTA — never as the subject.`
+};
+
+async function generateDrafts(source, formats, takeaway, mode) {
     const formatBlocks = formats.map(f => FORMAT_SPECS[f]).filter(Boolean).join('\n\n---\n\n');
+    const contentRule = CONTENT_RULES[mode] || CONTENT_RULES.react;
 
     const systemPrompt = `You write content in the Alex Hormozi mold. Your job is to TEACH, not sell. Every post must give the reader something they can USE even if they never hire VytalMed.
 
 Marcos Bosche is the face. He runs VytalMed — a healthcare-specialized software development agency — but he writes like an operator sharing hard-won lessons, not like a vendor pitching. Anti-fluff. Framework-driven. Specific.
+
+WHO WE WRITE FOR (the ICP):
+Enterprise and consolidating radiology groups — mid-to-large practices (25+ radiologists) and multi-site groups, the fastest-growing segment. The leaders and operators running radiology at scale: multiple sites, systems that don't talk to each other, standardizing across locations. Enterprise software ships 60% solved and leaves the hardest 40% broken. Write so THIS reader feels seen — teach in their world (multi-site standardization, referral capture, prior auth at volume, report delivery, HL7/FHIR/DICOM/fax), not generic "healthcare."
 
 WORLD VIEW (anchor to these — never quote them verbatim, but echo the thinking):
 - Most dev shops don't understand healthcare. Specialization compounds.
@@ -297,12 +349,7 @@ WORLD VIEW (anchor to these — never quote them verbatim, but echo the thinking
 - Staff burn hours on work that should be automated.
 - Generalists pay tuition every healthcare project.
 
-CONTENT RULE — CRITICAL:
-The content is about the SOURCE the user gave you. Stay on that topic.
-- Name the source's people, companies, and products by name when relevant.
-- Add VytalMed POV (anti-vendor, operator-first) to how you TEACH the topic.
-- Do NOT redirect the content to be about VytalMed or its modules.
-- VytalMed only appears in the closing CTA — never as the subject of the post.
+${contentRule}
 
 HORMOZI-STYLE VOICE RULES (apply to every format):
 - Short sentences. Hard hits. Sentence fragments for emphasis. Like this.
@@ -313,7 +360,9 @@ HORMOZI-STYLE VOICE RULES (apply to every format):
 - Name real workflows (faxes, HL7, prior auth, denials, intake) over abstractions.
 - NEVER use: "revolutionary", "game-changer", "unlock", "transformative", "leverage", "synergy".
 - No emojis (sparingly, only when natural to the platform).
-- TEACH first. The reader should learn something about the SOURCE whether or not they ever hire VytalMed.
+- TEACH first. The reader should learn something whether or not they ever hire VytalMed.
+
+VARY THE SHAPE — don't make every post the same template. Rotate naturally between: a short personal story, a quick tactical tip, a contrarian take, a genuine observation, or a small framework. Sound like a real person talking, not a content machine. Hormozi's SPIRIT (clear, specific, no fluff, teaches something) — but casual, human, and different each time. It's fine to be conversational. Avoid formulaic openers repeated across posts.
 
 CTA STYLE — soft offer, not sales pitch:
 DON'T write: "Hire us", "Book a demo", "Get a quote", "Schedule a call"
@@ -322,8 +371,6 @@ DO write things like:
 - "More healthcare ops teardowns → marcoslacayobosche.com/diagnose"
 - "Score your own workflow → marcoslacayobosche.com/diagnose"
 The CTA must feel like the NEXT dose of value, not a sales close.
-
-You'll receive ONE source. Don't quote it. Use it as the entry point to teach.
 
 FORMATS REQUESTED:
 
@@ -334,11 +381,19 @@ RETURN STRICT JSON ONLY (no markdown fences), with ONE key per requested format:
   ${formats.map(f => `"${f}": "..."`).join(',\n  ')}
 }`;
 
-    const userPrompt = `SOURCE CONTENT:
+    const sourceBlock = mode === 'teach' && !source.url
+        ? `MARCOS'S OWN NOTES / LESSON:\n${source.content}`
+        : `SOURCE CONTENT:
 ${source.url ? `URL: ${source.url}` : ''}
 ${source.title ? `Title: ${source.title}` : ''}
 
 ${source.content}`;
+
+    const takeawayBlock = takeaway
+        ? `\n\nMARCOS'S TAKE / TEACHABLE MOMENT (structure the post around this):\n${takeaway}`
+        : '';
+
+    const userPrompt = `${sourceBlock}${takeawayBlock}`;
 
     const { text } = await callClaude({
         model: 'claude-opus-4-7',
@@ -401,30 +456,20 @@ SLIDE 6 (CTA): one lesson sentence + ONE soft offer. Example:
 
 Format: plain text. Each slide labeled "SLIDE N:". Blank line between slides.`,
 
-    'video-script': `🎬 VIDEO-SCRIPT (60-90 sec talking-head, runs through Submagic)
+    'linkedin': `💼 LINKEDIN (300-500 word text post — TEACHES, optimized for the LinkedIn algorithm)
 
-TEACH a specific lesson or framework. Don't pitch.
+STRUCTURE:
+  HOOK (first line — critical; LinkedIn truncates after ~2 lines, so it must earn the click): a fragment, contrarian claim, or curiosity gap. Blank line after.
+  TEACH (2-3 short paragraphs): framework/list/contrast. Short lines, one thought per line, lots of white space (mobile-first).
+  PERSONAL (1 paragraph): first-person operator voice, radiology-at-scale world.
+  ENGAGEMENT PROMPT (one line): a question inviting comments (algorithm rewards them). e.g. "How's your group handling this across sites?"
+  Then output the post body WITHOUT any raw URL in it.
 
-Structure:
-  HOOK (5s): contrarian claim, framework name, or curiosity gap. No setup.
-  TEACH (40s): the framework — 3 things, contrast pattern, or step-by-step. Numbered.
-  EXAMPLE (20s): one specific story from the field. Real numbers.
-  SOFT CTA (10s): "Want to see where your workflow scores? Run the diagnostic at marcoslacayobosche.com/diagnose"
+  FIRST COMMENT: on a separate labeled line "FIRST COMMENT:", put the soft CTA + link (e.g. "Score your own workflow → marcoslacayobosche.com/diagnose") — this goes in the first comment, not the body, because LinkedIn suppresses posts with outbound links.
 
-Include [pause], [emphasis], [b-roll: description] cues throughout.
-Sentence fragments encouraged for impact. Like this.`,
+  HASHTAGS: a separate labeled line "HASHTAGS:" with 3-5 targeted tags mixing niche + broad, chosen for the post topic. e.g. #Radiology #HealthcareIT #RadiologyLeaders #MedicalImaging #HealthcareOperations
 
-    'linkedin': `💼 LINKEDIN (300-500 word text post — TEACHES)
-
-Structure:
-  HOOK (one line, blank line after): sentence fragment or contrarian claim
-  TEACH (2-3 short paragraphs): the framework, list, or contrast pattern. Use numbered or bulleted lists. Each item teachable.
-  PERSONAL (1 short paragraph): "I've seen this 100 times" or "Here's what works" — first-person operator voice
-  SOFT CTA (last line, separate, blank line above):
-    "Score your own workflow in 60 seconds → marcoslacayobosche.com/diagnose"
-    OR "More healthcare ops teardowns → marcoslacayobosche.com/diagnose"
-
-Plain text only — LinkedIn doesn't render markdown. Short sentences. Line breaks between thoughts. No jargon padding. The reader must learn ONE specific thing they can use today.`,
+PLATFORM RULES: plain text only (no markdown). Short sentences. Every example/number lives in the enterprise-radiology world (multi-site, consolidation, referral capture, prior auth, report delivery, standardization). Reader learns ONE usable thing.`,
 
     'article': `📝 ARTICLE (1000-1500 word blog post — TEACHES a framework)
 

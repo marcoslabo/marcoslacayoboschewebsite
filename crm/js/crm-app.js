@@ -1908,7 +1908,7 @@ class CRMApp {
 
     async generateDraftsFor(id) {
         // Confirm before burning Claude tokens
-        if (!confirm('Regenerate 4 drafts (carousel + video script + LinkedIn + article)?')) return;
+        if (!confirm('Regenerate 3 drafts (carousel + LinkedIn + article)?')) return;
         const btn = event?.target;
         if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
         try {
@@ -1935,13 +1935,12 @@ class CRMApp {
         if (existing) existing.remove();
 
         const formatMeta = {
-            'carousel':     { label: '📊 Carousel', hint: '6 slides — click "View design" for the styled PDF' },
-            'video-script': { label: '🎬 Video Script', hint: 'For 60-90s talking-head → Submagic' },
-            'linkedin':     { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words' },
-            'article':      { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' }
+            'carousel': { label: '📊 Carousel', hint: '6 slides — click "View design" for the styled PDF' },
+            'linkedin': { label: '💼 LinkedIn Post', hint: 'Text long-form, 300-500 words. Includes FIRST COMMENT + HASHTAGS blocks.' },
+            'article':  { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' }
         };
 
-        const sections = ['carousel', 'video-script', 'linkedin', 'article'].map(angle => {
+        const sections = ['carousel', 'linkedin', 'article'].map(angle => {
             const d = drafts.find(x => x.angle === angle);
             if (!d) return '';
             const meta = formatMeta[angle];

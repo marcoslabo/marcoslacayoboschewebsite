@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Capture — VytalMed</title>
-    <meta name="description" content="Paste a URL or text, get carousel + video script + LinkedIn + article drafts.">
+    <meta name="description" content="Paste a URL or text, get carousel + LinkedIn + article drafts.">
     <link rel="manifest" href="/capture/manifest.webmanifest">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Capture">
@@ -206,6 +206,11 @@
         </div>
 
         <div class="card">
+            <label>Your take <span style="opacity:0.6; font-weight:400;">(optional)</span></label>
+            <textarea id="takeaway" placeholder="What's your angle on this? A lesson, a POV, a teachable moment…&#10;Leave blank to just react to the source." style="min-height:100px;"></textarea>
+        </div>
+
+        <div class="card">
             <label>Generate</label>
             <div class="formats" id="formats">
                 <div class="format-chip active" data-fmt="carousel">
@@ -216,23 +221,15 @@
                     </div>
                     <span class="format-check">✓</span>
                 </div>
-                <div class="format-chip active" data-fmt="video-script">
-                    <span class="format-icon">🎬</span>
-                    <div class="format-meta">
-                        <div class="format-name">Video script</div>
-                        <div class="format-detail">60-90s · Submagic</div>
-                    </div>
-                    <span class="format-check">✓</span>
-                </div>
-                <div class="format-chip" data-fmt="linkedin">
+                <div class="format-chip active" data-fmt="linkedin">
                     <span class="format-icon">💼</span>
                     <div class="format-meta">
                         <div class="format-name">LinkedIn post</div>
-                        <div class="format-detail">300-500 words</div>
+                        <div class="format-detail">300-500 words · algo-tuned</div>
                     </div>
                     <span class="format-check">✓</span>
                 </div>
-                <div class="format-chip" data-fmt="article">
+                <div class="format-chip active" data-fmt="article">
                     <span class="format-icon">📝</span>
                     <div class="format-meta">
                         <div class="format-name">Article</div>
@@ -291,6 +288,7 @@ function setStage(name) {
 
 $('submit').addEventListener('click', async () => {
     const input = $('input').value.trim();
+    const takeaway = $('takeaway').value.trim();
     const formats = getSelectedFormats();
 
     if (!input) {
@@ -315,7 +313,7 @@ $('submit').addEventListener('click', async () => {
         const r = await fetch('/api/capture', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ input, formats })
+            body: JSON.stringify({ input, formats, takeaway })
         });
         if (!r.ok) {
             const err = await r.json().catch(() => ({}));

@@ -10,7 +10,7 @@ import { callClaude } from '../lib/anthropic.js';
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
 
-const FORMATS = ['carousel', 'video-script', 'linkedin', 'article'];
+const FORMATS = ['carousel', 'linkedin', 'article'];
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -116,6 +116,9 @@ Voice notes: ${pillar.voice_notes || 'operator-respecting, anti-hype, direct'}`
 
 Marcos Bosche is the face. He runs VytalMed — a healthcare-specialized software development agency — but he writes like an operator sharing hard-won lessons, not a vendor pitching. Anti-fluff. Framework-driven. Specific.
 
+WHO WE WRITE FOR (the ICP):
+Enterprise and consolidating radiology groups — mid-to-large practices (25+ radiologists) and multi-site groups, the fastest-growing segment. The leaders and operators running radiology at scale: multiple sites, systems that don't talk to each other, standardizing across locations. Enterprise software ships 60% solved and leaves the hardest 40% broken. Write so THIS reader feels seen — teach in their world (multi-site standardization, referral capture, prior auth at volume, report delivery, HL7/FHIR/DICOM/fax), not generic "healthcare."
+
 WORLD VIEW (anchor to these — never quote them verbatim):
 - Most dev shops don't understand healthcare. Specialization compounds.
 - SaaS solves 60% of any healthcare workflow. The other 40% is where everything breaks.
@@ -143,6 +146,8 @@ HORMOZI-STYLE VOICE RULES (apply to every format):
 - NEVER use: "revolutionary", "game-changer", "unlock", "transformative", "leverage", "synergy".
 - No emojis (sparingly, only when natural to the platform).
 - TEACH first. The reader should learn something about the SOURCE whether or not they ever hire VytalMed.
+
+VARY THE SHAPE — don't make every post the same template. Rotate naturally between: a short personal story, a quick tactical tip, a contrarian take, a genuine observation, or a small framework. Sound like a real person talking, not a content machine. Hormozi's SPIRIT (clear, specific, no fluff, teaches something) — but casual, human, and different each time. It's fine to be conversational. Avoid formulaic openers repeated across posts.
 
 CTA STYLE — soft offer, not sales pitch:
 DON'T write: "Hire us", "Book a demo", "Get a quote", "Schedule a call"
@@ -183,25 +188,18 @@ Pick ONE teachable framework drawn from the SOURCE itself: "3 things [source] ge
      Run the 60-second diagnostic → marcoslacayobosche.com/diagnose"
 Format: plain text, labeled "SLIDE N:" with blank lines between.
 
-DRAFT 2 — video-script (60-90 sec talking-head, Submagic)
-TEACH a specific lesson or framework. Don't pitch.
-Structure:
-  HOOK (5s): contrarian claim, framework name, or curiosity gap. No setup.
-  TEACH (40s): the framework — 3 things, contrast pattern, or step-by-step. Numbered.
-  EXAMPLE (20s): one specific story from the field. Real numbers.
-  SOFT CTA (10s): "Want to see where your workflow scores? marcoslacayobosche.com/diagnose"
-Include [pause], [emphasis], [b-roll: description] cues. Sentence fragments encouraged.
+DRAFT 2 — linkedin (300-500 word text post — TEACHES, optimized for the LinkedIn algorithm)
+STRUCTURE:
+  HOOK (first line — critical; LinkedIn truncates after ~2 lines, so it must earn the click): a fragment, contrarian claim, or curiosity gap. Blank line after.
+  TEACH (2-3 short paragraphs): framework/list/contrast. Short lines, one thought per line, lots of white space (mobile-first).
+  PERSONAL (1 paragraph): first-person operator voice, radiology-at-scale world.
+  ENGAGEMENT PROMPT (one line): a question inviting comments (algorithm rewards them). e.g. "How's your group handling this across sites?"
+  Then output the post body WITHOUT any raw URL in it.
+  FIRST COMMENT: on a separate labeled line "FIRST COMMENT:", put the soft CTA + link (e.g. "Score your own workflow → marcoslacayobosche.com/diagnose") — this goes in the first comment, not the body, because LinkedIn suppresses posts with outbound links.
+  HASHTAGS: a separate labeled line "HASHTAGS:" with 3-5 targeted tags mixing niche + broad, chosen for the post topic. e.g. #Radiology #HealthcareIT #RadiologyLeaders #MedicalImaging #HealthcareOperations
+PLATFORM RULES: plain text only (no markdown). Short sentences. Every example/number lives in the enterprise-radiology world (multi-site, consolidation, referral capture, prior auth, report delivery, standardization). Reader learns ONE usable thing.
 
-DRAFT 3 — linkedin (300-500 word text post — TEACHES)
-Structure:
-  HOOK (one line, blank line after): sentence fragment or contrarian claim
-  TEACH (2-3 short paragraphs): the framework, list, or contrast. Numbered/bulleted lists. Each item teachable.
-  PERSONAL (1 short paragraph): "I've seen this 100 times" — first-person operator voice
-  SOFT CTA (last line, separate, blank line above):
-    "Score your own workflow in 60 seconds → marcoslacayobosche.com/diagnose"
-Plain text only. Short sentences. Line breaks. No jargon. The reader must learn ONE specific thing.
-
-DRAFT 4 — article (1000-1500 word blog post — TEACHES a framework)
+DRAFT 3 — article (1000-1500 word blog post — TEACHES a framework)
 PLAIN TEXT ONLY. No markdown symbols (no #, no ##, no **). User bolds titles themselves when publishing.
 Structure:
   HEADLINE: strong lesson-driven title on its own line at the top.
@@ -214,7 +212,6 @@ Tone: Hormozi explaining sales in long-form. Anti-fluff. Specific. Useful even t
 RETURN JSON ONLY (no markdown fences):
 {
   "carousel": "...",
-  "video-script": "...",
   "linkedin": "...",
   "article": "..."
 }`;
