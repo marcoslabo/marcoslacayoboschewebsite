@@ -1,0 +1,493 @@
+/* ==========================================================================
+   Homepage - simple personal layout on the Nymbl token system
+   ========================================================================== */
+
+.home-hero em,
+.home-title em,
+.home-belief-line em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+
+.home-eyebrow,
+.home-kicker {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.home-title {
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  max-width: 22ch;
+  margin-bottom: var(--space-4);
+}
+
+.home-intro {
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+  max-width: 56ch;
+  margin-bottom: var(--space-10);
+}
+
+.home-link {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.home-link:hover {
+  color: var(--color-accent);
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.home-hero {
+  padding-top: calc(var(--section-padding) + 3rem);
+  padding-bottom: var(--space-16);
+}
+
+.home-hero-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--space-16);
+  align-items: center;
+}
+
+.home-hero-title {
+  font-size: var(--text-5xl);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-6);
+}
+
+.home-hero-subtitle {
+  font-size: var(--text-xl);
+  color: var(--color-text-secondary);
+  max-width: 34ch;
+  margin-bottom: var(--space-8);
+}
+
+.home-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.home-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.home-chips li {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-4);
+}
+
+.home-hero-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-xl);
+}
+
+/* --------------------------------------------------------------------------
+   Belief + ribbon
+   -------------------------------------------------------------------------- */
+
+.home-belief {
+  padding-block: var(--space-16) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.home-belief-line {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.02em;
+  max-width: 28ch;
+  margin-bottom: var(--space-12);
+}
+
+.home-belief-aside {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+}
+
+.home-ribbon {
+  overflow: hidden;
+  background: var(--color-dark);
+  color: var(--color-text-inverse);
+  padding-block: var(--space-4);
+}
+
+.home-ribbon-track {
+  display: flex;
+  width: max-content;
+  animation: home-ribbon 40s linear infinite;
+}
+
+.home-ribbon-track span {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.12em;
+  padding-right: var(--space-4);
+  white-space: nowrap;
+}
+
+@keyframes home-ribbon {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ribbon-track { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Learn cards
+   -------------------------------------------------------------------------- */
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  text-decoration: none;
+  transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.home-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.home-card-num {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-light);
+}
+
+.home-card-cat {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+}
+
+.home-card-title {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  margin-top: var(--space-2);
+}
+
+.home-card-text {
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.home-card-link {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-top: var(--space-4);
+}
+
+.home-more {
+  display: inline-block;
+}
+
+/* --------------------------------------------------------------------------
+   The short version
+   -------------------------------------------------------------------------- */
+
+.home-about {
+  background: var(--color-secondary);
+}
+
+.home-body {
+  font-size: var(--text-lg);
+  max-width: 60ch;
+  margin-bottom: var(--space-4);
+}
+
+.home-body a {
+  color: var(--color-accent);
+  font-weight: var(--font-semibold);
+}
+
+.home-about-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--space-16);
+  align-items: center;
+}
+
+.home-about-story .home-body:last-child {
+  margin-bottom: 0;
+}
+
+.home-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-8) var(--space-6);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  margin-bottom: var(--space-6);
+}
+
+.home-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.home-stat-num {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.home-stat-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.home-aside {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.home-aside-icon {
+  font-size: 2rem;
+}
+
+.home-aside p {
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Work with Marcos
+   -------------------------------------------------------------------------- */
+
+.home-list {
+  border-top: 1px solid var(--color-border);
+}
+
+.home-list-item {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  align-items: center;
+  gap: var(--space-6);
+  padding-block: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: padding var(--transition-base);
+}
+
+.home-list-item:hover {
+  padding-left: var(--space-3);
+}
+
+.home-list-item:hover .home-list-arrow {
+  color: var(--color-accent);
+}
+
+.home-list-num {
+  font-weight: var(--font-bold);
+  color: var(--color-text-light);
+}
+
+.home-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.home-list-body strong {
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+}
+
+.home-list-body span {
+  color: var(--color-text-muted);
+}
+
+.home-list-arrow {
+  font-size: var(--text-xl);
+  color: var(--color-text-light);
+  transition: color var(--transition-fast);
+}
+
+/* --------------------------------------------------------------------------
+   Keep learning
+   -------------------------------------------------------------------------- */
+
+.home-follow {
+  background: var(--color-secondary);
+}
+
+.home-follow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  max-width: 880px;
+}
+
+.home-follow-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.home-follow-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-3px);
+}
+
+.home-follow-card strong {
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+}
+
+.home-follow-card span:not(.home-list-arrow) {
+  grid-column: 1;
+  color: var(--color-text-muted);
+}
+
+.home-follow-card .home-list-arrow {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+.home-footer {
+  padding-block: var(--space-10);
+  border-top: 1px solid var(--color-border);
+}
+
+.home-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.home-footer-mark {
+  font-size: var(--text-xl);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text-primary);
+}
+
+.home-footer a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.home-footer a:hover {
+  color: var(--color-accent);
+}
+
+.home-footer-links {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.home-footer-crm {
+  opacity: 0.3;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .home-hero-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-10);
+  }
+
+  .home-hero-photo {
+    max-width: 420px;
+  }
+
+  .home-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .home-about-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-10);
+  }
+}
+
+@media (max-width: 640px) {
+  .home-follow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-list-item {
+    grid-template-columns: 2rem 1fr auto;
+    gap: var(--space-4);
+  }
+
+  .home-hero-ctas .btn {
+    white-space: normal;
+  }
+}

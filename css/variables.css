@@ -11,11 +11,11 @@
   --color-dark-secondary: #1e293b;
 
   /* Accent - Purple/Violet like Nymbl */
-  --color-accent: #6366f1;
-  --color-accent-hover: #4f46e5;
-  --color-accent-light: #818cf8;
-  --color-accent-glow: rgba(99, 102, 241, 0.2);
-  --color-accent-soft: rgba(99, 102, 241, 0.1);
+  --color-accent: #4334dc;
+  --color-accent-hover: #3526b8;
+  --color-accent-light: #6d61e8;
+  --color-accent-glow: rgba(67, 52, 220, 0.2);
+  --color-accent-soft: rgba(67, 52, 220, 0.1);
 
   /* Text Colors */
   --color-text-primary: #0f172a;
@@ -37,7 +37,7 @@
   /* Gradients */
   --gradient-hero: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   --gradient-card: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  --gradient-accent: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-accent: linear-gradient(135deg, #4334dc 0%, #6d61e8 100%);
   --gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 
   /* Typography - Font Families */
