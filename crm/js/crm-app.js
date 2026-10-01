@@ -1940,10 +1940,11 @@ class CRMApp {
             'linkedin-question': { label: '💬 LinkedIn Question', hint: 'Short, casual — built for comments' },
             'linkedin-short':    { label: '⚡ LinkedIn Short', hint: '2-4 lines · one sharp thought' },
             'linkedin-story':    { label: '📖 LinkedIn Story', hint: 'Mini-story with a lesson' },
-            'article':           { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' }
+            'article':           { label: '📝 Article', hint: '1000-1500 word blog post — plain text (bold titles yourself when publishing)' },
+            'newsletter':        { label: '📬 Newsletter', hint: 'Watch the Work issue — paste into beehiiv, publish to email + web' }
         };
 
-        const sections = ['carousel', 'linkedin', 'linkedin-question', 'linkedin-short', 'linkedin-story', 'article'].map(angle => {
+        const sections = ['newsletter', 'carousel', 'linkedin', 'linkedin-question', 'linkedin-short', 'linkedin-story', 'article'].map(angle => {
             const d = drafts.find(x => x.angle === angle);
             if (!d) return '';
             const meta = formatMeta[angle];

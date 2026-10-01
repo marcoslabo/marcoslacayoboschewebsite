@@ -3,7 +3,7 @@
 // Body: {
 //   input: "URL or text",
 //   takeaway: "optional — Marcos's own take/POV/teachable moment",
-//   formats: ["carousel","linkedin","article"]
+//   formats: ["carousel","linkedin","article","newsletter"]
 // }
 //
 // Mode is INFERRED, not passed:
@@ -24,7 +24,7 @@ import { callClaude } from '../lib/anthropic.js';
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
 
-const VALID_FORMATS = ['carousel', 'linkedin', 'linkedin-question', 'linkedin-short', 'linkedin-story', 'article'];
+const VALID_FORMATS = ['carousel', 'linkedin', 'linkedin-question', 'linkedin-short', 'linkedin-story', 'article', 'newsletter'];
 // Default fallback when no formats field is sent — keeps the historical 3-draft output.
 // The new linkedin-* variants are opt-in: only generated when explicitly requested.
 const DEFAULT_FORMATS = ['carousel', 'linkedin', 'article'];
@@ -402,7 +402,8 @@ ${source.content}`;
 
     const { text } = await callClaude({
         model: 'claude-opus-4-7',
-        max_tokens: 6000,
+        // A newsletter issue is long; give it room alongside the other formats
+        max_tokens: formats.includes('newsletter') ? 9000 : 6000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
     });
@@ -519,7 +520,52 @@ The user will bold titles themselves when publishing.
   CTA (last line, separate, blank line above):
     "Want to see where your workflow lands? Run the diagnostic → marcoslacayobosche.com/diagnose"
 
-Tone: Hormozi explaining sales in long-form. Anti-fluff. Specific. The whole article must be useful even to someone who never clicks the CTA.`
+Tone: Hormozi explaining sales in long-form. Anti-fluff. Specific. The whole article must be useful even to someone who never clicks the CTA.`,
+
+    'newsletter': `📬 NEWSLETTER ISSUE ("Watch the Work" — weekly email, pasted into beehiiv and published to email + web)
+
+The newsletter replaces the blog: this ONE issue is both the email subscribers get and the public web post. It must stand alone and be worth reading even if they never click anything.
+
+WHO IT'S FOR: healthcare leaders building with AI — operators (COOs, VPs of Ops, practice administrators) and physicians with ideas. Radiology examples are welcome (that's where Marcos's proof is), but make every lesson portable to any healthcare workflow.
+
+VOICE FOR THIS FORMAT: warmer and more personal than the LinkedIn posts — a smart peer writing a weekly note, not a content machine. Industrial-engineer lens where it fits naturally (watch the work, find the constraint, value stream, one station at a time) — never forced.
+
+OUTPUT EXACTLY THESE LABELED PARTS, IN ORDER. Plain text only — no markdown symbols (no #, no **). Section labels in CAPS on their own line.
+
+SUBJECT LINE OPTIONS:
+  Three options, one per line, each under 60 characters. Curiosity or a specific outcome. No clickbait, no emojis.
+
+PREVIEW TEXT:
+  One line, under 90 characters — the teaser shown after the subject in the inbox.
+
+Then the issue body:
+
+  OPENING (2-3 short lines): personal, first-person — what Marcos saw or thought about this week. Sets up the lesson.
+
+  FROM THE FLOOR
+  The main lesson, 400-600 words. One idea, taught well: the situation, what most groups do, what works instead, and a small framework or numbered steps the reader can use. Do NOT invent client names, numbers, or events — if the source doesn't give specifics, teach the principle without fake detail.
+
+  BUILD IT WITH CLAUDE
+  One prototype recipe tied to this week's topic, 120-200 words:
+    - What you'll build (one line, e.g. "a one-page dashboard mockup of your referral backlog")
+    - A copy-paste prompt for Claude, on its own lines, starting with "PROMPT:"
+    - 2-3 short steps to try it
+    - One safety line: use fake or de-identified data — never paste real patient information (PHI).
+
+  WHAT'S HAPPENING
+  Three numbered items. For EACH: the item, then one line "Why it matters:" with Marcos's operator take.
+  IMPORTANT — do NOT invent news. If the source is itself news or a launch, use it as item 1. For any item you cannot ground in the source, write a placeholder exactly like:
+    "[ADD: a news item or link from this week]"
+    "Why it matters: [your one-line take]"
+
+  ONE QUESTION
+  One specific question that invites a reply (the reply is the point). Start with "Hit reply and tell me:".
+
+  SIGN-OFF
+  "Marcos" on its own line, then:
+  "P.S. Want to see where your workflow is breaking? Run the free diagnosis → marcoslacayobosche.com/diagnose"
+
+Total body length: 800-1100 words. Short paragraphs, lots of white space — most people read on their phone.`
 };
 
 function parseJson(text) {
