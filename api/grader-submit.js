@@ -2,7 +2,10 @@
 // POST /api/grader-submit
 // Persists a Grader result + email to Supabase (grader_submissions table).
 // Server-side so we can use the service role to bypass RLS edge cases.
+// If the person ticks the newsletter box, also subscribes them to beehiiv.
 // ==========================================================================
+
+import { subscribe } from '../lib/beehiiv.js';
 
 const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
 // Same anon key already shipped in spark/js/config.js — public by design (RLS protects).
@@ -20,7 +23,8 @@ export default async function handler(req, res) {
         fallback_specialty,
         analysis,
         first_name,
-        email
+        email,
+        newsletter
     } = req.body || {};
 
     if (!email || !email.includes('@')) {
@@ -129,10 +133,22 @@ export default async function handler(req, res) {
             console.warn('Report email send failed (non-fatal):', err.message);
         }
 
+        // 4. Newsletter opt-in (only when they ticked the box)
+        let subscribed = false;
+        if (newsletter === true) {
+            try {
+                await subscribe({ email: email.trim().toLowerCase(), firstName: first_name.trim(), source: 'diagnose' });
+                subscribed = true;
+            } catch (err) {
+                console.warn('Newsletter subscribe failed (non-fatal):', err.message);
+            }
+        }
+
         return res.status(200).json({
             id: inserted[0]?.id,
             contact_id: contactId,
             email_sent: emailSent,
+            subscribed,
             ok: true
         });
     } catch (e) {

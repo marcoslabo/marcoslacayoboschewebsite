@@ -371,9 +371,8 @@
 
 .home-follow-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1.4fr 1fr;
   gap: var(--space-6);
-  max-width: 880px;
 }
 
 .home-follow-card {
@@ -489,5 +488,80 @@
 
   .home-hero-ctas .btn {
     white-space: normal;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Featured free download + subscribe card
+   -------------------------------------------------------------------------- */
+
+.home-download {
+  background: var(--color-dark);
+}
+
+.home-download .home-title,
+.home-download .home-download-points li {
+  color: var(--color-text-inverse);
+}
+
+.home-download .home-title em,
+.home-download .home-eyebrow {
+  color: var(--color-accent-light);
+}
+
+.home-download .home-intro {
+  color: var(--color-text-light);
+  margin-bottom: var(--space-6);
+}
+
+.home-download-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: var(--space-16);
+  align-items: center;
+}
+
+.home-download-points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.home-download-points li::before {
+  content: '✦ ';
+  color: var(--color-accent-light);
+}
+
+.home-download-card {
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.home-download-card .mb-subscribe input,
+.home-download-card .mb-subscribe select,
+.home-download-card .mb-subscribe button {
+  flex: 1 1 100%;
+}
+
+.home-subscribe-card {
+  grid-template-columns: 1fr;
+}
+
+.home-subscribe-card .mb-subscribe {
+  margin-top: var(--space-4);
+}
+
+.home-subscribe-card:hover {
+  transform: none;
+}
+
+@media (max-width: 1024px) {
+  .home-download-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-10);
   }
 }

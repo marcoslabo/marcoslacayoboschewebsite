@@ -25,7 +25,9 @@
     <link rel="stylesheet" href="/css/variables.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/sections.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/subscribe.css?v=1">
     <style>
         .blog-hero {
             padding: 120px 0 60px;
@@ -256,6 +258,23 @@
                 grid-template-columns: 1fr;
             }
         }
+            .blog-subscribe {
+            margin: 48px 0 32px;
+            padding: 32px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+        }
+
+        .blog-subscribe h3 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .blog-subscribe > p {
+            color: #64748b;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 
@@ -270,7 +289,7 @@
             </a>
 
             <div class="nav-links" id="nav-links">
-                <a href="/#learn" class="nav-link">Free Tools</a>
+                <a href="/#download" class="nav-link">Free Tools</a>
                 <a href="/#about" class="nav-link">About</a>
                 <a href="/#work" class="nav-link">Work with me</a>
                 <a href="/blog/" class="nav-link" style="color: var(--color-accent);">Insights</a>
@@ -295,6 +314,7 @@
 
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/subscribe.js?v=1"></script>
 
     <script>
         // Supabase config (same as CRM — public anon key, RLS-protected)
@@ -308,6 +328,23 @@
             'ai-strategy': { bg: '#dbeafe', color: '#2563eb' },
             'case-study': { bg: '#fef3c7', color: '#d97706' }
         };
+
+        // Newsletter sign-up block shown under the list and under every article
+        function subscribeBlock(source) {
+            return `
+        <div class="blog-subscribe">
+          <h3>Get one useful idea a week</h3>
+          <p>Watch the Work: lessons from building healthcare AI in production, Claude prototype recipes, and what's worth your attention.</p>
+          <form class="mb-subscribe" data-source="${source}">
+            <input type="email" name="email" placeholder="you@yourorganization.com" autocomplete="email" required>
+            <div class="mb-hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+            <p class="mb-subscribe-error" role="alert" hidden></p>
+          </form>
+          <div class="mb-subscribe-success" role="status" hidden><p>✓ You're in. Check your inbox for a welcome note.</p></div>
+        </div>
+      `;
+        }
 
         // Check if viewing a specific article
         async function init() {
@@ -355,6 +392,7 @@
               <p>No articles in this category yet.</p>
             </div>
           `}
+          ${subscribeBlock('blog')}
         </div>
       `;
         }
@@ -416,6 +454,8 @@
           <div class="article-content">
             ${post.content}
           </div>
+
+          ${subscribeBlock('blog:' + post.slug)}
 
           <div class="article-cta">
             <h3>Want to discuss this further?</h3>

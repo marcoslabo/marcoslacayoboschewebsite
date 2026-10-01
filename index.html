@@ -37,7 +37,8 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/sections.css">
   <link rel="stylesheet" href="css/responsive.css">
-  <link rel="stylesheet" href="css/home.css?v=2">
+  <link rel="stylesheet" href="css/home.css?v=4">
+  <link rel="stylesheet" href="css/subscribe.css?v=1">
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml"
@@ -56,7 +57,7 @@
       </a>
 
       <div class="nav-links" id="nav-links">
-        <a href="#learn" class="nav-link">Free Tools</a>
+        <a href="#download" class="nav-link">Free Tools</a>
         <a href="#about" class="nav-link">About</a>
         <a href="#work" class="nav-link">Work with me</a>
         <a href="/blog/" class="nav-link">Insights</a>
@@ -87,7 +88,7 @@
 
         <div class="home-hero-ctas">
           <a href="/diagnose" class="btn btn-primary btn-lg">Diagnose my workflow →</a>
-          <a href="#learn" class="home-link">Explore the playbook ↓</a>
+          <a href="#download" class="home-link">Get the free template ↓</a>
         </div>
 
         <ul class="home-chips">
@@ -152,6 +153,46 @@
       </div>
 
       <a href="/blog/" class="home-link home-more">Browse all articles →</a>
+    </div>
+  </section>
+
+  <!-- Featured free download -->
+  <section class="section home-download" id="download">
+    <div class="container home-download-grid">
+      <div>
+        <p class="home-eyebrow">✦ Free download</p>
+        <h2 class="home-title">The Healthcare <em>Value Stream Map.</em></h2>
+        <p class="home-intro">A one-page template to map one workflow, circle the waste, and see where AI actually
+          fits. The same tool I use with every client.</p>
+        <ul class="home-download-points">
+          <li>Map current state vs. future state on one page</li>
+          <li>Spot every handoff, delay and workaround</li>
+          <li>Find the one constraint worth fixing first</li>
+        </ul>
+      </div>
+
+      <div class="home-download-card">
+        <form class="mb-subscribe" data-source="download:value-stream-map" data-download-url="">
+          <input type="text" name="first_name" placeholder="First name" autocomplete="given-name" required>
+          <input type="email" name="email" placeholder="you@yourorganization.com" autocomplete="email" required>
+          <select name="role" required>
+            <option value="" disabled selected>I'm a…</option>
+            <option value="physician">Physician</option>
+            <option value="operations-leader">Operations leader (COO, VP Ops)</option>
+            <option value="practice-owner">Practice owner</option>
+            <option value="builder">Builder / founder</option>
+            <option value="other">Other</option>
+          </select>
+          <div class="mb-hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+          <button type="submit" class="btn btn-primary">Send it to me</button>
+          <p class="mb-subscribe-error" role="alert" hidden></p>
+        </form>
+        <div class="mb-subscribe-success" role="status" hidden>
+          <p>✓ You're in. The template lands in your inbox this week, along with Watch the Work.</p>
+          <a class="btn btn-primary mb-subscribe-download" href="#" download hidden>Download the template</a>
+        </div>
+        <p class="mb-subscribe-note">You'll also get Watch the Work, one useful idea a week. Unsubscribe anytime.</p>
+      </div>
     </div>
   </section>
 
@@ -254,15 +295,24 @@
       <p class="home-intro">Real stories from inside healthcare AI projects.</p>
 
       <div class="home-follow-grid">
+        <div class="home-follow-card home-subscribe-card">
+          <strong>Watch the Work</strong>
+          <span>The weekly newsletter. Lessons from production, Claude prototype recipes, and what's worth your
+            attention.</span>
+          <form class="mb-subscribe" data-source="homepage">
+            <input type="email" name="email" placeholder="Your email" autocomplete="email" required>
+            <div class="mb-hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+            <p class="mb-subscribe-error" role="alert" hidden></p>
+          </form>
+          <div class="mb-subscribe-success" role="status" hidden>
+            <p>✓ You're in. Check your inbox for a welcome note.</p>
+          </div>
+        </div>
         <a class="home-follow-card" href="https://linkedin.com/in/marcoslacayobosche" target="_blank"
           rel="noopener noreferrer">
           <strong>LinkedIn</strong>
           <span>Join 2.8K healthcare leaders</span>
-          <span class="home-list-arrow">↗</span>
-        </a>
-        <a class="home-follow-card" href="/diagnose">
-          <strong>Free tools</strong>
-          <span>Start with the workflow diagnosis</span>
           <span class="home-list-arrow">↗</span>
         </a>
       </div>
@@ -288,6 +338,7 @@
   <script src="js/navigation.js"></script>
   <script src="js/main.js"></script>
   <script src="js/home.js?v=2"></script>
+  <script src="js/subscribe.js?v=1"></script>
 </body>
 
 </html>

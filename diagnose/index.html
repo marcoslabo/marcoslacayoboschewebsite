@@ -183,6 +183,11 @@
         .gate h3 { margin: 0 0 8px; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
         .gate p { margin: 0 0 18px; opacity: 0.92; font-size: 14px; }
         .gate-form { display: flex; gap: 8px; flex-wrap: wrap; max-width: 420px; margin: 0 auto; }
+        .gate-optin {
+            flex-basis: 100%; display: flex; gap: 10px; align-items: flex-start;
+            margin-top: 6px; text-align: left; font-size: 13px; line-height: 1.4; color: rgba(255,255,255,0.9); cursor: pointer;
+        }
+        .gate-optin input { margin-top: 2px; flex: 0 0 auto; }
         .gate-input {
             flex: 1; min-width: 200px;
             padding: 14px 18px; border-radius: 12px;
@@ -298,6 +303,10 @@
                     <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
                     <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
                     <button type="submit" class="gate-btn" id="gate-btn">Send 1-pager</button>
+                    <label class="gate-optin">
+                        <input type="checkbox" id="gate-newsletter" />
+                        Also send me Watch the Work, one useful idea a week for healthcare leaders building with AI
+                    </label>
                 </form>
                 <div id="gate-error" class="error" style="display:none; margin-top:14px; background:rgba(255,255,255,0.15); color:white;"></div>
                 <div id="gate-success" style="display:none; margin-top:14px; color:white; font-weight:600;">✓ Got it — we'll send the 1-pager shortly.</div>
@@ -488,7 +497,8 @@ $('gate-form').addEventListener('submit', async (e) => {
                 fallback_specialty: currentFallback,
                 analysis: currentAnalysis,
                 first_name,
-                email
+                email,
+                newsletter: $('gate-newsletter').checked
             })
         });
         if (!r.ok) {
@@ -521,6 +531,7 @@ $('reset-link').addEventListener('click', (e) => {
     $('gate-error').style.display = 'none';
     $('gate-first-name').value = '';
     $('gate-email').value = '';
+    $('gate-newsletter').checked = false;
     $('gate-btn').disabled = false;
     $('gate-btn').textContent = 'Send 1-pager';
     setStage('search');
