@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/beehiiv-sync",
+      "path": "/api/subscribe",
       "schedule": "0 12 * * *"
     }
   ],

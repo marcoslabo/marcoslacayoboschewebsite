@@ -9,10 +9,13 @@
 
 import { subscribe, ROLES } from '../lib/beehiiv.js';
 import { ensureNewsletterContact } from '../lib/crm.js';
+import { beehiivSync } from '../lib/beehiiv-sync.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async function handler(req, res) {
+    // GET is the daily beehiiv → CRM sync (Vercel Cron, CRON_SECRET-protected)
+    if (req.method === 'GET') return beehiivSync(req, res);
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { email, first_name, role, source, utm_source, utm_campaign, website } = req.body || {};
