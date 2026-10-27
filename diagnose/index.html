@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Risk Grader — VytalMed</title>
+    <title>Workflow Grader | Marcos Lacayo Bosche · VytalMed × Nymbl</title>
     <meta name="description" content="Type your practice name. We'll show you what workflows we'd fix first. 5 seconds, no quiz.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -227,6 +227,12 @@
         .footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 56px; }
         .footer a { color: var(--muted); text-decoration: none; }
     </style>
+
+    <!-- Vercel Web Analytics -->
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 
@@ -234,9 +240,9 @@
     <!-- Stage 0: Hero + Search -->
     <div id="stage-search" class="stage active">
         <div class="hero">
-            <div class="eyebrow">🩺 VytalMed Workflow Grader</div>
+            <div class="eyebrow">🩺 Workflow Grader by Marcos Lacayo Bosche</div>
             <h1>What would we fix first<br>in your workflow?</h1>
-            <p class="sub">Type your practice name. No questions. 5 seconds. We'll show you the 3 patterns we'd build for you in a 5-week playback.</p>
+            <p class="sub">Type your practice name. 5 seconds. See the 3 workflows we'd fix first, then get a free working demo of #1.</p>
         </div>
 
         <div class="search-wrap">
@@ -292,34 +298,34 @@
             <div class="patterns-title">Axis Breakdown</div>
             <div id="breakdown" class="breakdown"></div>
 
-            <div class="patterns-title">Top 3 Patterns We'd Fix in Your 5-Week Playback</div>
+            <div class="patterns-title">Top 3 Workflows We'd Fix First</div>
             <div id="patterns"></div>
 
-            <!-- Soft email gate: optional, for the 1-pager. Calendly is also right here, no gate. -->
+            <!-- One action: book the free demo. The email form is optional and secondary. -->
             <div id="gate" class="gate">
-                <h3>Want the 1-pager — or to talk this through?</h3>
-                <p>Drop your name + email and we'll send a 1-page PDF you can share with your team. Or skip the email and just book a 30-min call below.</p>
+                <h3>Want to see #1 actually working?</h3>
+                <p>I'll build a free working demo of this workflow for your group. You can test it and share it with your team. No connection to your systems needed. I build 4 free demos a month.</p>
+                <div class="cta-row" style="margin: 0 0 22px;">
+                    <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer" class="btn-primary" id="demo-btn">Book my free demo →</a>
+                </div>
+                <p style="margin: 0 0 10px; font-size: 13px;">Not ready yet? Get these results by email.</p>
                 <form class="gate-form" id="gate-form">
                     <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
                     <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
-                    <button type="submit" class="gate-btn" id="gate-btn">Send 1-pager</button>
+                    <button type="submit" class="gate-btn" id="gate-btn">Email me these results</button>
                     <label class="gate-optin">
                         <input type="checkbox" id="gate-newsletter" />
                         Also send me Watch the Work, one useful idea a week for healthcare leaders building with AI
                     </label>
                 </form>
                 <div id="gate-error" class="error" style="display:none; margin-top:14px; background:rgba(255,255,255,0.15); color:white;"></div>
-                <div id="gate-success" style="display:none; margin-top:14px; color:white; font-weight:600;">✓ Got it — we'll send the 1-pager shortly.</div>
-            </div>
-
-            <div class="cta-row">
-                <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" class="btn-primary">Book your 30-min playback consult →</a>
+                <div id="gate-success" style="display:none; margin-top:14px; color:white; font-weight:600;">✓ Sent. Check your inbox.</div>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        <a href="https://vytalmed.co">VytalMed</a> · Built by healthcare engineers, for healthcare operators
+        Marcos Lacayo Bosche · Built with <a href="https://vytalmed.co">VytalMed</a> × <a href="https://nymbl.app">Nymbl</a>
     </div>
 </div>
 
@@ -473,7 +479,24 @@ function renderResult() {
     `).join('');
 
     setStage('result');
+    track('grade_complete', { grade: a.risk_grade, matched: p ? 'npi' : 'specialty' });
 }
+
+// ---------- Tracking (Vercel Analytics custom events) ----------
+function track(name, data) {
+    if (window.va) window.va('event', data ? { name, data } : { name });
+}
+$('demo-btn').addEventListener('click', () => track('book_call_click', { from: 'grader' }));
+
+// Carry UTM tags (e.g. from LinkedIn via the homepage) onto the Calendly link
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    const url = new URL($('demo-btn').href);
+    ['utm_source', 'utm_medium', 'utm_campaign'].forEach(key => {
+        if (params.get(key)) url.searchParams.set(key, params.get(key));
+    });
+    $('demo-btn').href = url.toString();
+})();
 
 // ---------- Email gate ----------
 $('gate-form').addEventListener('submit', async (e) => {
@@ -508,10 +531,11 @@ $('gate-form').addEventListener('submit', async (e) => {
         // Hide the form, show inline success
         $('gate-form').style.display = 'none';
         $('gate-success').style.display = 'block';
+        track('email_results');
     } catch (e) {
         $('gate-error').textContent = e.message;
         $('gate-error').style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Send 1-pager';
+        btn.disabled = false; btn.textContent = 'Email me these results';
     }
 });
 
@@ -533,7 +557,7 @@ $('reset-link').addEventListener('click', (e) => {
     $('gate-email').value = '';
     $('gate-newsletter').checked = false;
     $('gate-btn').disabled = false;
-    $('gate-btn').textContent = 'Send 1-pager';
+    $('gate-btn').textContent = 'Email me these results';
     setStage('search');
     setTimeout(() => $('search').focus(), 50);
 });

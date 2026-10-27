@@ -117,7 +117,7 @@ export default async function handler(req, res) {
 
         const inserted = await resp.json();
 
-        // 3. Send the 1-pager email via Brevo. Awaited because Vercel serverless
+        // 3. Send the results email via Brevo. Awaited because Vercel serverless
         //    will kill non-awaited async work when the function returns.
         let emailSent = false;
         try {
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
 }
 
 // ============================================================================
-// Brevo transactional email — sends the 1-pager
+// Brevo transactional email — sends the results
 // ============================================================================
 async function sendReportEmail({ to, firstName, practice, fallback_specialty, analysis }) {
     const brevoKey = process.env.BREVO_API_KEY;
@@ -168,7 +168,7 @@ async function sendReportEmail({ to, firstName, practice, fallback_specialty, an
     }
 
     const senderEmail = process.env.GRADER_SENDER_EMAIL || 'marcos@marcoslacayobosche.com';
-    const senderName  = process.env.GRADER_SENDER_NAME  || 'Marcos Bosche (VytalMed)';
+    const senderName  = process.env.GRADER_SENDER_NAME  || 'Marcos Lacayo Bosche';
     const calendlyUrl = process.env.GRADER_CALENDLY_URL || 'https://calendly.com/marcos-bosche-nymbl/30min';
 
     const practiceLabel = practice?.name
@@ -202,8 +202,8 @@ async function sendReportEmail({ to, firstName, practice, fallback_specialty, an
 <!DOCTYPE html>
 <html><body style="margin:0; padding:0; background:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 <div style="max-width:600px; margin:0 auto; background:white; padding:32px 28px;">
-    <div style="font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px;">🩺 VytalMed Workflow Grader</div>
-    <h1 style="font-size:24px; font-weight:800; color:#0f172a; margin:0 0 4px; letter-spacing:-0.02em;">Hi ${esc(firstName)} — here's your report</h1>
+    <div style="font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px;">🩺 Workflow Grader by Marcos Lacayo Bosche</div>
+    <h1 style="font-size:24px; font-weight:800; color:#0f172a; margin:0 0 4px; letter-spacing:-0.02em;">Hi ${esc(firstName)} — here are your results</h1>
     <p style="font-size:14px; color:#64748b; margin:0 0 24px;">For <strong>${esc(practiceLabel)}</strong></p>
 
     <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff); padding:24px; border-radius:14px; margin-bottom:24px;">
@@ -216,16 +216,16 @@ async function sendReportEmail({ to, firstName, practice, fallback_specialty, an
     <h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:24px 0 10px;">Axis Breakdown</h2>
     <table style="width:100%; border-collapse:collapse;">${axisHtml}</table>
 
-    <h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:28px 0 12px;">Top 3 Patterns We'd Fix in Your 5-Week Playback</h2>
+    <h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:28px 0 12px;">Top 3 Workflows We'd Fix First</h2>
     ${patternsHtml}
 
     <div style="background:#0f172a; padding:24px; border-radius:14px; text-align:center; margin:32px 0 8px;">
-        <div style="color:white; font-size:16px; font-weight:700; margin-bottom:6px;">Want to talk through this?</div>
-        <div style="color:#94a3b8; font-size:13px; margin-bottom:16px;">5 weeks from now you could have a working demo. Or another quarter of scoping.</div>
-        <a href="${esc(calendlyUrl)}" style="display:inline-block; padding:14px 24px; background:white; color:#0f172a; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px;">Book your 30-min playback consult →</a>
+        <div style="color:white; font-size:16px; font-weight:700; margin-bottom:6px;">Want to see #1 actually working?</div>
+        <div style="color:#94a3b8; font-size:13px; margin-bottom:16px;">I'll build a free working demo of this workflow for your group. No connection to your systems needed. I build 4 free demos a month.</div>
+        <a href="${esc(calendlyUrl)}" style="display:inline-block; padding:14px 24px; background:white; color:#0f172a; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px;">Book my free demo →</a>
     </div>
 
-    <p style="font-size:12px; color:#94a3b8; text-align:center; margin-top:32px;">VytalMed · Built by healthcare engineers, for healthcare operators<br>You got this email because you ran the Workflow Grader at marcoslacayobosche.com/diagnose.</p>
+    <p style="font-size:12px; color:#94a3b8; text-align:center; margin-top:32px;">Marcos Lacayo Bosche · Built with VytalMed × Nymbl<br>You got this email because you ran the Workflow Grader at marcoslacayobosche.com/diagnose.</p>
 </div></body></html>`;
 
     const resp = await fetch('https://api.brevo.com/v3/smtp/email', {

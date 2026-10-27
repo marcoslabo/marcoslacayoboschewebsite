@@ -31,6 +31,9 @@ document.addEventListener('submit', async (e) => {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || 'Something went wrong. Please try again.');
 
+    // Vercel Analytics custom event (only on pages that load the analytics script)
+    if (window.va) window.va('event', { name: 'newsletter_signup', data: { source: data.source } });
+
     form.hidden = true;
     if (success) {
       const link = success.querySelector('.mb-subscribe-download');
