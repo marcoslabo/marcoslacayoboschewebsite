@@ -1,27 +1,54 @@
 // ==========================================================================
-// CRM Authentication
+// CRM Authentication (Supabase Auth)
+// Signing in gives the browser a Supabase session; the database only lets
+// signed-in CRM users (the crm_users table) read or change CRM data.
 // ==========================================================================
 
 class CRMAuth {
     constructor() {
-        this.sessionKey = window.CRM_CONFIG.SESSION_KEY;
-        this.roleKey = 'crm_user_role';
-        this.ownerKey = 'crm_user_owner';
+        const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CRM_CONFIG;
+        // One client for the whole CRM, so every query carries the session
+        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.crmSupabase = this.supabase;
+        this.session = null;
+        this.profile = null;
     }
 
     /**
-     * Check if user is logged in
+     * Restore a saved session (if any) and load the user's CRM profile.
+     * Call once on page load before rendering anything.
+     */
+    async restore() {
+        const { data } = await this.supabase.auth.getSession();
+        this.session = data.session;
+        if (!this.session) return false;
+
+        const ok = await this.loadProfile();
+        if (!ok) await this.logout();
+        return ok;
+    }
+
+    async loadProfile() {
+        const { data, error } = await this.supabase
+            .from('crm_users')
+            .select('email, role, owner')
+            .maybeSingle();
+        this.profile = error ? null : data;
+        return !!this.profile;
+    }
+
+    /**
+     * Check if user is logged in (after restore() or login())
      */
     isLoggedIn() {
-        const token = localStorage.getItem(this.sessionKey);
-        return token && token.startsWith('crm_');
+        return !!(this.session && this.profile);
     }
 
     /**
      * Get current user role ('admin' or 'team')
      */
     getRole() {
-        return localStorage.getItem(this.roleKey) || 'team';
+        return this.profile?.role || 'team';
     }
 
     /**
@@ -35,52 +62,48 @@ class CRMAuth {
      * Get current owner identifier (e.g. 'marcos', 'joy')
      */
     getOwner() {
-        return localStorage.getItem(this.ownerKey) || 'marcos';
+        return this.profile?.owner || 'marcos';
     }
 
     /**
-     * Get current session token
+     * Headers for CRM-only /api endpoints
      */
-    getToken() {
-        return localStorage.getItem(this.sessionKey);
+    async authHeaders() {
+        const { data } = await this.supabase.auth.getSession();
+        const token = data.session?.access_token;
+        return token
+            ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+            : { 'Content-Type': 'application/json' };
     }
 
     /**
-     * Attempt login with password
+     * Sign in with email + password
      */
     async login(email, password) {
-        try {
-            const response = await fetch('/api/crm-auth', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email, password })
-            });
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password
+        });
 
-            const data = await response.json();
-
-            if (data.success && data.token) {
-                localStorage.setItem(this.sessionKey, data.token);
-                localStorage.setItem(this.roleKey, data.role || 'admin');
-                localStorage.setItem(this.ownerKey, data.owner || 'marcos');
-                return { success: true };
-            }
-
-            return { success: false, error: data.error || 'Login failed' };
-        } catch (error) {
-            console.error('Login error:', error);
-            return { success: false, error: 'Connection error. Please try again.' };
+        if (error) {
+            return { success: false, error: error.message === 'Invalid login credentials' ? 'Wrong email or password' : error.message };
         }
+
+        this.session = data.session;
+        if (!(await this.loadProfile())) {
+            await this.logout();
+            return { success: false, error: 'This account does not have CRM access' };
+        }
+        return { success: true };
     }
 
     /**
      * Logout
      */
-    logout() {
-        localStorage.removeItem(this.sessionKey);
-        localStorage.removeItem(this.roleKey);
-        localStorage.removeItem(this.ownerKey);
+    async logout() {
+        await this.supabase.auth.signOut();
+        this.session = null;
+        this.profile = null;
     }
 }
 

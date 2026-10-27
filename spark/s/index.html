@@ -46,12 +46,6 @@
 
     <script src="../js/config.js"></script>
     <script>
-        // Initialize Supabase
-        const supabaseClient = supabase.createClient(
-            SPARK_CONFIG.SUPABASE_URL,
-            SPARK_CONFIG.SUPABASE_ANON_KEY
-        );
-
         // Get share ID from URL query parameter
         const urlParams = new URLSearchParams(window.location.search);
         const shareId = urlParams.get('id');
@@ -77,26 +71,10 @@
         // Load and display brief
         async function loadBrief() {
             try {
-                // Increment view count
-                const { data: briefData } = await supabaseClient
-                    .from('briefs')
-                    .select('id, share_link_views')
-                    .eq('share_id', shareId)
-                    .single();
-
-                if (briefData) {
-                    await supabaseClient
-                        .from('briefs')
-                        .update({ share_link_views: (briefData.share_link_views || 0) + 1 })
-                        .eq('id', briefData.id);
-                }
-
-                // Get full brief with company info
-                const { data: brief, error } = await supabaseClient
-                    .from('briefs_with_roi')
-                    .select('*')
-                    .eq('share_id', shareId)
-                    .single();
+                // Server-side: loads the brief and counts the view
+                const r = await fetch(`/api/spark?share=${encodeURIComponent(shareId || '')}`);
+                const { brief } = await r.json().catch(() => ({}));
+                const error = !r.ok;
 
                 if (error || !brief) {
                     document.getElementById('app').innerHTML = `

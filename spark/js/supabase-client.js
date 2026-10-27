@@ -32,6 +32,7 @@ class SparkDatabase {
     // Companies
     // ==========================================================================
 
+    // Lists are CRM-only: empty unless you're signed in to the CRM in this browser
     async getCompanies() {
         if (this.demoMode) return this.getDemoCompanies();
 
@@ -40,7 +41,7 @@ class SparkDatabase {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) return [];
         return data;
     }
 
@@ -85,7 +86,7 @@ class SparkDatabase {
             `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) return [];
         return data;
     }
 
@@ -118,30 +119,41 @@ class SparkDatabase {
         return data;
     }
 
+    // Public reads go through /api/spark (the tables are closed to the public key)
     async getBrief(id) {
         if (this.demoMode) return this.getDemoBrief(id);
-
-        const { data, error } = await this.client
-            .from('briefs_with_roi')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) throw error;
-        return data;
+        return this.fetchBrief(`id=${encodeURIComponent(id)}`);
     }
 
+    // Also counts the view
     async getBriefByShareId(shareId) {
         if (this.demoMode) return this.getDemoBriefByShareId(shareId);
+        return this.fetchBrief(`share=${encodeURIComponent(shareId)}`);
+    }
 
-        const { data, error } = await this.client
-            .from('briefs_with_roi')
-            .select('*')
-            .eq('share_id', shareId)
-            .single();
+    async fetchBrief(query) {
+        const r = await fetch(`/api/spark?${query}`);
+        if (r.status === 404) return null;
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.error || 'Could not load brief');
+        return body.brief;
+    }
 
-        if (error) throw error;
-        return data;
+    /**
+     * Public form: saves the company, the CRM contact and the brief in one
+     * server call. Returns { id, share_id }.
+     */
+    async createLeadBrief({ first_name, last_name, email, company_name, brief }) {
+        if (this.demoMode) return this.createDemoBrief(brief);
+
+        const r = await fetch('/api/spark', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'create', first_name, last_name, email, company_name, brief })
+        });
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.error || 'Could not save your brief');
+        return body.brief;
     }
 
     async createBrief(brief) {
@@ -167,6 +179,17 @@ class SparkDatabase {
     async updateBrief(id, updates) {
         if (this.demoMode) return this.updateDemoBrief(id, updates);
 
+        // The share button is public; everything else needs a CRM session
+        if (Object.keys(updates).length === 1 && updates.status === 'Shared') {
+            const r = await fetch('/api/spark', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'shared', id })
+            });
+            if (!r.ok) throw new Error('Could not update brief');
+            return { id, ...updates };
+        }
+
         const { data, error } = await this.client
             .from('briefs')
             .update(updates)
@@ -182,8 +205,9 @@ class SparkDatabase {
         return data;
     }
 
+    // Views are counted server-side by getBriefByShareId()
     async incrementBriefViews(shareId) {
-        if (this.demoMode) return;
+        return;
 
         const { data: brief } = await this.client
             .from('briefs')

@@ -1,0 +1,18 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/beehiiv-sync",
+      "schedule": "0 12 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/crm/content",
+      "destination": "/crm/index.html"
+    },
+    {
+      "source": "/crm/content/",
+      "destination": "/crm/index.html"
+    }
+  ]
+}

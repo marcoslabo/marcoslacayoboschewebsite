@@ -13,7 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/crm.css">
+    <!-- Absolute paths: this page is also served at /crm/content -->
+    <link rel="stylesheet" href="/crm/css/crm.css">
 
     <!-- Quill.js Rich Text Editor -->
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
@@ -49,19 +50,23 @@
                 <h1 class="logo">CRM</h1>
             </div>
             <nav class="header-nav">
-                <a href="#/" class="nav-link" data-route="dashboard">Today</a>
-                <a href="#/contacts" class="nav-link" data-route="contacts">All Contacts</a>
-                <a href="#/activity-log" class="nav-link" data-route="activity-log">📋 Activity Log</a>
-                <a href="/capture" target="_blank" class="nav-link" data-admin-only>🎯 Capture</a>
-                <a href="#/inbox" class="nav-link" data-route="inbox" data-admin-only>📥 Inbox</a>
-                <a href="#/blog" class="nav-link" data-route="blog" data-admin-only>✍️ Blog</a>
+                <!-- Pipeline (/crm) -->
+                <a href="#/" class="nav-link" data-route="dashboard" data-nav="crm">Today</a>
+                <a href="#/contacts" class="nav-link" data-route="contacts" data-nav="crm">All Contacts</a>
+                <a href="#/activity-log" class="nav-link" data-route="activity-log" data-nav="crm">📋 Activity Log</a>
+                <a href="/crm/content/" class="nav-link" data-nav="crm" data-admin-only>Content →</a>
+                <!-- Content (/crm/content) -->
+                <a href="/crm/" class="nav-link" data-nav="content">← Pipeline</a>
+                <a href="#/blog" class="nav-link" data-route="blog" data-nav="content" data-admin-only>✍️ Blog</a>
+                <a href="#/inbox" class="nav-link" data-route="inbox" data-nav="content" data-admin-only>📥 Inbox</a>
+                <a href="/capture" target="_blank" class="nav-link" data-nav="content" data-admin-only>🎯 Capture &amp; weekly to-dos</a>
             </nav>
             <div class="header-right">
                 <button id="importCsvBtn" class="btn btn-ghost btn-sm" onclick="window.crmApp.openCsvImport()"
-                    title="Import contacts from CSV" data-admin-only>📥 Import</button>
+                    title="Import contacts from CSV" data-admin-only data-nav="crm">📥 Import</button>
                 <button id="syncBrevoBtn" class="btn btn-ghost btn-sm" onclick="window.crmApp.syncAllToBrevo()"
-                    title="Sync unsynced contacts to Brevo" data-admin-only>🔄 Brevo</button>
-                <button id="quickAddBtn" class="btn btn-primary btn-sm">+ Quick Add</button>
+                    title="Sync unsynced contacts to Brevo" data-admin-only data-nav="crm">🔄 Brevo</button>
+                <button id="quickAddBtn" class="btn btn-primary btn-sm" data-nav="crm">+ Quick Add</button>
                 <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
             </div>
         </header>
@@ -172,24 +177,20 @@
                     <label>Source *</label>
                     <div class="radio-group">
                         <label class="radio-label">
-                            <input type="radio" name="source" value="Met In Person" checked>
-                            <span>Met In Person</span>
+                            <input type="radio" name="source" value="LinkedIn outreach" checked>
+                            <span>LinkedIn outreach</span>
                         </label>
                         <label class="radio-label">
-                            <input type="radio" name="source" value="LinkedIn">
-                            <span>LinkedIn</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="source" value="Direct Call">
-                            <span>Direct Call</span>
+                            <input type="radio" name="source" value="LinkedIn post">
+                            <span>LinkedIn post</span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="source" value="Referral">
                             <span>Referral</span>
                         </label>
                         <label class="radio-label">
-                            <input type="radio" name="source" value="Event">
-                            <span>Event</span>
+                            <input type="radio" name="source" value="Other">
+                            <span>Other</span>
                         </label>
                     </div>
                 </div>
@@ -301,11 +302,9 @@
                             Contacts:</label>
                         <select id="csvImportSource"
                             style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                            <option value="Clay Import">Clay Import</option>
-                            <option value="LinkedIn">LinkedIn Export</option>
+                            <option value="Other">Other (event list, Clay export…)</option>
+                            <option value="LinkedIn outreach">LinkedIn outreach</option>
                             <option value="Referral">Referral List</option>
-                            <option value="Event">Event Attendees</option>
-                            <option value="Other">Other</option>
                         </select>
                     </div>
 
@@ -388,6 +387,7 @@
                     <label style="font-weight: 600; margin-bottom: 8px; display: block;">What did you do?</label>
                     <select id="logActivityType" onchange="window.crmApp.updateOutcomeOptions()"
                         style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <option value="outreach">📤 Reached Out (counts toward today's 100)</option>
                         <option value="call">📞 Made a Call</option>
                         <option value="email">✉️ Sent Email</option>
                         <option value="linkedin">💼 LinkedIn Message</option>
@@ -488,25 +488,13 @@
                     <div class="form-group">
                         <label>Status</label>
                         <select id="editStatus">
-                            <option value="New">New</option>
-                            <option value="Active">Active</option>
-                            <option value="Won">Won</option>
-                            <option value="Lost">Lost</option>
-                            <option value="Nurture">Nurture</option>
-                            <option value="Not a Fit">Not a Fit</option>
+                            <!-- Filled from CRM_CONFIG.STATUSES when the modal opens -->
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Source</label>
                         <select id="editSource">
-                            <option value="Website (Spark)">Website (Spark)</option>
-                            <option value="Direct Call">Direct Call</option>
-                            <option value="Referral">Referral</option>
-                            <option value="LinkedIn">LinkedIn</option>
-                            <option value="Event">Event</option>
-                            <option value="Met In Person">Met In Person</option>
-                            <option value="Clay Import">Clay Import</option>
-                            <option value="Other">Other</option>
+                            <!-- Filled from CRM_CONFIG.SOURCES when the modal opens -->
                         </select>
                     </div>
                 </div>
@@ -545,12 +533,12 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/db.js"></script>
-    <script src="js/components.js"></script>
-    <script src="js/router.js"></script>
-    <script src="js/crm-app.js"></script>
+    <script src="/crm/js/config.js"></script>
+    <script src="/crm/js/auth.js"></script>
+    <script src="/crm/js/db.js"></script>
+    <script src="/crm/js/components.js"></script>
+    <script src="/crm/js/router.js"></script>
+    <script src="/crm/js/crm-app.js"></script>
     <script>
         // Initialize app
         window.crmApp.init();

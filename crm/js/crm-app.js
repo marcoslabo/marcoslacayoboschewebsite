@@ -18,8 +18,12 @@ class CRMApp {
     // ==========================================================================
 
     async init() {
-        // Check if logged in
-        if (window.crmAuth.isLoggedIn()) {
+        // /crm/content shows the content tools (blog, inbox, capture); /crm the pipeline
+        this.section = window.location.pathname.startsWith('/crm/content') ? 'content' : 'crm';
+        document.body.dataset.section = this.section;
+
+        // Restore a saved Supabase session, if any
+        if (await window.crmAuth.restore()) {
             this.showApp();
             this.setupRoutes();
             this.setupEventListeners();
@@ -39,6 +43,11 @@ class CRMApp {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('app').style.display = 'block';
         this.applyRoleVisibility();
+
+        // Show only this section's nav (pipeline vs content)
+        document.querySelectorAll('[data-nav]').forEach(el => {
+            if (el.dataset.nav !== this.section) el.style.display = 'none';
+        });
     }
 
     /**
@@ -80,8 +89,9 @@ class CRMApp {
     // ==========================================================================
 
     setupRoutes() {
-        // Dashboard
+        // Dashboard (the content section opens on the blog instead)
         window.crmRouter.on('/', async () => {
+            if (this.section === 'content') return window.crmRouter.navigate('/blog');
             await this.renderDashboard();
         });
 
@@ -146,10 +156,9 @@ class CRMApp {
         });
 
         // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            window.crmAuth.logout();
-            this.showLogin();
-            this.setupLoginHandler();
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await window.crmAuth.logout();
+            window.location.reload();
         });
 
         // Close modal on backdrop click
@@ -167,17 +176,62 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            const [data, stats, highIntent] = await Promise.all([
+            const [actions, highIntent, outreachToday, funnel, sources] = await Promise.all([
                 window.crmDB.getTodaysActions(),
-                window.crmDB.getDashboardStats(),
-                window.crmDB.getHighIntentContacts()
+                window.crmDB.getHighIntentContacts(),
+                window.crmDB.getTodayOutreachCount(),
+                window.crmDB.getWeeklyFunnel(),
+                window.crmDB.getLeadsBySourceThisWeek()
             ]);
-            data.stats = stats;
-            data.highIntent = highIntent;
-            main.innerHTML = window.CRMComponents.renderDashboard(data);
+            main.innerHTML = window.CRMComponents.renderDashboard({
+                overdue: actions.overdue,
+                dueToday: actions.dueToday,
+                highIntent,
+                outreachToday,
+                funnel,
+                sources
+            });
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
         }
+    }
+
+    // ==========================================================================
+    // Pipeline actions
+    // ==========================================================================
+
+    async advanceStage(id) {
+        try {
+            await window.crmDB.advanceStage(id);
+            await this.refreshCurrentView();
+        } catch (e) {
+            alert('Could not move stage: ' + e.message);
+        }
+    }
+
+    async setStage(id, stage) {
+        try {
+            await window.crmDB.setStage(id, stage);
+            await this.refreshCurrentView();
+        } catch (e) {
+            alert('Could not set stage: ' + e.message);
+        }
+    }
+
+    async logReachOut(id) {
+        try {
+            await window.crmDB.logOutreach(id);
+            await this.refreshCurrentView();
+        } catch (e) {
+            alert('Could not log reach-out: ' + e.message);
+        }
+    }
+
+    async refreshCurrentView() {
+        const path = window.crmRouter.getCurrentPath();
+        if (path === '/') return this.renderDashboard();
+        if (path === '/contacts') return this.renderContacts();
+        if (path.startsWith('/contact/')) return this.renderContactDetail(path.split('/')[2]);
     }
 
     async toggleDashboardContentTodo(id, isDone) {
@@ -242,7 +296,9 @@ class CRMApp {
                     'meeting': '🤝',
                     'linkedin': '🔗',
                     'note': '📝',
-                    'status_change': '🔄'
+                    'status_change': '🔄',
+                    'outreach': '📤',
+                    'stage': '➡️'
                 };
 
                 const outcomeLabels = {
@@ -433,7 +489,7 @@ class CRMApp {
         try {
             const response = await fetch('/api/extract-contact', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await window.crmAuth.authHeaders(),
                 body: JSON.stringify({ linkedinUrl: url })
             });
 
@@ -494,7 +550,7 @@ class CRMApp {
             try {
                 const response = await fetch('/api/extract-contact', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: await window.crmAuth.authHeaders(),
                     body: JSON.stringify({ voiceText: transcript })
                 });
 
@@ -736,7 +792,11 @@ class CRMApp {
             document.getElementById('editCompany').value = contact.companies?.name || '';
             document.getElementById('editJobTitle').value = contact.job_title || '';
             document.getElementById('editLinkedIn').value = contact.linkedin_url || '';
-            document.getElementById('editStatus').value = contact.status || 'New';
+            document.getElementById('editStatus').innerHTML = window.CRM_CONFIG.STATUSES
+                .map(st => `<option value="${st}">${st}</option>`).join('');
+            document.getElementById('editSource').innerHTML = window.CRM_CONFIG.SOURCES
+                .map(src => `<option value="${src}">${src}</option>`).join('');
+            document.getElementById('editStatus').value = contact.status || 'Reached out';
             document.getElementById('editSource').value = contact.source || 'Other';
             document.getElementById('editIntentReason').value = contact.intent_reason || '';
             document.getElementById('editSourceLinks').value = contact.source_links || '';
@@ -1189,11 +1249,9 @@ class CRMApp {
                 source_links: row[columnMap.source_links] || null,
                 source: source,
                 event_tag: row[columnMap.event_tag] || eventTag,  // CSV column takes priority, then manual input
-                status: 'New',
-                brevo_tag: source === 'Clay Import' ? 'clay-lead' :
-                    source === 'LinkedIn' ? 'linkedin-lead' :
-                        source === 'Referral' ? 'referral-lead' :
-                            source === 'Event' ? 'event-lead' : 'other-lead'
+                // Imported lists haven't been contacted yet
+                status: 'Nurture',
+                brevo_tag: window.CRM_CONFIG.BREVO_TAGS[source] || 'other-lead'
             };
 
             // Handle company
@@ -1257,7 +1315,7 @@ class CRMApp {
         // Pre-select the activity type based on what was scheduled (if valid)
         const activityDropdown = document.getElementById('logActivityType');
         const normalizedType = (actionType || 'call').toLowerCase();
-        if (['call', 'email', 'linkedin', 'meeting'].includes(normalizedType)) {
+        if (['call', 'email', 'linkedin', 'meeting', 'outreach'].includes(normalizedType)) {
             activityDropdown.value = normalizedType;
         } else {
             activityDropdown.value = 'call';  // Default to call
@@ -1286,6 +1344,11 @@ class CRMApp {
 
     getOutcomeOptions(actionType) {
         const options = {
+            'outreach': [
+                { value: 'sent', label: 'Reached out', emoji: '📤', default: true },
+                { value: 'replied', label: 'They Replied', emoji: '💬' },
+                { value: 'scheduled_meeting', label: 'Booked a Call', emoji: '📅' }
+            ],
             'call': [
                 { value: 'no_answer', label: 'No Answer', emoji: '📵', default: true },
                 { value: 'left_voicemail', label: 'Left Voicemail', emoji: '📝' },
@@ -1694,7 +1757,7 @@ class CRMApp {
 
             const res = await fetch('/api/send-blog', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await window.crmAuth.authHeaders(),
                 body: JSON.stringify({
                     title: post.title,
                     content: post.content,

@@ -193,31 +193,6 @@ class SparkApp {
             document.body.insertAdjacentHTML('beforeend',
                 window.SparkComponents.renderProcessingOverlay('Analyzing your challenge with AI...'));
 
-            // Create company
-            const company = await window.sparkDB.createCompany({
-                name: formData.company_name
-            });
-
-            // Create contact (with CRM fields for auto-sync to CRM dashboard)
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            const contact = await window.sparkDB.createContact({
-                first_name: formData.first_name,
-                last_name: formData.last_name,
-                email: formData.email,
-                company_id: company.id,
-                source: 'Website (Spark)',
-                is_lead: true,
-                // CRM fields
-                problem: formData.problem_raw,
-                status: 'New',
-                next_action: 'Call',
-                next_action_date: tomorrow.toISOString().split('T')[0],
-                brevo_tag: 'spark-lead',
-                brevo_synced: false
-            });
-
             // Use AI to estimate effort from problem description
             let estimation = null;
             try {
@@ -234,22 +209,24 @@ class SparkApp {
                 people_involved: estimation.people_involved
             });
 
-            // Create brief
-            const brief = await window.sparkDB.createBrief({
-                title: aiResult.title,
-                company_id: company.id,
-                contact_id: contact.id,
-                problem_raw: formData.problem_raw,
-                problem_clean: aiResult.problem_clean,
-                hours_per_week: estimation.hours_per_week,
-                people_involved: estimation.people_involved,
-                hourly_rate: 50,
-                improvement_percent: 80,
-                solution_level: aiResult.solution_level,
-                level_reasoning: aiResult.level_reasoning,
-                suggested_approach: aiResult.suggested_approach,
-                status: 'Draft',
-                created_by: 'Website (Public)'
+            // Save company, CRM contact and brief server-side in one call
+            const brief = await window.sparkDB.createLeadBrief({
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                email: formData.email,
+                company_name: formData.company_name,
+                brief: {
+                    title: aiResult.title,
+                    problem_raw: formData.problem_raw,
+                    problem_clean: aiResult.problem_clean,
+                    hours_per_week: estimation.hours_per_week,
+                    people_involved: estimation.people_involved,
+                    hourly_rate: 50,
+                    improvement_percent: 80,
+                    solution_level: aiResult.solution_level,
+                    level_reasoning: aiResult.level_reasoning,
+                    suggested_approach: aiResult.suggested_approach
+                }
             });
 
             document.getElementById('processingOverlay')?.remove();

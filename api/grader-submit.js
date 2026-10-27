@@ -1,22 +1,19 @@
 // ==========================================================================
 // POST /api/grader-submit
-// Persists a Grader result + email to Supabase (grader_submissions table).
-// Server-side so we can use the service role to bypass RLS edge cases.
+// Persists a Grader result + email (grader_submissions) and adds or updates
+// the person in the CRM as stage "Graded", source "Grader". Service role only:
+// the CRM tables are closed to the public key.
 // If the person ticks the newsletter box, also subscribes them to beehiiv.
 // ==========================================================================
 
 import { subscribe } from '../lib/beehiiv.js';
-
-const SUPABASE_URL = 'https://eccodohheekwbywifipl.supabase.co';
-// Same anon key already shipped in spark/js/config.js — public by design (RLS protects).
-const SUPABASE_ANON_KEY_FALLBACK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo';
+import { rest } from '../lib/supabase-server.js';
+import { upsertLead } from '../lib/crm.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
-
-    const apiKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_FALLBACK;
 
     const {
         practice,
@@ -24,7 +21,9 @@ export default async function handler(req, res) {
         analysis,
         first_name,
         email,
-        newsletter
+        newsletter,
+        utm_source,
+        utm_campaign
     } = req.body || {};
 
     if (!email || !email.includes('@')) {
@@ -36,6 +35,10 @@ export default async function handler(req, res) {
     if (!analysis || typeof analysis.risk_score !== 'number') {
         return res.status(400).json({ error: 'Analysis payload required' });
     }
+
+    const clip = v => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 100) : null);
+    const cleanEmail = email.trim().toLowerCase();
+    const specialty = practice?.specialty || fallback_specialty || null;
 
     const row = {
         practice_name: practice?.name || null,
@@ -54,68 +57,52 @@ export default async function handler(req, res) {
         top_patterns: analysis.top_patterns || null,
         headline: analysis.headline || null,
         first_name: first_name.trim(),
-        email: email.trim().toLowerCase()
-    };
-
-    const headers = {
-        'Content-Type': 'application/json',
-        'apikey': apiKey,
-        'Authorization': `Bearer ${apiKey}`,
-        'Prefer': 'return=representation'
+        email: cleanEmail
     };
 
     try {
-        // 1. Create a contact so this lead flows into the CRM's Today's Actions / Overdue list
-        //    Same shape as the legacy Spark flow — keeps the existing source CHECK constraint happy.
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const problemSummary = analysis.headline
-            ? `🩺 Diagnose · ${analysis.headline} (score ${analysis.risk_score}/100, grade ${analysis.risk_grade})${practice?.name ? ` · ${practice.name}` : ''}`
-            : `🩺 Diagnose submission · score ${analysis.risk_score}/100`;
-
-        const contactRow = {
-            first_name: first_name.trim(),
-            last_name: '',
-            email: email.trim().toLowerCase(),
-            source: 'Website (Spark)',
-            is_lead: true,
-            status: 'New',
-            next_action: 'Call',
-            next_action_date: tomorrow.toISOString().split('T')[0],
-            problem: problemSummary,
-            brevo_tag: 'diagnose-lead',
-            brevo_synced: false
-        };
-
+        // 1. Add or update the CRM contact: stage Graded, source Grader.
+        //    Non-fatal: the person should still get their results.
         let contactId = null;
         try {
-            const contactResp = await fetch(`${SUPABASE_URL}/rest/v1/contacts`, {
-                method: 'POST', headers, body: JSON.stringify(contactRow)
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const patterns = (analysis.top_patterns || []).slice(0, 3)
+                .map((p, i) => `${i + 1}. ${p.title}${p.fix ? ` → ${p.fix}` : ''}`)
+                .join('\n');
+
+            const lead = await upsertLead({
+                email: cleanEmail,
+                firstName: first_name.trim(),
+                stage: 'Graded',
+                source: 'Grader',
+                companyName: practice?.name || null,
+                problem: `🩺 Grader · ${[practice?.name, specialty].filter(Boolean).join(' · ') || 'no practice match'}`
+                    + ` · score ${analysis.risk_score}/100, grade ${analysis.risk_grade || '—'}`,
+                note: `Grader top 3 workflows:\n${patterns || '(none returned)'}`,
+                utmSource: clip(utm_source),
+                utmCampaign: clip(utm_campaign),
+                extra: {
+                    next_action: 'Call',
+                    next_action_date: tomorrow.toISOString().split('T')[0],
+                    brevo_tag: 'diagnose-lead'
+                }
             });
-            if (contactResp.ok) {
-                const c = await contactResp.json();
-                contactId = c[0]?.id || null;
-            } else {
-                console.warn('Contact creation failed (non-fatal):', contactResp.status, await contactResp.text());
-            }
+            contactId = lead.id;
         } catch (e) {
-            console.warn('Contact creation threw (non-fatal):', e.message);
+            console.warn('CRM contact (non-fatal):', e.message);
         }
 
         // 2. Insert the grader_submissions row (with optional contact_id backlink)
         if (contactId) row.contact_id = contactId;
 
-        const resp = await fetch(`${SUPABASE_URL}/rest/v1/grader_submissions`, {
-            method: 'POST', headers, body: JSON.stringify(row)
-        });
-
-        if (!resp.ok) {
-            const errBody = await resp.text();
-            console.error('Supabase insert failed:', resp.status, errBody);
-            return res.status(resp.status).json({ error: 'Failed to save submission' });
+        let inserted;
+        try {
+            inserted = await rest('grader_submissions', { method: 'POST', body: row });
+        } catch (e) {
+            console.error('Supabase insert failed:', e.message);
+            return res.status(e.status === 503 ? 503 : 500).json({ error: 'Failed to save submission' });
         }
-
-        const inserted = await resp.json();
 
         // 3. Send the results email via Brevo. Awaited because Vercel serverless
         //    will kill non-awaited async work when the function returns.
@@ -137,7 +124,7 @@ export default async function handler(req, res) {
         let subscribed = false;
         if (newsletter === true) {
             try {
-                await subscribe({ email: email.trim().toLowerCase(), firstName: first_name.trim(), source: 'diagnose' });
+                await subscribe({ email: cleanEmail, firstName: first_name.trim(), source: 'diagnose' });
                 subscribed = true;
             } catch (err) {
                 console.warn('Newsletter subscribe failed (non-fatal):', err.message);

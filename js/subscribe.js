@@ -17,6 +17,9 @@ document.addEventListener('submit', async (e) => {
 
   const data = Object.fromEntries(new FormData(form).entries());
   data.source = form.dataset.source || 'website';
+  // Carry LinkedIn (or any) UTM tags into the CRM
+  const params = new URLSearchParams(window.location.search);
+  ['utm_source', 'utm_campaign'].forEach(key => { if (params.get(key)) data[key] = params.get(key); });
 
   button.disabled = true;
   button.textContent = 'Sending…';

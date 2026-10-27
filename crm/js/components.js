@@ -9,34 +9,124 @@ const CRMComponents = {
     // ==========================================================================
 
     renderDashboard(data) {
-        const { calls, emails, followUps, overdue, newToday, stats, highIntent } = data;
+        const { overdue, dueToday, highIntent, outreachToday, funnel, sources } = data;
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         return `
             <div class="page-header">
-                <h1 class="page-title">Today's Actions</h1>
+                <h1 class="page-title">Today</h1>
                 <p class="page-subtitle">${today}</p>
             </div>
 
-            ${highIntent && highIntent.length ? this.renderHighIntentStrip(highIntent) : ''}
-
-            ${stats ? this.renderStatsSection(stats) : ''}
+            ${this.renderOutreachToday(outreachToday)}
+            ${this.renderFunnel(funnel)}
 
             ${overdue.length ? this.renderActionCard('⚠️ Overdue', overdue, 'overdue') : ''}
-            ${calls.length ? this.renderActionCard('📞 Call', calls, 'call') : ''}
-            ${emails.length ? this.renderActionCard('📧 Email', emails, 'email') : ''}
-            ${followUps.length ? this.renderActionCard('🔄 Follow Up', followUps, 'followup') : ''}
-
-            ${newToday.length ? this.renderNewTodayCard(newToday) : ''}
-
-            ${!overdue.length && !calls.length && !emails.length && !followUps.length ? `
-                <div class="empty-state">
-                    <div class="empty-state-icon">✨</div>
-                    <h3 class="empty-state-title">All caught up!</h3>
-                    <p>No actions scheduled for today.</p>
+            ${dueToday.length ? this.renderActionCard('📌 Due today', dueToday, 'today') : ''}
+            ${!overdue.length && !dueToday.length ? `
+                <div class="card">
+                    <div class="empty-state" style="padding: 24px;">
+                        <div class="empty-state-icon">✨</div>
+                        <h3 class="empty-state-title">No next actions due</h3>
+                        <p>Nothing overdue or due today.</p>
+                    </div>
                 </div>
             ` : ''}
+
+            ${this.renderSources(sources)}
+            ${highIntent && highIntent.length ? this.renderHighIntentStrip(highIntent) : ''}
         `;
+    },
+
+    renderOutreachToday(count) {
+        const target = window.CRM_CONFIG.DAILY_OUTREACH_TARGET;
+        const pct = Math.min(100, Math.round((count / target) * 100));
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Today's reach-outs</h3>
+                </div>
+                <div class="outreach-today">
+                    <div class="outreach-count">${count} <span>/ ${target}</span></div>
+                    <div class="outreach-bar"><div class="outreach-bar-fill" style="width:${pct}%"></div></div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * This week's funnel, with the % conversion into each step.
+     * The lowest conversion is the constraint.
+     */
+    renderFunnel(funnel) {
+        const shown = [
+            ['Reached out', 'Reached out'],
+            ['Replied', 'Replied'],
+            ['Graded', 'Graded'],
+            ['Call booked', 'Calls booked'],
+            ['Demo built', 'Demos built'],
+            ['Handed to Nymbl', 'Handed to Nymbl']
+        ];
+        const counts = Object.fromEntries((funnel || []).map(f => [f.stage, f.count]));
+        const steps = shown.map(([stage, label], i) => {
+            const count = counts[stage] || 0;
+            const prev = i > 0 ? counts[shown[i - 1][0]] || 0 : null;
+            const rate = prev ? Math.round((count / prev) * 100) : null;
+            return { label, count, rate };
+        });
+
+        const rated = steps.filter(s => s.rate !== null);
+        const constraint = rated.length ? rated.reduce((min, s) => (s.rate < min.rate ? s : min)) : null;
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">This week</h3>
+                </div>
+                <div class="funnel">
+                    ${steps.map(s => `
+                        <div class="funnel-step ${s === constraint ? 'is-constraint' : ''}">
+                            <div class="stat-number">${s.count}</div>
+                            <div class="stat-label">${s.label}</div>
+                            ${s.rate !== null
+                                ? `<span class="funnel-rate ${s === constraint ? 'is-constraint' : ''}">${s.rate}% from previous</span>`
+                                : '<span class="funnel-rate">&nbsp;</span>'}
+                        </div>
+                    `).join('')}
+                </div>
+                ${constraint
+                    ? `<p class="funnel-note">Your constraint: <strong>${constraint.label}</strong> (${constraint.rate}% from the step before).</p>`
+                    : '<p class="funnel-note">Conversion shows once this week has activity.</p>'}
+            </div>
+        `;
+    },
+
+    renderSources(sources) {
+        const max = Math.max(1, ...(sources || []).map(([, n]) => n));
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">New leads by source <span class="card-count">this week</span></h3>
+                </div>
+                ${(sources || []).length ? sources.map(([source, n]) => `
+                    <div class="source-row">
+                        <span>${source}</span>
+                        <div class="source-bar"><span style="width:${Math.round((n / max) * 100)}%"></span></div>
+                        <strong>${n}</strong>
+                    </div>
+                `).join('') : '<p style="color: var(--color-text-muted); font-size: 14px;">No new leads yet this week.</p>'}
+            </div>
+        `;
+    },
+
+    /**
+     * One-click button that moves a contact to its next stage
+     */
+    renderNextStageButton(contact, size = 'btn-sm') {
+        const next = window.crmDB.nextStage(contact.status);
+        if (!next || contact.status === 'Not a Fit') return '';
+        return `<button class="btn ${size} btn-secondary btn-stage" title="Move to ${next} and log it"
+            onclick="event.stopPropagation(); window.crmApp.advanceStage('${contact.id}')">→ ${next}</button>`;
     },
 
     renderHighIntentStrip(contacts) {
@@ -91,61 +181,6 @@ const CRMComponents = {
         `;
     },
 
-    renderStatsSection(stats) {
-        const outcomeLabels = {
-            'connected': '✅ Connected',
-            'voicemail': '📞 Voicemail',
-            'no_answer': '📵 No Answer',
-            'scheduled_meeting': '📅 Meeting Set',
-            'not_interested': '❌ Not Interested',
-            'email_sent': '📧 Email Sent',
-            'email_reply': '💬 Got Reply',
-            'follow_up_needed': '🔄 Follow Up'
-        };
-
-        const outcomeSummary = Object.entries(stats.outcomeCounts || {})
-            .map(([key, count]) => `<span class="stat-outcome">${outcomeLabels[key] || key}: <strong>${count}</strong></span>`)
-            .join('');
-
-        const cardStyle = `cursor:pointer; transition: box-shadow 0.15s, transform 0.15s;`;
-        const cardHover = `onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='';this.style.transform=''"`;
-
-        return `
-            <div class="stats-grid">
-                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmRouter.navigate('/contacts')">
-                    <div class="stat-number">${stats.totalContacts}</div>
-                    <div class="stat-label">Total Leads</div>
-                </div>
-                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('call')">
-                    <div class="stat-number">${stats.activityCounts?.call || 0}</div>
-                    <div class="stat-label">Calls Made</div>
-                </div>
-                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('linkedin')">
-                    <div class="stat-number">${stats.activityCounts?.linkedin || 0}</div>
-                    <div class="stat-label">LinkedIn</div>
-                </div>
-                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('email')">
-                    <div class="stat-number">${stats.activityCounts?.email || 0}</div>
-                    <div class="stat-label">Emails Sent</div>
-                </div>
-                <div class="stat-card" style="${cardStyle}" ${cardHover} onclick="window.crmApp.filterActivityLogByType('meeting')">
-                    <div class="stat-number">${stats.activityCounts?.meeting || 0}</div>
-                    <div class="stat-label">Meetings</div>
-                </div>
-            </div>
-            ${outcomeSummary ? `
-                <div class="card" style="margin-bottom: 16px;">
-                    <div class="card-header">
-                        <h3 class="card-title">📊 Outcome Summary</h3>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 0;">
-                        ${outcomeSummary}
-                    </div>
-                </div>
-            ` : ''}
-        `;
-    },
-
     renderActionCard(title, contacts, type) {
         return `
             <div class="card">
@@ -179,31 +214,11 @@ const CRMComponents = {
                     </div>
                 </div>
                 <div class="action-item-actions">
+                    ${this.renderStatusBadge(contact.status)}
+                    ${this.renderNextStageButton(contact)}
                     <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); window.crmApp.openLogOutcome('${contact.id}', '${contactName.replace(/'/g, "\\'")}', '${actionType}')">Log</button>
                     <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.crmApp.showSnooze('${contact.id}')">Snooze</button>
                 </div>
-            </div>
-        `;
-    },
-
-    renderNewTodayCard(contacts) {
-        const bySource = {};
-        contacts.forEach(c => {
-            const source = c.source || 'Other';
-            if (!bySource[source]) bySource[source] = 0;
-            bySource[source]++;
-        });
-
-        const sourceSummary = Object.entries(bySource)
-            .map(([source, count]) => `${count} ${source}`)
-            .join(' • ');
-
-        return `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">📥 New Today <span class="card-count">${contacts.length}</span></h3>
-                </div>
-                <p style="color: var(--color-text-muted); font-size: 14px;">${sourceSummary}</p>
             </div>
         `;
     },
@@ -230,7 +245,7 @@ const CRMComponents = {
                     `).join('')}
                 </select>
                 <select class="filter-select" onchange="window.crmApp.handleStatusFilter(this.value)">
-                    <option value="">All Statuses</option>
+                    <option value="">All Stages</option>
                     ${window.CRM_CONFIG.STATUSES.map(s => `
                         <option value="${s}" ${filters.status === s ? 'selected' : ''}>${s}</option>
                     `).join('')}
@@ -259,9 +274,10 @@ const CRMComponents = {
                                 <th>Name</th>
                                 <th>Company</th>
                                 <th>Source</th>
-                                <th>Status</th>
+                                <th>Stage</th>
                                 <th>Next Action</th>
                                 <th>Added</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -294,6 +310,7 @@ const CRMComponents = {
                 <td>${this.renderStatusBadge(contact.status)}</td>
                 <td>${nextAction}</td>
                 <td style="color: var(--color-text-muted)">${added}</td>
+                <td>${this.renderNextStageButton(contact)}</td>
             </tr>
         `;
     },
@@ -419,6 +436,21 @@ const CRMComponents = {
 
                 <div class="card">
                     <div class="contact-section">
+                        <h4 class="contact-section-title">Stage</h4>
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            ${this.renderStatusBadge(contact.status)}
+                            ${this.renderNextStageButton(contact)}
+                            <button class="btn btn-sm btn-ghost" onclick="window.crmApp.logReachOut('${contact.id}')">+ Log reach-out</button>
+                            <select class="filter-select" style="margin-left: auto;" onchange="window.crmApp.setStage('${contact.id}', this.value)">
+                                ${window.CRM_CONFIG.STATUSES.map(st => `<option value="${st}" ${contact.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+                            </select>
+                        </div>
+                        ${contact.utm_source || contact.utm_campaign ? `<p style="margin-top: 10px; font-size: 12px; color: var(--color-text-muted);">Came from: ${[contact.utm_source, contact.utm_campaign].filter(Boolean).join(' · ')}</p>` : ''}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="contact-section">
                         <h4 class="contact-section-title">Next Action</h4>
                         <div style="display: flex; gap: 12px; align-items: center;">
                             <select id="nextActionSelect" class="filter-select" style="flex: 1;">
@@ -493,9 +525,10 @@ const CRMComponents = {
     renderSourceBadge(source) {
         if (!source) return '';
         const classes = {
-            'Website (Spark)': 'badge-spark',
-            'Met In Person': 'badge-met',
-            'Clay Import': 'badge-clay'
+            'Grader': 'badge-spark',
+            'LinkedIn post': 'badge-met',
+            'LinkedIn outreach': 'badge-met',
+            'Newsletter': 'badge-clay'
         };
         return `<span class="badge ${classes[source] || ''}">${source}</span>`;
     },
@@ -506,15 +539,11 @@ const CRMComponents = {
 
     renderStatusBadge(status) {
         if (!status) return '';
-        const classes = {
-            'New': 'badge-new',
-            'Active': 'badge-active',
-            'Won': 'badge-won',
-            'Lost': 'badge-lost',
-            'Nurture': 'badge-nurture',
-            'Not a Fit': 'badge-notafit'
-        };
-        return `<span class="badge ${classes[status] || ''}">${status}</span>`;
+        const stageIndex = window.CRM_CONFIG.PIPELINE.indexOf(status);
+        const cls = stageIndex >= 0
+            ? `badge-stage-${stageIndex + 1}`
+            : { 'Nurture': 'badge-nurture', 'Not a Fit': 'badge-notafit' }[status] || '';
+        return `<span class="badge ${cls}">${status}</span>`;
     },
 
     // ==========================================================================
@@ -566,7 +595,8 @@ const CRMComponents = {
 
         const icons = {
             'call': '📞', 'email': '✉️', 'meeting': '🤝',
-            'linkedin': '🔗', 'note': '📝', 'status_change': '🔄'
+            'linkedin': '🔗', 'note': '📝', 'status_change': '🔄',
+            'outreach': '📤', 'stage': '➡️'
         };
 
         const outcomeLabels = {

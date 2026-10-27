@@ -4,8 +4,8 @@
 
 class CRMDB {
     constructor() {
-        const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CRM_CONFIG;
-        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Shared client from auth.js, so queries run as the signed-in user
+        this.supabase = window.crmSupabase;
     }
 
     // ==========================================================================
@@ -131,6 +131,7 @@ class CRMDB {
             emails: [],
             followUps: [],
             overdue: [],
+            dueToday: [],
             newToday: []
         };
 
@@ -138,6 +139,8 @@ class CRMDB {
 
         for (const contact of (data || [])) {
             const isOverdue = contact.next_action_date < todayDate;
+
+            if (!isOverdue) result.dueToday.push(contact);
 
             if (isOverdue) {
                 result.overdue.push(contact);
@@ -174,8 +177,8 @@ class CRMDB {
             .select('*, companies(name)')
             .eq('owner', owner)
             .eq('high_intent', true)
-            .neq('status', 'Lost')
-            .neq('status', 'Won')
+            .neq('status', 'Not a Fit')
+            .neq('status', 'Handed to Nymbl')
             .order('updated_at', { ascending: false });
 
         return data || [];
@@ -196,7 +199,7 @@ class CRMDB {
         const source = contactData.source;
 
         const defaults = {
-            status: 'New',
+            status: 'Reached out',
             brevo_tag: window.CRM_CONFIG.BREVO_TAGS[source] || 'other-lead',
             brevo_synced: false
         };
@@ -234,7 +237,7 @@ class CRMDB {
         try {
             const response = await fetch('/api/brevo', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await window.crmAuth.authHeaders(),
                 body: JSON.stringify({
                     action: 'sync',
                     contact: {
@@ -482,6 +485,7 @@ class CRMDB {
             .insert([{
                 contact_id: contactId,
                 activity_type: activity.type,
+                stage: activity.stage || null,
                 outcome: activity.outcome || null,
                 notes: activity.notes || null,
                 owner: owner
@@ -547,6 +551,7 @@ class CRMDB {
             'linkedin': 'linkedin',
             'follow up': 'note',  // Follow up logs as note
             'meeting': 'meeting',
+            'outreach': 'outreach',
             'none': 'note'
         };
         const activityType = typeMap[rawType] || 'note';
@@ -564,16 +569,139 @@ class CRMDB {
             next_action_date: nextActionDate || null
         };
 
-        // If outcome indicates won/lost/meeting, update status
-        if (outcome === 'not_interested') {
-            updates.status = 'Lost';
-        } else if (outcome === 'scheduled_meeting' || outcome === 'completed') {
-            updates.status = 'Active';
-        } else if (outcome === 'won') {
-            updates.status = 'Won';
+        // Outcomes that move the stage (forward only; Not a Fit is explicit)
+        const stageFor = {
+            not_interested: 'Not a Fit',
+            connected: 'Replied',
+            replied: 'Replied',
+            completed: 'Replied',
+            scheduled_meeting: 'Call booked',
+            won: 'Handed to Nymbl'
+        }[outcome];
+        if (stageFor === 'Not a Fit' || this.isForwardMove(contact.status, stageFor)) {
+            updates.status = stageFor;
         }
 
         return this.updateContact(contactId, updates);
+    }
+
+    // ==========================================================================
+    // Pipeline
+    // ==========================================================================
+
+    /**
+     * The stage after `status`, or null at the end / outside the pipeline
+     */
+    nextStage(status) {
+        const pipeline = window.CRM_CONFIG.PIPELINE;
+        if (!status || status === 'Nurture') return pipeline[0];
+        const i = pipeline.indexOf(status);
+        return i === -1 || i === pipeline.length - 1 ? null : pipeline[i + 1];
+    }
+
+    isForwardMove(current, next) {
+        if (!next) return false;
+        const pipeline = window.CRM_CONFIG.PIPELINE;
+        if (!current || current === 'Nurture') return pipeline.includes(next);
+        return pipeline.indexOf(next) > pipeline.indexOf(current);
+    }
+
+    /**
+     * Move a contact to a stage. The database logs the stage change as an
+     * activity and stamps stage_changed_at. Moving to "Reached out" also logs
+     * an outreach so it counts toward today's target.
+     */
+    async setStage(contactId, stage) {
+        const contact = await this.updateContact(contactId, { status: stage });
+        if (stage === 'Reached out') {
+            await this.logActivity(contactId, { type: 'outreach', outcome: 'sent' });
+        }
+        return contact;
+    }
+
+    async advanceStage(contactId) {
+        const contact = await this.getContact(contactId);
+        const next = this.nextStage(contact.status);
+        if (!next) return contact;
+        return this.setStage(contactId, next);
+    }
+
+    /**
+     * Log one reach-out (counts toward the daily target)
+     */
+    async logOutreach(contactId, notes = null) {
+        return this.logActivity(contactId, { type: 'outreach', outcome: 'sent', notes });
+    }
+
+    /**
+     * Monday 00:00 local time of the current week, as an ISO string
+     */
+    weekStart() {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        return d.toISOString();
+    }
+
+    todayStart() {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d.toISOString();
+    }
+
+    /**
+     * Reach-outs logged today (activity type 'outreach')
+     */
+    async getTodayOutreachCount() {
+        const { count, error } = await this.supabase
+            .from('activities')
+            .select('*', { count: 'exact', head: true })
+            .eq('owner', window.crmAuth.getOwner())
+            .eq('activity_type', 'outreach')
+            .gte('created_at', this.todayStart());
+        if (error) throw error;
+        return count || 0;
+    }
+
+    /**
+     * This week's funnel: distinct contacts that entered each pipeline stage
+     * since Monday, from the stage-change log.
+     */
+    async getWeeklyFunnel() {
+        const { data, error } = await this.supabase
+            .from('activities')
+            .select('contact_id, stage')
+            .eq('owner', window.crmAuth.getOwner())
+            .eq('activity_type', 'stage')
+            .gte('created_at', this.weekStart())
+            .limit(10000);
+        if (error) throw error;
+
+        const seen = {};
+        for (const row of data || []) {
+            if (!row.stage) continue;
+            (seen[row.stage] = seen[row.stage] || new Set()).add(row.contact_id);
+        }
+        return window.CRM_CONFIG.PIPELINE.map(stage => ({ stage, count: seen[stage]?.size || 0 }));
+    }
+
+    /**
+     * New contacts this week, grouped by source
+     */
+    async getLeadsBySourceThisWeek() {
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .select('source')
+            .eq('owner', window.crmAuth.getOwner())
+            .gte('created_at', this.weekStart());
+        if (error) throw error;
+
+        const counts = {};
+        for (const c of data || []) {
+            const source = c.source || 'Other';
+            counts[source] = (counts[source] || 0) + 1;
+        }
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
     }
     /**
      * Get all activities across all contacts, with optional date range filter
@@ -662,56 +790,6 @@ class CRMDB {
             email: emailRes.count || 0,
             linkedin: linkedinRes.count || 0,
             meeting: meetingRes.count || 0
-        };
-    }
-
-    /**
-     * Get dashboard stats (total leads, activity counts, outcomes)
-     */
-    async getDashboardStats() {
-        const owner = window.crmAuth.getOwner();
-
-        // Get total contacts count
-        const { count: totalContacts } = await this.supabase
-            .from('contacts')
-            .select('*', { count: 'exact', head: true })
-            .eq('owner', owner);
-
-        // Get contacts by status
-        const { data: statusData } = await this.supabase
-            .from('contacts')
-            .select('status')
-            .eq('owner', owner);
-
-        const statusCounts = {};
-        (statusData || []).forEach(c => {
-            const status = c.status || 'New';
-            statusCounts[status] = (statusCounts[status] || 0) + 1;
-        });
-
-        // Count each activity type server-side (avoids Supabase row limit)
-        const [callRes, emailRes, linkedinRes, meetingRes, noteRes] = await Promise.all([
-            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'call'),
-            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'email'),
-            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'linkedin'),
-            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'meeting'),
-            this.supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner', owner).eq('activity_type', 'note'),
-        ]);
-
-        const activityCounts = {
-            call: callRes.count || 0,
-            email: emailRes.count || 0,
-            linkedin: linkedinRes.count || 0,
-            meeting: meetingRes.count || 0,
-            note: noteRes.count || 0
-        };
-
-        return {
-            totalContacts: totalContacts || 0,
-            statusCounts,
-            activityCounts,
-            outcomeCounts: {},
-            totalActivities: Object.values(activityCounts).reduce((a, b) => a + b, 0)
         };
     }
 

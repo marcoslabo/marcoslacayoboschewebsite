@@ -7,30 +7,42 @@ const CRM_CONFIG = {
     SUPABASE_URL: 'https://eccodohheekwbywifipl.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY29kb2hoZWVrd2J5d2lmaXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTU3NTIsImV4cCI6MjA4NTEzMTc1Mn0.pU41NU8tPvcf9Js8UTFppcS983-zyxGocLj2OVONNwo',
 
-    // Session Settings
-    SESSION_KEY: 'crm_session_token',
-
     // Contact Sources
     SOURCES: [
-        'Website (Spark)',
-        'Direct Call',
+        'Grader',
+        'LinkedIn post',
+        'LinkedIn outreach',
+        'Newsletter',
         'Referral',
-        'LinkedIn',
-        'Event',
-        'Met In Person',
-        'Clay Import',
         'Other'
     ],
 
-    // Contact Statuses
+    // Pipeline stages, in order (stored in contacts.status)
+    PIPELINE: [
+        'Reached out',
+        'Replied',
+        'Graded',
+        'Call booked',
+        'Demo built',
+        'Demo reviewed',
+        'Handed to Nymbl'
+    ],
+
+    // Every stage a contact can be in: the pipeline plus the two side stages
     STATUSES: [
-        'New',
-        'Active',
-        'Won',
-        'Lost',
+        'Reached out',
+        'Replied',
+        'Graded',
+        'Call booked',
+        'Demo built',
+        'Demo reviewed',
+        'Handed to Nymbl',
         'Nurture',
         'Not a Fit'
     ],
+
+    // Daily outreach target shown on the dashboard
+    DAILY_OUTREACH_TARGET: 100,
 
     // Next Actions
     NEXT_ACTIONS: [
@@ -43,13 +55,11 @@ const CRM_CONFIG = {
 
     // Brevo Tags by Source
     BREVO_TAGS: {
-        'Website (Spark)': 'spark-lead',
-        'Met In Person': 'met-lead',
-        'Clay Import': 'clay-lead',
-        'Direct Call': 'direct-lead',
+        'Grader': 'grader-lead',
+        'LinkedIn post': 'linkedin-lead',
+        'LinkedIn outreach': 'linkedin-lead',
+        'Newsletter': 'newsletter',
         'Referral': 'referral-lead',
-        'LinkedIn': 'linkedin-lead',
-        'Event': 'event-lead',
         'Other': 'other-lead'
     }
 };

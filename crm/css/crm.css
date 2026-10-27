@@ -347,6 +347,13 @@ body {
     opacity: 1;
 }
 
+/* Phones and tablets have no hover: always show the row buttons */
+@media (hover: none) {
+    .action-item-actions {
+        opacity: 1;
+    }
+}
+
 /* ==========================================================================
    Contacts Table
    ========================================================================== */
@@ -393,25 +400,13 @@ body {
     border-radius: 999px;
 }
 
-.badge-new {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.badge-active {
-    background: #d1fae5;
-    color: #047857;
-}
-
-.badge-won {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.badge-lost {
-    background: #fee2e2;
-    color: #b91c1c;
-}
+.badge-stage-1 { background: #dbeafe; color: #1d4ed8; }   /* Reached out */
+.badge-stage-2 { background: #e0f2fe; color: #0369a1; }   /* Replied */
+.badge-stage-3 { background: var(--color-primary-soft); color: var(--color-primary); } /* Graded */
+.badge-stage-4 { background: #d1fae5; color: #047857; }   /* Call booked */
+.badge-stage-5 { background: #ccfbf1; color: #0f766e; }   /* Demo built */
+.badge-stage-6 { background: #dcfce7; color: #15803d; }   /* Demo reviewed */
+.badge-stage-7 { background: #15803d; color: #ffffff; }   /* Handed to Nymbl */
 
 .badge-nurture {
     background: #fef3c7;
@@ -797,17 +792,131 @@ body {
     font-weight: 500;
 }
 
-.stat-outcome {
+/* Today: X / 100 reach-outs */
+.outreach-today {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.outreach-count {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text);
+}
+
+.outreach-count span {
+    font-size: 20px;
+    color: var(--color-text-light);
+    font-weight: 600;
+}
+
+.outreach-bar {
+    flex: 1;
+    min-width: 160px;
+    height: 10px;
     background: var(--color-bg);
-    padding: 6px 12px;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.outreach-bar-fill {
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: 999px;
+}
+
+/* This week: funnel row */
+.funnel {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.funnel-step {
+    position: relative;
+    padding: 14px 12px;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
+    background: white;
+    text-align: center;
+}
+
+.funnel-step .stat-number {
+    font-size: 26px;
+}
+
+.funnel-rate {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.funnel-rate.is-constraint {
+    color: var(--color-danger);
+}
+
+.funnel-step.is-constraint {
+    border-color: var(--color-danger);
+    background: #fef2f2;
+}
+
+.funnel-step.is-constraint .stat-number {
+    color: var(--color-danger);
+}
+
+.funnel-note {
+    margin-top: 12px;
     font-size: 13px;
     color: var(--color-text-muted);
 }
 
-.stat-outcome strong {
-    color: var(--color-text);
+.funnel-note strong {
+    color: var(--color-danger);
 }
+
+@media (max-width: 768px) {
+    .funnel {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Leads by source */
+.source-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 32px;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.source-bar {
+    height: 8px;
+    background: var(--color-primary-soft);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.source-bar span {
+    display: block;
+    height: 100%;
+    background: var(--color-primary);
+}
+
+.source-row strong {
+    text-align: right;
+}
+
+/* One-click "next stage" button */
+.btn-stage {
+    white-space: nowrap;
+}
+
 
 /* ==========================================================================
    Activity Log

@@ -194,12 +194,13 @@
 
     <script>
     // Auth gate — redirect to /crm/ login if not signed in
-    if (!window.crmAuth.isLoggedIn()) {
+    window.crmAuth.restore().then(signedIn => {
+    if (!signedIn) {
         window.location.replace('/crm/');
     } else {
         document.getElementById('app').style.display = '';
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            window.crmAuth.logout();
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await window.crmAuth.logout();
             window.location.replace('/crm/');
         });
         // Hide admin-only nav links if user isn't admin
@@ -207,6 +208,7 @@
             document.querySelectorAll('[data-admin-only]').forEach(el => el.style.display = 'none');
         }
     }
+    });
     </script>
 
     <script>
