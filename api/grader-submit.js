@@ -61,12 +61,11 @@ export default async function handler(req, res) {
     };
 
     try {
-        // 1. Add or update the CRM contact: stage Graded, source Grader.
+        // 1. Add or update the CRM contact: stage Replied (they engaged), source
+        //    Grader, with the 🩺 Graded badge (graded_at).
         //    Non-fatal: the person should still get their results.
         let contactId = null;
         try {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
             const patterns = (analysis.top_patterns || []).slice(0, 3)
                 .map((p, i) => `${i + 1}. ${p.title}${p.fix ? ` → ${p.fix}` : ''}`)
                 .join('\n');
@@ -74,8 +73,9 @@ export default async function handler(req, res) {
             const lead = await upsertLead({
                 email: cleanEmail,
                 firstName: first_name.trim(),
-                stage: 'Graded',
+                stage: 'Replied',
                 source: 'Grader',
+                set: { graded_at: new Date().toISOString() },
                 companyName: practice?.name || null,
                 problem: `🩺 Grader · ${[practice?.name, specialty].filter(Boolean).join(' · ') || 'no practice match'}`
                     + ` · score ${analysis.risk_score}/100, grade ${analysis.risk_grade || '—'}`,
@@ -83,8 +83,8 @@ export default async function handler(req, res) {
                 utmSource: clip(utm_source),
                 utmCampaign: clip(utm_campaign),
                 extra: {
-                    next_action: 'Call',
-                    next_action_date: tomorrow.toISOString().split('T')[0],
+                    next_action: 'Follow Up',
+                    next_action_date: new Date().toISOString().split('T')[0],
                     brevo_tag: 'diagnose-lead',
                     side: 'nymbl'
                 }

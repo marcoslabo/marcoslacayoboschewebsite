@@ -52,24 +52,31 @@
             <nav class="header-nav">
                 <!-- Pipeline (/crm) -->
                 <a href="#/" class="nav-link" data-route="dashboard" data-nav="crm">Today</a>
-                <a href="#/outreach" class="nav-link" data-route="outreach" data-nav="crm">📤 Today's outreach</a>
-                <a href="#/contacts" class="nav-link" data-route="contacts" data-nav="crm">All Contacts</a>
-                <a href="#/activity-log" class="nav-link" data-route="activity-log" data-nav="crm">📋 Activity Log</a>
-                <a href="#/settings" class="nav-link" data-route="settings" data-nav="crm">⚙️ Settings</a>
-                <a href="/crm/content/" class="nav-link" data-nav="crm" data-admin-only>Content →</a>
+                <a href="#/pipeline" class="nav-link" data-route="pipeline" data-nav="crm">Pipeline</a>
+                <a href="#/contacts" class="nav-link" data-route="contacts" data-nav="crm">Contacts</a>
                 <!-- Content (/crm/content) -->
-                <a href="/crm/" class="nav-link" data-nav="content">← Pipeline</a>
+                <a href="/crm/" class="nav-link" data-nav="content">← CRM</a>
                 <a href="#/blog" class="nav-link" data-route="blog" data-nav="content" data-admin-only>✍️ Blog</a>
                 <a href="#/inbox" class="nav-link" data-route="inbox" data-nav="content" data-admin-only>📥 Inbox</a>
                 <a href="/capture" target="_blank" class="nav-link" data-nav="content" data-admin-only>🎯 Capture &amp; weekly to-dos</a>
             </nav>
             <div class="header-right">
-                <button id="importCsvBtn" class="btn btn-ghost btn-sm" onclick="window.crmApp.openCsvImport()"
-                    title="Import contacts from CSV" data-admin-only data-nav="crm">📥 Import</button>
-                <button id="syncBrevoBtn" class="btn btn-ghost btn-sm" onclick="window.crmApp.syncAllToBrevo()"
-                    title="Sync unsynced contacts to Brevo" data-admin-only data-nav="crm">🔄 Brevo</button>
-                <button id="quickAddBtn" class="btn btn-primary btn-sm" data-nav="crm">+ Quick Add</button>
-                <button id="logoutBtn" class="btn btn-ghost btn-sm">Logout</button>
+                <div class="side-switch" data-nav="crm" role="group" aria-label="Nymbl or Personal">
+                    <button data-side="nymbl" onclick="window.crmApp.setSide('nymbl')">Nymbl</button>
+                    <button data-side="personal" onclick="window.crmApp.setSide('personal')">Personal</button>
+                </div>
+                <button id="quickAddBtn" class="btn btn-primary btn-sm" data-nav="crm">+ Add</button>
+                <details class="more-menu">
+                    <summary class="btn btn-ghost btn-sm" aria-label="More">⋯</summary>
+                    <div class="more-menu-items">
+                        <button id="importCsvBtn" onclick="window.crmApp.openCsvImport()" data-admin-only data-nav="crm">📥 Import a list</button>
+                        <a href="#/settings" data-nav="crm">⚙️ Lists &amp; templates</a>
+                        <a href="#/activity-log" data-nav="crm">📋 Activity log</a>
+                        <button id="syncBrevoBtn" onclick="window.crmApp.syncAllToBrevo()" data-admin-only data-nav="crm">🔄 Sync to Brevo</button>
+                        <a href="/crm/content/" data-nav="crm" data-admin-only>✍️ Content tools</a>
+                        <button id="logoutBtn">Log out</button>
+                    </div>
+                </details>
             </div>
         </header>
 

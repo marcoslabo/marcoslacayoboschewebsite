@@ -57,7 +57,7 @@ class CRMRouter {
                 link.classList.add('active');
             } else if (path.startsWith('/inbox') && route === 'inbox') {
                 link.classList.add('active');
-            } else if (path === '/outreach' && route === 'outreach') {
+            } else if (path === '/pipeline' && route === 'pipeline') {
                 link.classList.add('active');
             } else if (path === '/settings' && route === 'settings') {
                 link.classList.add('active');

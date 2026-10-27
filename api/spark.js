@@ -74,19 +74,18 @@ async function createBrief(req, res) {
 
     const companyId = await findOrCreateCompany(String(company_name).slice(0, 200));
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
     const lead = await upsertLead({
         email: cleanEmail,
         firstName: String(first_name).trim().slice(0, 80),
         lastName: String(last_name || '').trim().slice(0, 80),
-        stage: 'Graded',
+        stage: 'Replied',
         source: 'Grader',
+        set: { graded_at: new Date().toISOString() },
         companyName: company_name,
         problem: String(brief.problem_raw).slice(0, 2000),
         extra: {
-            next_action: 'Call',
-            next_action_date: tomorrow.toISOString().split('T')[0],
+            next_action: 'Follow Up',
+            next_action_date: new Date().toISOString().split('T')[0],
             brevo_tag: 'spark-lead',
             side: 'nymbl'
         }

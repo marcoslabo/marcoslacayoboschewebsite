@@ -12,9 +12,12 @@ class CRMApp {
         };
         this.searchTimeout = null;
 
-        // Side / List filter shared by Dashboard and Contacts (remembered per browser)
-        this.scope = this.loadPref('crm_scope', { side: '', list: '' });
+        // Nymbl | Personal switch plus an optional list, shared by every screen
+        // (remembered per browser)
+        this.scope = this.loadPref('crm_scope', { side: 'nymbl', list: '' });
+        if (!window.CRM_CONFIG.SIDES[this.scope.side]) this.scope = { side: 'nymbl', list: '' };
         this.lists = [];
+        this.people = {};
     }
 
     loadPref(key, fallback) {
@@ -40,7 +43,19 @@ class CRMApp {
     async setScope(partial) {
         this.scope = { ...this.scope, ...partial };
         this.savePref('crm_scope', this.scope);
+        this.renderSideSwitch();
         await this.refreshCurrentView();
+    }
+
+    // Switching side clears the list (lists belong to one side)
+    async setSide(side) {
+        await this.setScope({ side, list: '' });
+    }
+
+    renderSideSwitch() {
+        document.querySelectorAll('.side-switch button').forEach(b => {
+            b.classList.toggle('active', b.dataset.side === this.scope.side);
+        });
     }
 
     // ==========================================================================
@@ -153,9 +168,14 @@ class CRMApp {
             await this.renderBlogEditor(params.id);
         });
 
-        // Today's outreach
+        // Old "Today's outreach" link → Today
         window.crmRouter.on('/outreach', async () => {
-            await this.renderOutreach();
+            window.crmRouter.navigate('/');
+        });
+
+        // Pipeline board + weekly funnel
+        window.crmRouter.on('/pipeline', async () => {
+            await this.renderPipeline();
         });
 
         // Settings (lists and message templates)
@@ -201,6 +221,12 @@ class CRMApp {
             window.location.reload();
         });
 
+        // Close the ⋯ menu after picking an item or clicking elsewhere
+        document.addEventListener('click', (e) => {
+            const menu = document.querySelector('.more-menu');
+            if (menu?.open && (!menu.contains(e.target) || e.target.closest('.more-menu-items'))) menu.open = false;
+        });
+
         // Close modal on backdrop click
         document.querySelector('#quickAddModal .modal-backdrop').addEventListener('click', () => {
             this.closeQuickAdd();
@@ -211,32 +237,159 @@ class CRMApp {
     // Rendering
     // ==========================================================================
 
+    /**
+     * Today: replies first, then follow-ups due, then new people
+     */
     async renderDashboard() {
         const main = document.getElementById('mainContent');
         main.innerHTML = window.CRMComponents.renderLoading();
+        this.renderSideSwitch();
 
         try {
             await this.loadLists();
-            const scope = this.scope;
-            const [actions, highIntent, outreachToday, funnel, sources] = await Promise.all([
-                window.crmDB.getTodaysActions(scope),
-                window.crmDB.getHighIntentContacts(),
-                window.crmDB.getTodayOutreachCount(scope),
-                window.crmDB.getWeeklyFunnel(scope),
-                window.crmDB.getLeadsBySourceThisWeek(scope)
-            ]);
-            main.innerHTML = window.CRMComponents.renderDashboard({
-                overdue: actions.overdue,
-                dueToday: actions.dueToday,
-                highIntent,
-                outreachToday,
-                funnel,
-                sources,
-                scope,
-                lists: this.lists
-            });
+            const newTarget = this.getTarget();
+            const today = await window.crmDB.getToday(this.scope, newTarget);
+            this.people = Object.fromEntries(
+                [...today.replies, ...today.followUps, ...today.queue.ready].map(c => [c.id, c])
+            );
+            main.innerHTML = window.CRMComponents.renderToday({ ...today, scope: this.scope, lists: this.lists, newTarget });
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    getTarget() {
+        const targets = this.loadPref('crm_targets', {});
+        return Number(targets[this.scope.side]) || window.CRM_CONFIG.DAILY_NEW_TARGET;
+    }
+
+    async editTarget() {
+        const value = prompt(`New people per day (${window.CRM_CONFIG.SIDES[this.scope.side]}):`, this.getTarget());
+        const n = parseInt(value, 10);
+        if (!n || n < 1) return;
+        this.savePref('crm_targets', { ...this.loadPref('crm_targets', {}), [this.scope.side]: n });
+        await this.renderDashboard();
+    }
+
+    async renderPipeline() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = window.CRMComponents.renderLoading();
+        this.renderSideSwitch();
+
+        try {
+            await this.loadLists();
+            const [contacts, funnel, sources] = await Promise.all([
+                window.crmDB.getPipeline(this.scope),
+                window.crmDB.getWeeklyFunnel(this.scope),
+                window.crmDB.getLeadsBySourceThisWeek(this.scope)
+            ]);
+            main.innerHTML = window.CRMComponents.renderPipeline({ scope: this.scope, lists: this.lists, contacts, funnel, sources });
+        } catch (error) {
+            main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    // ==========================================================================
+    // Person actions (Today cards and contact page)
+    // ==========================================================================
+
+    async findPerson(id) {
+        return this.people[id] || window.crmDB.getContact(id);
+    }
+
+    listFor(contact) {
+        return this.lists.find(l => l.name === contact.list)
+            || this.lists.find(l => l.side === (contact.side || 'nymbl'))
+            || null;
+    }
+
+    async draft(id) {
+        const contact = await this.findPerson(id);
+        const box = document.getElementById(`draft-${id}`);
+        const text = document.getElementById(`draftText-${id}`);
+        const status = document.getElementById(`status-${id}`);
+        if (!box) return;
+        if (!this.lists.length) await this.loadLists();
+
+        box.hidden = false;
+        text.value = '';
+        text.placeholder = 'Drafting…';
+        status.textContent = '';
+        try {
+            text.value = await window.crmDB.draftMessage(contact, this.listFor(contact));
+        } catch (e) {
+            text.placeholder = 'Write your message here';
+            status.textContent = '⚠️ ' + e.message;
+        }
+    }
+
+    async copyDraft(id, button) {
+        const box = document.getElementById(`draft-${id}`);
+        const text = document.getElementById(`draftText-${id}`);
+        if (!text?.value) {
+            await this.draft(id);
+            if (!text?.value) return;
+        }
+        box.hidden = false;
+        try {
+            await navigator.clipboard.writeText(text.value);
+            button.textContent = 'Copied ✓';
+            setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        } catch {
+            text.select();
+        }
+    }
+
+    /**
+     * One click = stage + next step. See CRM_CONFIG.CADENCE for the sequence.
+     */
+    async act(id, action) {
+        const status = document.getElementById(`status-${id}`);
+        const message = document.getElementById(`draftText-${id}`)?.value.trim() || null;
+        try {
+            if (status) status.textContent = 'Saving…';
+            const contact = await this.findPerson(id);
+            if (action === 'sent') await window.crmDB.markSent(contact, message);
+            else if (action === 'replied') await window.crmDB.markReplied(id);
+            else if (action === 'answered') await window.crmDB.markAnswered(id, message);
+            else if (action === 'booked') await window.crmDB.markBooked(id);
+            else if (action === 'notInterested') await window.crmDB.markNotInterested(id);
+            else if (action === 'advance') await window.crmDB.advanceStage(id);
+            else if (action === 'snooze') await window.crmDB.snooze(id, 3);
+            delete this.people[id];
+            await this.refreshCurrentView();
+        } catch (e) {
+            if (status) status.textContent = '⚠️ ' + e.message;
+            else alert(e.message);
+        }
+    }
+
+    // Contacts screen: put everyone currently shown on one list
+    async moveShownToList(listName, select) {
+        const ids = this.shownContactIds || [];
+        const label = listName === '__none__' ? 'no list (Nymbl)' : listName;
+        if (!ids.length || !confirm(`Move all ${ids.length} contacts shown to ${label}?`)) {
+            select.value = '';
+            return;
+        }
+        await this.moveToList(ids, listName === '__none__' ? null : listName);
+    }
+
+    // Pipeline board: a card was dropped on a column
+    async dropOnStage(event, column) {
+        event.preventDefault();
+        column.classList.remove('is-over');
+        const id = event.dataTransfer.getData('text/plain');
+        if (!id) return;
+        await this.setStage(id, column.dataset.stage);
+    }
+
+    async moveToList(ids, listName) {
+        try {
+            await window.crmDB.moveToList(ids, listName);
+            await this.refreshCurrentView();
+        } catch (e) {
+            alert('Could not move: ' + e.message);
         }
     }
 
@@ -262,99 +415,13 @@ class CRMApp {
         }
     }
 
-    async logReachOut(id) {
-        try {
-            await window.crmDB.logOutreach(id);
-            await this.refreshCurrentView();
-        } catch (e) {
-            alert('Could not log reach-out: ' + e.message);
-        }
-    }
-
     async refreshCurrentView() {
         const path = window.crmRouter.getCurrentPath();
         if (path === '/') return this.renderDashboard();
         if (path === '/contacts') return this.renderContacts();
         if (path.startsWith('/contact/')) return this.renderContactDetail(path.split('/')[2]);
-        if (path === '/outreach') return this.renderOutreach();
+        if (path === '/pipeline') return this.renderPipeline();
         if (path === '/settings') return this.renderSettings();
-    }
-
-    // ==========================================================================
-    // Today's outreach
-    // ==========================================================================
-
-    async renderOutreach() {
-        const main = document.getElementById('mainContent');
-        main.innerHTML = window.CRMComponents.renderLoading();
-
-        try {
-            const lists = await this.loadLists();
-            const remembered = this.loadPref('crm_outreach', { list: '' }).list;
-            const currentList = lists.find(l => l.name === remembered) || lists[0] || null;
-
-            let queue = { ready: [], waiting: [] };
-            let sentToday = 0;
-            if (currentList) {
-                [queue, sentToday] = await Promise.all([
-                    window.crmDB.getOutreachQueue(currentList.name),
-                    window.crmDB.getTodayOutreachCount({ list: currentList.name })
-                ]);
-            }
-            this.outreach = { list: currentList, queue };
-            main.innerHTML = window.CRMComponents.renderOutreach({ lists, currentList, queue, sentToday });
-        } catch (error) {
-            main.innerHTML = window.CRMComponents.renderError(error.message);
-        }
-    }
-
-    async setOutreachList(name) {
-        this.savePref('crm_outreach', { list: name });
-        await this.renderOutreach();
-    }
-
-    async draftOutreach(id) {
-        const contact = this.outreach?.queue.ready.find(c => c.id === id);
-        if (!contact || !this.outreach.list) return;
-
-        const box = document.getElementById(`draft-${id}`);
-        const text = document.getElementById(`draftText-${id}`);
-        const status = document.getElementById(`draftStatus-${id}`);
-        box.hidden = false;
-        text.value = '';
-        text.placeholder = 'Drafting…';
-        status.textContent = '';
-
-        try {
-            text.value = await window.crmDB.draftOutreachMessage(contact, this.outreach.list);
-        } catch (e) {
-            text.placeholder = 'Write your message here';
-            status.textContent = '⚠️ ' + e.message;
-        }
-    }
-
-    async copyOutreach(id, button) {
-        const text = document.getElementById(`draftText-${id}`).value;
-        try {
-            await navigator.clipboard.writeText(text);
-            button.textContent = 'Copied ✓';
-            setTimeout(() => { button.textContent = 'Copy'; }, 1500);
-        } catch {
-            document.getElementById(`draftText-${id}`).select();
-        }
-    }
-
-    async markOutreachSent(id) {
-        const status = document.getElementById(`draftStatus-${id}`);
-        const message = document.getElementById(`draftText-${id}`)?.value.trim();
-        try {
-            status.textContent = 'Saving…';
-            await window.crmDB.markOutreachSent(id, message);
-            // Re-render so same-company people move to "Waiting" and the count updates
-            await this.renderOutreach();
-        } catch (e) {
-            status.textContent = '⚠️ ' + e.message;
-        }
     }
 
     // ==========================================================================
@@ -410,6 +477,7 @@ class CRMApp {
             await this.loadLists();
             const filters = { ...this.filters, ...this.scope };
             const contacts = await window.crmDB.getContacts(filters);
+            this.shownContactIds = contacts.map(c => c.id);
             main.innerHTML = window.CRMComponents.renderContactsList(contacts, filters, this.lists);
             // Load event tag options into the filter dropdown
             await this.loadEventTagFilter();
@@ -423,6 +491,7 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
+            await this.loadLists();
             const contact = await window.crmDB.getContact(id);
             main.innerHTML = window.CRMComponents.renderContactDetail(contact);
 
@@ -587,7 +656,10 @@ class CRMApp {
                 linkedin_url: formData.get('linkedinUrl') || null,
                 company_id: companyId,
                 source: formData.get('source'),
-                problem: formData.get('problem') || null
+                problem: formData.get('problem') || null,
+                // Lands on the side (and list) you're looking at
+                side: this.scope.side,
+                list: this.scope.list || null
             };
 
             // Read initial activity fields
@@ -957,7 +1029,7 @@ class CRMApp {
                 .map(st => `<option value="${st}">${st}</option>`).join('');
             document.getElementById('editSource').innerHTML = window.CRM_CONFIG.SOURCES
                 .map(src => `<option value="${src}">${src}</option>`).join('');
-            document.getElementById('editStatus').value = contact.status || 'Reached out';
+            document.getElementById('editStatus').value = contact.status || 'To contact';
             await this.loadLists();
             document.getElementById('editList').innerHTML = '<option value="">No list</option>' + this.lists
                 .map(l => `<option value="${window.CRMComponents.esc(l.name)}">${window.CRMComponents.esc(l.name)}</option>`).join('');
@@ -1303,6 +1375,42 @@ class CRMApp {
         return map;
     }
 
+    /**
+     * Match a List value from a file to an existing list, loosely
+     * ("Aló", "receptionist", "Personal – Aló" all match "Personal – Aló";
+     * "Medicaid" matches "Personal – KeepMedCover"). Unknown names become a
+     * new list: Nymbl if the name mentions Nymbl or VytalMed, otherwise Personal.
+     */
+    async resolveImportList(value, cache) {
+        const raw = String(value || '').trim();
+        if (!raw) return null;
+        if (cache[raw] !== undefined) return cache[raw];
+
+        const norm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+            .replace(/^(personal|nymbl)\s*[–-]\s*/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+        const aliases = {
+            'alo': ['alo', 'receptionist', 'recepcionista', 'receptionista', 'missed calls', 'front desk'],
+            'keepmedcover': ['keepmedcover', 'keep med cover', 'medicaid', 'coverage'],
+            'vytalmed': ['vytalmed', 'vytal', 'radiology', 'nymbl']
+        };
+        const target = norm(raw);
+        const match = this.lists.find(l => {
+            const name = norm(l.name);
+            if (name === target || name.includes(target) || target.includes(name)) return true;
+            const words = Object.entries(aliases).find(([key]) => name.split(' ').includes(key))?.[1] || [];
+            return words.some(w => target.includes(w));
+        });
+        if (match) return (cache[raw] = match);
+
+        const side = /nymbl|vytal/i.test(raw) ? 'nymbl' : 'personal';
+        const name = `${side === 'nymbl' ? 'Nymbl' : 'Personal'} – ${raw}`;
+        await window.crmDB.saveList(null, { name, side, template: '', sort: 100 });
+        const created = { name, side, template: '' };
+        this.lists.push(created);
+        (this.createdLists = this.createdLists || []).push(name);
+        return (cache[raw] = created);
+    }
+
     showCsvPreview() {
         document.getElementById('csvStep1').style.display = 'none';
         document.getElementById('csvStep2').style.display = 'block';
@@ -1364,7 +1472,8 @@ class CRMApp {
         const eventTag = document.getElementById('csvEventTag').value.trim() || null;
         const skipBrevo = document.getElementById('csvSkipBrevo').checked;
         const pickedList = document.getElementById('csvImportList').value || null;
-        const listByName = Object.fromEntries(this.lists.map(l => [l.name.toLowerCase(), l]));
+        const listCache = {};
+        this.createdLists = [];
 
         // Dedupe against the CRM and within the file, by email or LinkedIn URL
         let existingKeys;
@@ -1447,8 +1556,12 @@ class CRMApp {
 
             // "List" column wins; otherwise the list picked in the modal
             const listCell = (row[columnMap.list] || '').trim();
-            const list = listCell ? listByName[listCell.toLowerCase()] : listByName[(pickedList || '').toLowerCase()];
-            if (listCell && !list) skipReasons.unknownList++;
+            let list = null;
+            try {
+                list = await this.resolveImportList(listCell || pickedList, listCache);
+            } catch (e) {
+                skipReasons.unknownList++;
+            }
 
             const priority = (row[columnMap.priority] || '').trim().toUpperCase().charAt(0);
 
@@ -1465,7 +1578,7 @@ class CRMApp {
                 location: row[columnMap.location] || null,
                 priority: ['A', 'B', 'C'].includes(priority) ? priority : null,
                 list: list?.name || null,
-                side: list?.side || null,
+                side: list?.side || this.scope.side,
                 source_links: row[columnMap.source_links] || null,
                 source: source,
                 event_tag: row[columnMap.event_tag] || eventTag,  // CSV column takes priority, then manual input
@@ -1519,7 +1632,8 @@ class CRMApp {
             skipDetail = ` (${skipped} skipped: ${parts.join(', ')})`;
         }
         if (skipReasons.invalidEmail > 0) skipDetail += ` ${skipReasons.invalidEmail} had an invalid email and were imported without it.`;
-        if (skipReasons.unknownList > 0) skipDetail += ` ${skipReasons.unknownList} had a List that doesn't exist yet and were imported with no list (add it in Settings).`;
+        if (skipReasons.unknownList > 0) skipDetail += ` ${skipReasons.unknownList} had a List that couldn't be created and were imported with no list.`;
+        if (this.createdLists?.length) skipDetail += ` New lists created: ${this.createdLists.join(', ')} (add a message template in Settings).`;
         document.getElementById('csvCompleteText').textContent = `Imported ${imported} contacts!${skipDetail}`;
     }
 
@@ -1569,7 +1683,7 @@ class CRMApp {
     getOutcomeOptions(actionType) {
         const options = {
             'outreach': [
-                { value: 'sent', label: 'Reached out', emoji: '📤', default: true },
+                { value: 'sent', label: 'Messaged', emoji: '📤', default: true },
                 { value: 'replied', label: 'They Replied', emoji: '💬' },
                 { value: 'scheduled_meeting', label: 'Booked a Call', emoji: '📅' }
             ],
