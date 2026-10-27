@@ -33,7 +33,7 @@ const CRMComponents = {
     // Today: one list, top to bottom
     // ==========================================================================
 
-    renderToday({ scope, lists, replies, followUps, queue, sentToday, newSentToday, newTarget }) {
+    renderToday({ scope, lists, replies, followUps, queue, channelCounts, newSentToday, newTarget }) {
         const sideLabel = window.CRM_CONFIG.SIDES[scope.side];
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
@@ -52,13 +52,18 @@ const CRMComponents = {
                     <span class="today-split">Nymbl + Personal together</span></div>
                 <div><strong>${followUps.length}</strong> follow-up${followUps.length === 1 ? '' : 's'} due</div>
                 <div class="${replies.length ? 'is-hot' : ''}"><strong>${replies.length}</strong> ${replies.length === 1 ? 'reply' : 'replies'} waiting</div>
-                <div><strong>${sentToday}</strong> message${sentToday === 1 ? '' : 's'} sent today</div>
+                <div class="today-channels" title="Touches today on this side">
+                    <span>💼 <strong>${channelCounts.linkedin}</strong></span>
+                    <span>✉️ <strong>${channelCounts.email}</strong></span>
+                    <span>📞 <strong>${channelCounts.call}</strong></span>
+                    <span class="today-split">LinkedIn · email · calls today</span>
+                </div>
             </div>
 
             ${replies.length ? this.renderTodaySection('They replied: answer these first', 'People you marked with 💬 They replied.', replies, 'reply') : ''}
-            ${followUps.length ? this.renderTodaySection('Follow-ups due', 'You messaged them before. Send the next message.', followUps, 'follow') : ''}
+            ${followUps.length ? this.renderTodaySection('Follow-ups due', 'You reached out before. Time for the next touch, on any channel.', followUps, 'follow') : ''}
             ${this.renderTodaySection('New people', queue.total
-                ? `Not contacted yet. 🩺 Grader leads first, then priority A. ${queue.ready.length ? 'Draft → Copy → send on LinkedIn → ✓ Sent.' : 'You hit today\'s target 🎉'}`
+                ? `Not contacted yet. 🩺 Grader leads first, then priority A. ${queue.ready.length ? 'Pick LinkedIn, email or call, then log what you did.' : 'You hit today\'s target 🎉'}`
                 : 'Nobody waiting. Import a list with ⋯ → Import.', queue.ready, 'new')}
 
             ${queue.waiting.length ? `
@@ -95,8 +100,8 @@ const CRMComponents = {
         const name = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'No name';
         const notes = c.notes || c.intent_reason || c.problem || '';
         const step = window.crmDB.nextStep(c);
-        const stepLabel = kind === 'reply' ? 'Reply'
-            : `Message ${step} of ${window.CRM_CONFIG.CADENCE.length} · ${window.CRM_CONFIG.CADENCE[step - 1].label}`;
+        const stepLabel = kind === 'reply' ? 'They replied'
+            : `Touch ${step} of ${window.CRM_CONFIG.CADENCE.length} · ${window.CRM_CONFIG.CADENCE[step - 1].label}`;
 
         return `
             <div class="card person-card" id="person-${c.id}">
@@ -111,19 +116,80 @@ const CRMComponents = {
                     </div>
                     <span class="person-step">${stepLabel}</span>
                 </div>
+                ${this.renderTrail(window.crmApp?.touches?.[c.id])}
                 ${notes ? `<p class="person-notes">${this.esc(notes)}</p>` : ''}
-                <div class="person-draft" id="draft-${c.id}" hidden>
-                    <textarea rows="5" id="draftText-${c.id}"></textarea>
-                </div>
-                <div class="person-actions">
-                    ${c.linkedin_url ? `<a class="btn btn-sm btn-secondary" href="${this.esc(c.linkedin_url)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>` : ''}
-                    ${c.email ? `<a class="btn btn-sm btn-secondary" href="mailto:${this.esc(c.email)}">Email ↗</a>` : ''}
-                    <button class="btn btn-sm btn-secondary" onclick="window.crmApp.draft('${c.id}')">${kind === 'reply' || c.status === 'Replied' ? '✍️ Draft reply' : `✍️ Draft message ${step}`}</button>
-                    <button class="btn btn-sm btn-secondary" onclick="window.crmApp.copyDraft('${c.id}', this)">Copy</button>
-                    <span class="person-actions-gap"></span>
+                ${this.renderChannels(c, kind)}
+                <div class="person-actions person-actions-status">
                     ${this.renderActionButtons(c, kind)}
                 </div>
                 <p class="person-status" id="status-${c.id}"></p>
+            </div>
+        `;
+    },
+
+    /**
+     * What you've done with this person, in order: 💼 Oct 23 → ✉️ Oct 27 → 📞 Oct 30 (no answer)
+     */
+    renderTrail(touches = []) {
+        if (!touches?.length) return '';
+        const icon = { outreach: '💼', linkedin: '💼', email: '✉️', call: '📞' };
+        const outcome = { no_answer: 'no answer', left_voicemail: 'voicemail', connected: 'talked' };
+        return `
+            <div class="trail">
+                ${touches.map(t => `
+                    <span class="trail-item" title="${t.activity_type}">
+                        ${icon[t.activity_type] || '•'} ${new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${outcome[t.outcome] ? ` (${outcome[t.outcome]})` : ''}
+                    </span>
+                `).join('<span class="trail-arrow">→</span>')}
+            </div>
+        `;
+    },
+
+    /**
+     * LinkedIn · Email · Call tabs. Each tab has the contact detail, a Draft
+     * for that channel, and the buttons to log what you did.
+     */
+    renderChannels(c, kind) {
+        const isReply = kind === 'reply' || c.status === 'Replied';
+        const has = { linkedin: !!c.linkedin_url, email: !!c.email, call: !!c.phone };
+        const current = window.crmApp?.channelFor(c) || 'linkedin';
+        const log = (channel, outcome, label, cls = 'btn-primary') =>
+            `<button class="btn btn-sm ${cls}" onclick="window.crmApp.touch('${c.id}', '${channel}', '${outcome}')">${label}</button>`;
+        const draftLabel = { linkedin: 'message', email: 'email', call: 'call plan' };
+        const tools = channel => `
+            <textarea rows="${channel === 'linkedin' ? 4 : 6}" id="draftText-${c.id}-${channel}" placeholder="Write here, or click ✍️ Draft"></textarea>
+            <div class="person-actions">
+                <button class="btn btn-sm btn-secondary" onclick="window.crmApp.draft('${c.id}', '${channel}')">✍️ Draft ${isReply ? 'reply' : draftLabel[channel]}</button>
+                <button class="btn btn-sm btn-secondary" onclick="window.crmApp.copyDraft('${c.id}', '${channel}', this)">Copy</button>
+                <span class="person-actions-gap"></span>
+                ${channel === 'linkedin' ? log('linkedin', 'sent', isReply ? '✓ Answered on LinkedIn' : '✓ Sent on LinkedIn') : ''}
+                ${channel === 'email' ? log('email', 'sent', isReply ? '✓ Answered by email' : '✓ Email sent') : ''}
+                ${channel === 'call' ? (isReply
+                    ? log('call', 'connected', '✓ Called them back')
+                    : log('call', 'no_answer', 'No answer', 'btn-secondary') + log('call', 'left_voicemail', 'Left voicemail', 'btn-secondary') + log('call', 'connected', '✓ Talked to them')) : ''}
+            </div>
+        `;
+
+        return `
+            <div class="channels" data-channel="${current}" id="channels-${c.id}">
+                <div class="channel-tabs" role="tablist">
+                    ${[['linkedin', '💼 LinkedIn'], ['email', '✉️ Email'], ['call', '📞 Call']].map(([ch, label]) => `
+                        <button class="channel-tab" data-tab="${ch}" ${has[ch] ? '' : 'disabled title="No ' + (ch === 'call' ? 'phone number' : ch === 'email' ? 'email address' : 'LinkedIn URL') + ' yet. Add it with Edit."'}
+                            onclick="window.crmApp.pickChannel('${c.id}', '${ch}')">${label}</button>
+                    `).join('')}
+                </div>
+                <div class="channel-panel" data-panel="linkedin">
+                    ${has.linkedin ? `<a class="channel-detail" href="${this.esc(c.linkedin_url)}" target="_blank" rel="noopener noreferrer">Open their LinkedIn ↗</a>` : ''}
+                    ${tools('linkedin')}
+                </div>
+                <div class="channel-panel" data-panel="email">
+                    ${has.email ? `<span class="channel-detail">${this.esc(c.email)} · <a href="#" onclick="event.preventDefault(); window.crmApp.openEmail('${c.id}')">Open in email ↗</a></span>` : ''}
+                    ${tools('email')}
+                </div>
+                <div class="channel-panel" data-panel="call">
+                    ${has.call ? `<a class="channel-detail channel-phone" href="tel:${this.esc(c.phone)}">📞 ${this.esc(c.phone)}</a>` : ''}
+                    ${tools('call')}
+                </div>
             </div>
         `;
     },
@@ -136,12 +202,12 @@ const CRMComponents = {
             `<button class="btn btn-sm ${cls}" onclick="window.crmApp.act('${c.id}', '${action}')">${label}</button>`;
 
         if (kind === 'reply' || c.status === 'Replied') {
-            return btn('answered', '✓ Answered', 'btn-primary') + btn('booked', '📅 Call booked') + btn('notInterested', '✕ Not interested');
+            return btn('booked', '📅 Call booked') + btn('notInterested', '✕ Not interested');
         }
         if (c.status === 'Call booked' || c.status === 'Demo') {
             return btn('advance', `→ ${window.crmDB.nextStage(c.status)}`, 'btn-primary') + btn('snooze', 'Later');
         }
-        return btn('sent', '✓ Sent', 'btn-primary') + btn('replied', '💬 They replied') + btn('notInterested', '✕ Not interested');
+        return btn('replied', '💬 They replied') + btn('notInterested', '✕ Not interested');
     },
 
     // ==========================================================================
@@ -462,6 +528,8 @@ const CRMComponents = {
                             ${contact.graded_at ? '<span class="badge badge-graded">🩺 Graded</span>' : ''}
                             ${contact.status === 'Won' || contact.status === 'Not a Fit' ? '' : this.renderActionButtons(contact, contact.status === 'Replied' ? 'reply' : '')}
                         </div>
+                        ${contact.status === 'Won' || contact.status === 'Not a Fit' ? '' : `<div style="margin-top: 12px;">${this.renderChannels(contact, contact.status === 'Replied' ? 'reply' : '')}</div>`}
+                        <p class="person-status" id="status-${contact.id}"></p>
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--color-text-muted);">
                             Stage
                             <select class="filter-select" onchange="window.crmApp.setStage('${contact.id}', this.value)">

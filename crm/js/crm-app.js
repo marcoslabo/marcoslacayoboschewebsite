@@ -252,6 +252,7 @@ class CRMApp {
             this.people = Object.fromEntries(
                 [...today.replies, ...today.followUps, ...today.queue.ready].map(c => [c.id, c])
             );
+            this.touches = await window.crmDB.getTouches(Object.keys(this.people));
             main.innerHTML = window.CRMComponents.renderToday({ ...today, scope: this.scope, lists: this.lists, newTarget });
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
@@ -303,12 +304,28 @@ class CRMApp {
             || null;
     }
 
-    async draft(id) {
+    /**
+     * Which channel tab a card opens on: your last choice if this person has
+     * it, otherwise the first one they have (LinkedIn, email, phone).
+     */
+    channelFor(contact) {
+        const has = { linkedin: !!contact.linkedin_url, email: !!contact.email, call: !!contact.phone };
+        const preferred = this.loadPref('crm_channel', {}).channel;
+        if (preferred && has[preferred]) return preferred;
+        return ['linkedin', 'email', 'call'].find(ch => has[ch]) || 'linkedin';
+    }
+
+    pickChannel(id, channel) {
+        const box = document.getElementById(`channels-${id}`);
+        if (box) box.dataset.channel = channel;
+        this.savePref('crm_channel', { channel });
+    }
+
+    async draft(id, channel = 'linkedin') {
         const contact = await this.findPerson(id);
-        const box = document.getElementById(`draft-${id}`);
-        const text = document.getElementById(`draftText-${id}`);
+        const text = document.getElementById(`draftText-${id}-${channel}`);
         const status = document.getElementById(`status-${id}`);
-        if (!box) return;
+        if (!text) return;
         if (!this.lists.length) await this.loadLists();
 
         // A reply only makes sense if we know what they said
@@ -318,26 +335,23 @@ class CRMApp {
             if (theirReply === null) return;
         }
 
-        box.hidden = false;
         text.value = '';
         text.placeholder = 'Drafting…';
-        status.textContent = '';
+        if (status) status.textContent = '';
         try {
-            text.value = await window.crmDB.draftMessage(contact, this.listFor(contact), theirReply);
+            text.value = await window.crmDB.draftMessage(contact, this.listFor(contact), theirReply, channel);
         } catch (e) {
-            text.placeholder = 'Write your message here';
-            status.textContent = '⚠️ ' + e.message;
+            text.placeholder = 'Write here, or click ✍️ Draft';
+            if (status) status.textContent = '⚠️ ' + e.message;
         }
     }
 
-    async copyDraft(id, button) {
-        const box = document.getElementById(`draft-${id}`);
-        const text = document.getElementById(`draftText-${id}`);
+    async copyDraft(id, channel, button) {
+        const text = document.getElementById(`draftText-${id}-${channel}`);
         if (!text?.value) {
-            await this.draft(id);
+            await this.draft(id, channel);
             if (!text?.value) return;
         }
-        box.hidden = false;
         try {
             await navigator.clipboard.writeText(text.value);
             button.textContent = 'Copied ✓';
@@ -347,18 +361,45 @@ class CRMApp {
         }
     }
 
+    // Open the email app with the draft filled in ("Subject:" on the first line)
+    async openEmail(id) {
+        const contact = await this.findPerson(id);
+        const draft = document.getElementById(`draftText-${id}-email`)?.value || '';
+        const match = draft.match(/^\s*subject:\s*(.+)\n+/i);
+        const subject = match ? match[1].trim() : '';
+        const body = match ? draft.slice(match[0].length) : draft;
+        window.location.href = `mailto:${encodeURIComponent(contact.email)}`
+            + `?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
     /**
-     * One click = stage + next step. See CRM_CONFIG.CADENCE for the sequence.
+     * Log a touch on a channel. For people who replied, it records that you
+     * answered; otherwise it moves the follow-up sequence forward.
      */
-    async act(id, action) {
+    async touch(id, channel, outcome) {
         const status = document.getElementById(`status-${id}`);
-        const message = document.getElementById(`draftText-${id}`)?.value.trim() || null;
+        const message = document.getElementById(`draftText-${id}-${channel}`)?.value.trim() || null;
         try {
             if (status) status.textContent = 'Saving…';
             const contact = await this.findPerson(id);
-            if (action === 'sent') await window.crmDB.markSent(contact, message);
-            else if (action === 'replied') await window.crmDB.markReplied(id);
-            else if (action === 'answered') await window.crmDB.markAnswered(id, message);
+            if (contact.status === 'Replied') await window.crmDB.markAnswered(id, message, channel, outcome);
+            else await window.crmDB.touch(contact, channel, outcome, message);
+            delete this.people[id];
+            await this.refreshCurrentView();
+        } catch (e) {
+            if (status) status.textContent = '⚠️ ' + e.message;
+            else alert(e.message);
+        }
+    }
+
+    /**
+     * Stage buttons: they replied, call booked, not interested, next stage, later
+     */
+    async act(id, action) {
+        const status = document.getElementById(`status-${id}`);
+        try {
+            if (status) status.textContent = 'Saving…';
+            if (action === 'replied') await window.crmDB.markReplied(id);
             else if (action === 'booked') await window.crmDB.markBooked(id);
             else if (action === 'notInterested') await window.crmDB.markNotInterested(id);
             else if (action === 'advance') await window.crmDB.advanceStage(id);
