@@ -55,10 +55,10 @@ const CRMComponents = {
                 <div><strong>${sentToday}</strong> message${sentToday === 1 ? '' : 's'} sent today</div>
             </div>
 
-            ${this.renderTodaySection('① Replied: answer these first', 'They answered you, or finished the Grader.', replies, 'reply')}
-            ${this.renderTodaySection('② Follow-ups due', 'The sequence scheduled these. Send the next message.', followUps, 'follow')}
-            ${this.renderTodaySection('③ New people', queue.total
-                ? `To contact, priority A first. ${queue.ready.length ? '' : 'You hit today\'s target 🎉'}`
+            ${replies.length ? this.renderTodaySection('They replied: answer these first', 'People you marked with 💬 They replied.', replies, 'reply') : ''}
+            ${followUps.length ? this.renderTodaySection('Follow-ups due', 'You messaged them before. Send the next message.', followUps, 'follow') : ''}
+            ${this.renderTodaySection('New people', queue.total
+                ? `Not contacted yet. 🩺 Grader leads first, then priority A. ${queue.ready.length ? 'Draft → Copy → send on LinkedIn → ✓ Sent.' : 'You hit today\'s target 🎉'}`
                 : 'Nobody waiting. Import a list with ⋯ → Import.', queue.ready, 'new')}
 
             ${queue.waiting.length ? `

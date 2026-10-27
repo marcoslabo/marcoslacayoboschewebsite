@@ -78,14 +78,12 @@ async function createBrief(req, res) {
         email: cleanEmail,
         firstName: String(first_name).trim().slice(0, 80),
         lastName: String(last_name || '').trim().slice(0, 80),
-        stage: 'Replied',
+        stage: 'To contact',
         source: 'Grader',
-        set: { graded_at: new Date().toISOString() },
+        set: { graded_at: new Date().toISOString(), priority: 'A' },
         companyName: company_name,
         problem: String(brief.problem_raw).slice(0, 2000),
         extra: {
-            next_action: 'Follow Up',
-            next_action_date: new Date().toISOString().split('T')[0],
             brevo_tag: 'spark-lead',
             side: 'nymbl'
         }

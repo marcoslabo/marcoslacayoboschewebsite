@@ -819,6 +819,7 @@ class CRMDB {
                 .select('*, companies(id, name)')
                 .eq('owner', owner)
                 .eq('status', 'To contact'), scope)
+                .order('graded_at', { ascending: false, nullsFirst: false })
                 .order('priority', { ascending: true, nullsFirst: false })
                 .order('created_at', { ascending: true })
                 .limit(1000),
