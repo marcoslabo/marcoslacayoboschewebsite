@@ -903,7 +903,10 @@ class CRMDB {
             .limit(1);
 
         const person = {
-            first_name: contact.first_name,
+            first_name: contact.first_name || null,
+            no_named_contact: !contact.first_name && !contact.last_name
+                ? 'No named person yet: write to or ask for whoever handles patient coverage / enrollment. Do not use a first name.'
+                : undefined,
             title: contact.job_title,
             organization: contact.companies?.name,
             org_type: contact.org_type,
@@ -1065,15 +1068,20 @@ class CRMDB {
     async getExistingContactKeys() {
         const { data, error } = await this.supabase
             .from('contacts')
-            .select('email, linkedin_url')
+            .select('email, linkedin_url, phone, companies(name)')
             .limit(20000);
         if (error) throw error;
         const keys = new Set();
         for (const c of data || []) {
             if (c.email) keys.add('e:' + c.email.trim().toLowerCase());
             if (c.linkedin_url) keys.add('l:' + this.normalizeLinkedIn(c.linkedin_url));
+            if (c.phone && c.companies?.name) keys.add('p:' + this.phoneKey(c.phone, c.companies.name));
         }
         return keys;
+    }
+
+    phoneKey(phone, company) {
+        return String(phone).replace(/\D/g, '').slice(-10) + '|' + String(company).trim().toLowerCase();
     }
 
     normalizeLinkedIn(url) {

@@ -97,7 +97,9 @@ const CRMComponents = {
      * One person, everything you need, one row of buttons
      */
     renderPersonCard(c, kind) {
-        const name = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'No name';
+        const person = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+        // No named person (e.g. a clinic's main line): show the organization
+        const name = person || c.companies?.name || 'No name';
         const notes = c.notes || c.intent_reason || c.problem || '';
         const step = window.crmDB.nextStep(c);
         const stepLabel = kind === 'reply' ? 'They replied'
@@ -112,7 +114,7 @@ const CRMComponents = {
                             <a href="#/contact/${c.id}">${this.esc(name)}</a>
                             ${c.graded_at ? '<span class="badge badge-graded" title="Finished the Workflow Grader">🩺 Graded</span>' : ''}
                         </div>
-                        <div class="person-meta">${this.esc([c.job_title, c.companies?.name, c.list].filter(Boolean).join(' · '))}</div>
+                        <div class="person-meta">${this.esc([person ? c.job_title : 'Main line (no named contact yet)', person ? c.companies?.name : null, c.list].filter(Boolean).join(' · '))}</div>
                     </div>
                     <span class="person-step">${stepLabel}</span>
                 </div>
@@ -151,7 +153,10 @@ const CRMComponents = {
      */
     renderChannels(c, kind) {
         const isReply = kind === 'reply' || c.status === 'Replied';
-        const has = { linkedin: !!c.linkedin_url, email: !!c.email, call: !!c.phone };
+        // LinkedIn works without a profile link: we search for them
+        const has = { linkedin: true, email: !!c.email, call: !!c.phone };
+        const who = [`${c.first_name || ''} ${c.last_name || ''}`.trim(), c.companies?.name].filter(Boolean).join(' ');
+        const linkedinSearch = `https://www.linkedin.com/search/results/${c.first_name ? 'people' : 'companies'}/?keywords=${encodeURIComponent(who)}`;
         const current = window.crmApp?.channelFor(c) || 'linkedin';
         const log = (channel, outcome, label, cls = 'btn-primary') =>
             `<button class="btn btn-sm ${cls}" onclick="window.crmApp.touch('${c.id}', '${channel}', '${outcome}')">${label}</button>`;
@@ -179,7 +184,9 @@ const CRMComponents = {
                     `).join('')}
                 </div>
                 <div class="channel-panel" data-panel="linkedin">
-                    ${has.linkedin ? `<a class="channel-detail" href="${this.esc(c.linkedin_url)}" target="_blank" rel="noopener noreferrer">Open their LinkedIn ↗</a>` : ''}
+                    ${c.linkedin_url
+                        ? `<a class="channel-detail" href="${this.esc(c.linkedin_url)}" target="_blank" rel="noopener noreferrer">Open their LinkedIn ↗</a>`
+                        : `<a class="channel-detail" href="${this.esc(linkedinSearch)}" target="_blank" rel="noopener noreferrer">Find ${this.esc(who || 'them')} on LinkedIn ↗</a>`}
                     ${tools('linkedin')}
                 </div>
                 <div class="channel-panel" data-panel="email">

@@ -1441,8 +1441,11 @@ class CRMApp {
             first_name: ['firstname', 'first', 'fname', 'givenname'],
             last_name: ['lastname', 'last', 'lname', 'surname', 'familyname'],
             full_name: ['name', 'fullname', 'contactname', 'personname'],  // For Notion exports
-            company: ['company', 'companyname', 'organization', 'org', 'employer', 'companytabledata', 'companydomain'],
-            phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone', 'mobilephone', 'workphone'],
+            company: ['company', 'companyname', 'organization', 'org', 'orgname', 'association', 'employer', 'companytabledata', 'companydomain'],
+            phone: ['phone', 'phonenumber', 'mainphone', 'mobile', 'cell', 'telephone', 'mobilephone', 'workphone'],
+            stage: ['stage', 'crmstage'],
+            last_touch: ['lasttouch', 'lastchannel'],
+            last_outcome: ['lastoutcome'],
             job_title: ['title', 'jobtitle', 'position', 'role', 'jobrole'],
             linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile', 'linkedinlink'],
             intent_reason: ['reason', 'intentreason', 'reasoning', 'whyhighintent'],
@@ -1536,13 +1539,13 @@ class CRMApp {
             html += `<p style="text-align: center; color: #94a3b8; margin-top: 12px;">...and ${rows.length - 5} more contacts</p>`;
         }
 
-        // A row needs a name and (email or LinkedIn)
-        const hasName = columnMap.full_name !== undefined || columnMap.first_name !== undefined;
-        const hasContact = columnMap.email !== undefined || columnMap.linkedin_url !== undefined;
+        // A row needs a name or a company, and a way to reach them (email, LinkedIn or phone)
+        const hasName = columnMap.full_name !== undefined || columnMap.first_name !== undefined || columnMap.company !== undefined;
+        const hasContact = columnMap.email !== undefined || columnMap.linkedin_url !== undefined || columnMap.phone !== undefined;
         if (!hasName || !hasContact) {
             html = `<div style="padding: 20px; background: #fef2f2; border-radius: 8px; color: #dc2626; margin-bottom: 16px;">
                 <strong>⚠️ Missing columns.</strong><br>
-                The file needs a Name column, plus Email or LinkedIn.
+                The file needs a Name or Company column, plus Email, LinkedIn or Phone.
             </div>` + html;
             document.getElementById('csvImportBtn').disabled = true;
         } else {
@@ -1622,13 +1625,16 @@ class CRMApp {
 
             const cleanEmail = email && email.includes('@') ? email.trim().toLowerCase() : null;
             const linkedin = (row[columnMap.linkedin_url] || '').trim() || null;
+            const phone = (row[columnMap.phone] || '').trim() || null;
+            const companyName = (row[columnMap.company] || '').trim();
 
-            // Valid row: a name AND (email OR LinkedIn)
-            if (!firstName && !lastName) {
+            // Valid row: a name or a company, AND a way to reach them (email, LinkedIn or phone).
+            // A clinic with only a main number is fine: you call the front desk.
+            if (!firstName && !lastName && !companyName) {
                 skipped++; skipReasons.noName++;
                 continue;
             }
-            if (!cleanEmail && !linkedin) {
+            if (!cleanEmail && !linkedin && !phone) {
                 skipped++; skipReasons.noContact++;
                 continue;
             }
@@ -1637,7 +1643,12 @@ class CRMApp {
                 skipReasons.invalidEmail++;
             }
 
-            const keys = [cleanEmail && 'e:' + cleanEmail, linkedin && 'l:' + window.crmDB.normalizeLinkedIn(linkedin)].filter(Boolean);
+            const keys = [
+                cleanEmail && 'e:' + cleanEmail,
+                linkedin && 'l:' + window.crmDB.normalizeLinkedIn(linkedin),
+                // Same number at the same place (sites of one network share a number but differ by name)
+                phone && companyName && 'p:' + window.crmDB.phoneKey(phone, companyName)
+            ].filter(Boolean);
             if (keys.some(k => existingKeys.has(k))) {
                 skipped++; skipReasons.duplicate++;
                 continue;
@@ -1655,11 +1666,19 @@ class CRMApp {
 
             const priority = (row[columnMap.priority] || '').trim().toUpperCase().charAt(0);
 
+            // Optional: where they already are (Stage) and what you last did (Last touch / Last outcome)
+            const stageCell = (row[columnMap.stage] || '').trim().toLowerCase();
+            const stage = window.CRM_CONFIG.STATUSES.find(s => s.toLowerCase() === stageCell) || 'To contact';
+            const lastTouch = (row[columnMap.last_touch] || '').trim().toLowerCase();
+            const touchType = { call: 'call', phone: 'call', email: 'email', linkedin: 'linkedin' }[lastTouch] || null;
+            const outcomeCell = (row[columnMap.last_outcome] || '').trim().toLowerCase();
+            const lastOutcome = ['sent', 'no_answer', 'left_voicemail', 'connected'].includes(outcomeCell) ? outcomeCell : 'sent';
+
             const contact = {
                 first_name: firstName,
                 last_name: lastName,
                 email: cleanEmail,
-                phone: row[columnMap.phone] || null,
+                phone,
                 job_title: row[columnMap.job_title] || null,
                 linkedin_url: linkedin,
                 intent_reason: row[columnMap.intent_reason] || null,
@@ -1672,14 +1691,17 @@ class CRMApp {
                 source_links: row[columnMap.source_links] || null,
                 source: source,
                 event_tag: row[columnMap.event_tag] || eventTag,  // CSV column takes priority, then manual input
-                // Imported prospects wait in "To contact"
-                status: 'To contact',
+                // Imported prospects wait in "To contact" unless the file says otherwise
+                status: stage,
+                // Already reached: the next touch is due today
+                ...(touchType && ['Messaged', 'Replied'].includes(stage)
+                    ? { cadence_step: 1, next_action: 'Follow Up', next_action_date: window.crmDB.todayDate() }
+                    : {}),
                 // Rows with no email are skipped by the Brevo sync
                 brevo_tag: window.CRM_CONFIG.BREVO_TAGS[source] || 'other-lead'
             };
 
             // Handle company
-            const companyName = row[columnMap.company];
             if (companyName) {
                 try {
                     contact.company_id = await window.crmDB.findOrCreateCompany(companyName);
@@ -1689,7 +1711,17 @@ class CRMApp {
             }
 
             try {
-                await window.crmDB.createContact(contact, { skipBrevo });
+                const created = await window.crmDB.createContact(contact, { skipBrevo });
+                // Show the touch you already made in their trail
+                if (touchType && created?.id) {
+                    try {
+                        await window.crmDB.logActivity(created.id, {
+                            type: touchType, outcome: lastOutcome, step: 1, notes: 'Before the CRM (imported)'
+                        });
+                    } catch (e) {
+                        console.warn('Imported, but could not log the earlier touch:', e.message);
+                    }
+                }
                 imported++;
             } catch (e) {
                 console.error(`Error importing ${firstName} ${lastName}:`, e.message);
