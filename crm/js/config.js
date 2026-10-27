@@ -44,9 +44,8 @@ const CRM_CONFIG = {
 
     SIDES: { nymbl: 'Nymbl', personal: 'Personal' },
 
-    // New people per day (editable on Today, remembered per side). LinkedIn
-    // limits connection requests, so the default is conservative.
-    DAILY_NEW_TARGET: 20,
+    // New people per day, Nymbl and Personal together (editable on Today)
+    DAILY_NEW_TARGET: 50,
 
     // Skip a company someone there heard from recently
     OUTREACH_ORG_COOLDOWN_DAYS: 14,

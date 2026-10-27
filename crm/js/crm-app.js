@@ -258,16 +258,16 @@ class CRMApp {
         }
     }
 
+    // One daily number for Nymbl and Personal together
     getTarget() {
-        const targets = this.loadPref('crm_targets', {});
-        return Number(targets[this.scope.side]) || window.CRM_CONFIG.DAILY_NEW_TARGET;
+        return Number(this.loadPref('crm_target', {}).total) || window.CRM_CONFIG.DAILY_NEW_TARGET;
     }
 
     async editTarget() {
-        const value = prompt(`New people per day (${window.CRM_CONFIG.SIDES[this.scope.side]}):`, this.getTarget());
+        const value = prompt('New people per day, Nymbl and Personal together:', this.getTarget());
         const n = parseInt(value, 10);
         if (!n || n < 1) return;
-        this.savePref('crm_targets', { ...this.loadPref('crm_targets', {}), [this.scope.side]: n });
+        this.savePref('crm_target', { total: n });
         await this.renderDashboard();
     }
 
@@ -479,8 +479,6 @@ class CRMApp {
             const contacts = await window.crmDB.getContacts(filters);
             this.shownContactIds = contacts.map(c => c.id);
             main.innerHTML = window.CRMComponents.renderContactsList(contacts, filters, this.lists);
-            // Load event tag options into the filter dropdown
-            await this.loadEventTagFilter();
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
         }
@@ -1201,6 +1199,7 @@ class CRMApp {
         try {
             const tags = await window.crmDB.getEventTags();
             const datalist = document.getElementById('eventTagList');
+            if (!datalist) return;
             datalist.innerHTML = tags.map(tag => `<option value="${tag}">`).join('');
         } catch (e) {
             console.log('Could not load event tags:', e);
@@ -1469,7 +1468,7 @@ class CRMApp {
 
         const { rows, columnMap } = this.csvData;
         const source = document.getElementById('csvImportSource').value;
-        const eventTag = document.getElementById('csvEventTag').value.trim() || null;
+        const eventTag = null;  // campaigns are lists now
         const skipBrevo = document.getElementById('csvSkipBrevo').checked;
         const pickedList = document.getElementById('csvImportList').value || null;
         const listCache = {};

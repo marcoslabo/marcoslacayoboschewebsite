@@ -758,7 +758,7 @@ class CRMDB {
             .select('*, companies(id, name)')
             .eq('owner', owner), scope);
 
-        const [repliesRes, followRes, sentRes] = await Promise.all([
+        const [repliesRes, followRes, sentRes, allSentRes] = await Promise.all([
             // They answered (or graded): answer these first
             base().eq('status', 'Replied')
                 .or(`next_action_date.is.null,next_action_date.lte.${today}`)
@@ -777,12 +777,20 @@ class CRMDB {
                 .eq('owner', owner)
                 .eq('activity_type', 'outreach')
                 .gte('created_at', this.todayStart()), scope, 'contacts.')
+                .limit(1000),
+            // First messages today on BOTH sides (the daily target is shared)
+            this.supabase
+                .from('activities')
+                .select('step')
+                .eq('owner', owner)
+                .eq('activity_type', 'outreach')
+                .gte('created_at', this.todayStart())
                 .limit(1000)
         ]);
-        for (const r of [repliesRes, followRes, sentRes]) if (r.error) throw r.error;
+        for (const r of [repliesRes, followRes, sentRes, allSentRes]) if (r.error) throw r.error;
 
         const sent = sentRes.data || [];
-        const newSentToday = sent.filter(a => (a.step || 1) === 1).length;
+        const newSentToday = (allSentRes.data || []).filter(a => (a.step || 1) === 1).length;
         const queue = await this.getOutreachQueue(scope, Math.max(0, newTarget - newSentToday));
 
         return {

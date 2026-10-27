@@ -1612,3 +1612,9 @@ body {
         flex-direction: column;
     }
 }
+
+.today-split {
+    display: block;
+    font-size: 11px;
+    color: var(--color-text-light);
+}
