@@ -382,10 +382,17 @@ class CRMApp {
         try {
             if (status) status.textContent = 'Saving…';
             const contact = await this.findPerson(id);
-            if (contact.status === 'Replied') await window.crmDB.markAnswered(id, message, channel, outcome);
-            else await window.crmDB.touch(contact, channel, outcome, message);
+            const before = await window.crmDB.snapshot(id);
+            const activity = contact.status === 'Replied'
+                ? await window.crmDB.markAnswered(id, message, channel, outcome)
+                : await window.crmDB.touch(contact, channel, outcome, message);
             delete this.people[id];
             await this.refreshCurrentView();
+            const what = {
+                sent: { linkedin: 'LinkedIn sent', email: 'email sent' }[channel],
+                no_answer: 'call, no answer', left_voicemail: 'call, voicemail', connected: 'talked to them'
+            }[outcome];
+            this.showUndo(contact, what, before, activity?.id);
         } catch (e) {
             if (status) status.textContent = '⚠️ ' + e.message;
             else alert(e.message);
@@ -395,21 +402,57 @@ class CRMApp {
     /**
      * Stage buttons: they replied, call booked, not interested, next stage, later
      */
-    async act(id, action) {
+    async act(id, action, days = 3) {
         const status = document.getElementById(`status-${id}`);
         try {
             if (status) status.textContent = 'Saving…';
+            const contact = await this.findPerson(id);
+            const before = await window.crmDB.snapshot(id);
             if (action === 'replied') await window.crmDB.markReplied(id);
             else if (action === 'booked') await window.crmDB.markBooked(id);
             else if (action === 'notInterested') await window.crmDB.markNotInterested(id);
             else if (action === 'advance') await window.crmDB.advanceStage(id);
-            else if (action === 'snooze') await window.crmDB.snooze(id, 3);
+            else if (action === 'snooze') await window.crmDB.snooze(id, days);
             delete this.people[id];
             await this.refreshCurrentView();
+            const when = { 1: 'tomorrow', 7: 'next week', 30: 'next month' }[days] || `in ${days} days`;
+            this.showUndo(contact, {
+                replied: 'they replied', booked: 'call booked', notInterested: 'not a fit',
+                advance: 'next stage', snooze: `later (back ${when})`
+            }[action], before);
         } catch (e) {
             if (status) status.textContent = '⚠️ ' + e.message;
             else alert(e.message);
         }
+    }
+
+    /**
+     * "Dana → not a fit · Undo" for 10 seconds after any button
+     */
+    showUndo(contact, what, before, activityId = null) {
+        let bar = document.getElementById('undoBar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'undoBar';
+            bar.className = 'undo-bar';
+            document.body.appendChild(bar);
+        }
+        const name = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Contact';
+        bar.innerHTML = `<span>${window.CRMComponents.esc(name)} → ${what}</span><button>↶ Undo</button>`;
+        bar.hidden = false;
+        clearTimeout(this.undoTimer);
+        this.undoTimer = setTimeout(() => { bar.hidden = true; }, 10000);
+
+        bar.querySelector('button').onclick = async () => {
+            bar.hidden = true;
+            clearTimeout(this.undoTimer);
+            try {
+                await window.crmDB.restore(contact.id, before, activityId);
+                await this.refreshCurrentView();
+            } catch (e) {
+                alert('Could not undo: ' + e.message);
+            }
+        };
     }
 
     // Contacts screen: put everyone currently shown on one list

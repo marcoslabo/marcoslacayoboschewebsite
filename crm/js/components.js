@@ -200,14 +200,24 @@ const CRMComponents = {
     renderActionButtons(c, kind) {
         const btn = (action, label, cls = 'btn-secondary') =>
             `<button class="btn btn-sm ${cls}" onclick="window.crmApp.act('${c.id}', '${action}')">${label}</button>`;
+        // Hide them from Today until a date
+        const later = `
+            <select class="btn btn-sm btn-secondary later-select" title="Hide from Today until…"
+                onchange="if (this.value) window.crmApp.act('${c.id}', 'snooze', Number(this.value))">
+                <option value="">⏭ Later…</option>
+                <option value="1">Tomorrow</option>
+                <option value="7">Next week</option>
+                <option value="30">Next month</option>
+            </select>`;
+        const notFit = btn('notInterested', '✕ Not a fit');
 
         if (kind === 'reply' || c.status === 'Replied') {
-            return btn('booked', '📅 Call booked') + btn('notInterested', '✕ Not interested');
+            return btn('booked', '📅 Call booked') + later + notFit;
         }
         if (c.status === 'Call booked' || c.status === 'Demo') {
-            return btn('advance', `→ ${window.crmDB.nextStage(c.status)}`, 'btn-primary') + btn('snooze', 'Later');
+            return btn('advance', `→ ${window.crmDB.nextStage(c.status)}`, 'btn-primary') + later + notFit;
         }
-        return btn('replied', '💬 They replied') + btn('notInterested', '✕ Not interested');
+        return btn('replied', '💬 They replied') + later + notFit;
     },
 
     // ==========================================================================

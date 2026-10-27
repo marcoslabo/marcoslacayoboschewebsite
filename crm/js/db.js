@@ -838,7 +838,9 @@ class CRMDB {
                 .from('contacts')
                 .select('*, companies(id, name)')
                 .eq('owner', owner)
-                .eq('status', 'To contact'), scope)
+                .eq('status', 'To contact')
+                // "Later" hides someone until their date
+                .or(`next_action_date.is.null,next_action_date.lte.${this.todayDate()}`), scope)
                 .order('graded_at', { ascending: false, nullsFirst: false })
                 .order('priority', { ascending: true, nullsFirst: false })
                 .order('created_at', { ascending: true })
@@ -992,7 +994,7 @@ class CRMDB {
     /** "Answered": you got back to them (any channel); check back in a few days */
     async markAnswered(contactId, message, channel = 'linkedin', outcome = 'sent') {
         await this.updateContact(contactId, { next_action: 'Follow Up', next_action_date: this.todayDate(3) });
-        await this.logActivity(contactId, { type: channel, outcome, notes: message || null });
+        return this.logActivity(contactId, { type: channel, outcome, notes: message || null });
     }
 
     async markBooked(contactId) {
@@ -1005,6 +1007,30 @@ class CRMDB {
 
     async snooze(contactId, days) {
         return this.updateContact(contactId, { next_action_date: this.todayDate(days) });
+    }
+
+    /**
+     * What a contact looks like before a button is pressed, so it can be undone
+     */
+    async snapshot(contactId) {
+        const { data, error } = await this.supabase
+            .from('contacts')
+            .select('status, cadence_step, next_action, next_action_date')
+            .eq('id', contactId)
+            .single();
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Undo: put the contact back and remove the touch that was logged
+     */
+    async restore(contactId, snapshot, activityId = null) {
+        await this.updateContact(contactId, snapshot);
+        if (activityId) {
+            const { error } = await this.supabase.from('activities').delete().eq('id', activityId);
+            if (error) throw error;
+        }
     }
 
     /**
