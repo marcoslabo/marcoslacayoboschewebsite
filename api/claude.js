@@ -1,15 +1,18 @@
 // ==========================================================================
 // POST /api/claude
 // Generic Anthropic endpoint. Thin wrapper around lib/anthropic.js.
-// Used for ad-hoc Claude calls; agents have their own dedicated endpoints.
+// CRM-only (e.g. outreach drafts). The public Spark page uses /api/spark.
 // ==========================================================================
 
 import { callClaude } from '../lib/anthropic.js';
+import { requireCrmUser } from '../lib/supabase-server.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    if (!(await requireCrmUser(req, res))) return;
 
     try {
         const result = await callClaude(req.body || {});

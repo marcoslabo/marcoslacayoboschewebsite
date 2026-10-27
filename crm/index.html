@@ -52,8 +52,10 @@
             <nav class="header-nav">
                 <!-- Pipeline (/crm) -->
                 <a href="#/" class="nav-link" data-route="dashboard" data-nav="crm">Today</a>
+                <a href="#/outreach" class="nav-link" data-route="outreach" data-nav="crm">📤 Today's outreach</a>
                 <a href="#/contacts" class="nav-link" data-route="contacts" data-nav="crm">All Contacts</a>
                 <a href="#/activity-log" class="nav-link" data-route="activity-log" data-nav="crm">📋 Activity Log</a>
+                <a href="#/settings" class="nav-link" data-route="settings" data-nav="crm">⚙️ Settings</a>
                 <a href="/crm/content/" class="nav-link" data-nav="crm" data-admin-only>Content →</a>
                 <!-- Content (/crm/content) -->
                 <a href="/crm/" class="nav-link" data-nav="content">← Pipeline</a>
@@ -297,6 +299,15 @@
                         <span id="csvRowCount" style="color: #64748b;"></span>
                     </div>
 
+                    <div id="csvListPicker" style="margin-bottom: 20px; padding: 16px; background: #f5f3ff; border-radius: 8px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Add everyone to list:</label>
+                        <select id="csvImportList"
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <!-- Filled from Settings → lists when the modal opens -->
+                        </select>
+                        <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">Your file has no List column, so pick one. The list also sets the side (Nymbl / Personal). Everyone lands in "To contact".</p>
+                    </div>
+
                     <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
                         <label style="font-weight: 600; display: block; margin-bottom: 8px;">Default Source for Imported
                             Contacts:</label>
@@ -497,6 +508,25 @@
                             <!-- Filled from CRM_CONFIG.SOURCES when the modal opens -->
                         </select>
                     </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>List</label>
+                        <select id="editList"><!-- Filled from Settings → lists --></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="editPriority">
+                            <option value="">—</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Org type</label>
+                    <input type="text" id="editOrgType" placeholder="e.g. Radiology group, FQHC, Clinic">
                 </div>
                 <div class="form-group">
                     <label>Intent Reason</label>

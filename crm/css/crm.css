@@ -400,6 +400,7 @@ body {
     border-radius: 999px;
 }
 
+.badge-stage-0 { background: #f1f5f9; color: #334155; border: 1px dashed #cbd5e1; } /* To contact */
 .badge-stage-1 { background: #dbeafe; color: #1d4ed8; }   /* Reached out */
 .badge-stage-2 { background: #e0f2fe; color: #0369a1; }   /* Replied */
 .badge-stage-3 { background: var(--color-primary-soft); color: var(--color-primary); } /* Graded */
@@ -910,6 +911,181 @@ body {
 
 .source-row strong {
     text-align: right;
+}
+
+/* Side / List filter */
+.scope-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.scope-sides {
+    display: inline-flex;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 3px;
+}
+
+.scope-pill {
+    border: 0;
+    background: transparent;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.scope-pill.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.scope-note {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+/* Today's outreach cards */
+.outreach-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.outreach-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.outreach-name a {
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.outreach-meta {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.outreach-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.outreach-notes {
+    margin: 12px 0 0;
+    font-size: 14px;
+    color: var(--color-text);
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    white-space: pre-wrap;
+}
+
+.outreach-draft {
+    margin-top: 12px;
+}
+
+.outreach-draft textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.outreach-draft-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.outreach-status {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.outreach-waiting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.outreach-waiting span:nth-child(2) {
+    flex: 1;
+    color: var(--color-text-muted);
+}
+
+.priority {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.priority-A { background: #dcfce7; color: #15803d; }
+.priority-B { background: #fef3c7; color: #b45309; }
+.priority-C { background: #f1f5f9; color: #64748b; }
+
+/* Settings */
+.settings-list textarea,
+.settings-list input,
+.settings-list select {
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.settings-list textarea {
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1.5;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+
+.settings-row input[name="name"] {
+    flex: 1;
+    min-width: 220px;
+}
+
+.settings-label {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
 }
 
 /* One-click "next stage" button */

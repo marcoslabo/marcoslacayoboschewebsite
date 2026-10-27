@@ -6,12 +6,15 @@
 //   POST { action: 'create', first_name, last_name, email, company_name, brief }
 //        → { brief: { id, share_id } }   (adds the person to the CRM too)
 //   POST { action: 'shared', id }        → marks a brief as Shared
+//   POST { action: 'ai', kind, args }    → runs one of Spark's prompts (lib/spark-prompts.js)
 //   GET  ?id=<brief uuid>                → the brief (result page after creating it)
 //   GET  ?share=<share_id>               → the brief, and counts a view (share links)
 // ==========================================================================
 
 import { rest } from '../lib/supabase-server.js';
 import { upsertLead, findOrCreateCompany } from '../lib/crm.js';
+import { callClaude } from '../lib/anthropic.js';
+import { SPARK_PROMPTS } from '../lib/spark-prompts.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE = /^[0-9a-f-]{36}$/i;
@@ -30,6 +33,7 @@ export default async function handler(req, res) {
             const { action } = req.body || {};
             if (action === 'create') return await createBrief(req, res);
             if (action === 'shared') return await markShared(req, res);
+            if (action === 'ai') return await runPrompt(req, res);
             return res.status(400).json({ error: 'Unknown action' });
         }
         return res.status(405).json({ error: 'Method not allowed' });
@@ -83,7 +87,8 @@ async function createBrief(req, res) {
         extra: {
             next_action: 'Call',
             next_action_date: tomorrow.toISOString().split('T')[0],
-            brevo_tag: 'spark-lead'
+            brevo_tag: 'spark-lead',
+            side: 'nymbl'
         }
     });
 
@@ -105,6 +110,24 @@ async function markShared(req, res) {
     if (!UUID_RE.test(String(id || ''))) return res.status(400).json({ error: 'Missing brief id' });
     await rest(`briefs?id=eq.${id}`, { method: 'PATCH', body: { status: 'Shared' } });
     return res.status(200).json({ ok: true });
+}
+
+// Public, so only Spark's own prompts, with capped inputs and output
+async function runPrompt(req, res) {
+    const { kind, args } = req.body || {};
+    const template = Object.prototype.hasOwnProperty.call(SPARK_PROMPTS, kind) ? SPARK_PROMPTS[kind] : null;
+    if (!template || !Array.isArray(args) || args.length > 4) {
+        return res.status(400).json({ error: 'Unknown prompt' });
+    }
+
+    const cleanArgs = args.map(a => (a === null || a === undefined ? '' : String(a).slice(0, 4000)));
+    const { text } = await callClaude({
+        model: 'claude-opus-4-7',
+        messages: [{ role: 'user', content: template(...cleanArgs) }],
+        max_tokens: 1024,
+        temperature: 0.7
+    });
+    return res.status(200).json({ text });
 }
 
 async function logActivity(briefId, activityType, details) {

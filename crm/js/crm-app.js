@@ -11,6 +11,36 @@ class CRMApp {
             event_tag: ''
         };
         this.searchTimeout = null;
+
+        // Side / List filter shared by Dashboard and Contacts (remembered per browser)
+        this.scope = this.loadPref('crm_scope', { side: '', list: '' });
+        this.lists = [];
+    }
+
+    loadPref(key, fallback) {
+        try { return { ...fallback, ...JSON.parse(localStorage.getItem(key) || '{}') }; } catch { return fallback; }
+    }
+
+    savePref(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ }
+    }
+
+    async loadLists() {
+        try {
+            this.lists = await window.crmDB.getLists();
+        } catch (e) {
+            console.warn('Could not load lists:', e.message);
+            this.lists = [];
+        }
+        // Forget a remembered list that no longer exists
+        if (this.scope.list && !this.lists.some(l => l.name === this.scope.list)) this.scope.list = '';
+        return this.lists;
+    }
+
+    async setScope(partial) {
+        this.scope = { ...this.scope, ...partial };
+        this.savePref('crm_scope', this.scope);
+        await this.refreshCurrentView();
     }
 
     // ==========================================================================
@@ -123,6 +153,16 @@ class CRMApp {
             await this.renderBlogEditor(params.id);
         });
 
+        // Today's outreach
+        window.crmRouter.on('/outreach', async () => {
+            await this.renderOutreach();
+        });
+
+        // Settings (lists and message templates)
+        window.crmRouter.on('/settings', async () => {
+            await this.renderSettings();
+        });
+
         // Activity Log
         window.crmRouter.on('/activity-log', async () => {
             await this.renderActivityLog();
@@ -176,12 +216,14 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
+            await this.loadLists();
+            const scope = this.scope;
             const [actions, highIntent, outreachToday, funnel, sources] = await Promise.all([
-                window.crmDB.getTodaysActions(),
+                window.crmDB.getTodaysActions(scope),
                 window.crmDB.getHighIntentContacts(),
-                window.crmDB.getTodayOutreachCount(),
-                window.crmDB.getWeeklyFunnel(),
-                window.crmDB.getLeadsBySourceThisWeek()
+                window.crmDB.getTodayOutreachCount(scope),
+                window.crmDB.getWeeklyFunnel(scope),
+                window.crmDB.getLeadsBySourceThisWeek(scope)
             ]);
             main.innerHTML = window.CRMComponents.renderDashboard({
                 overdue: actions.overdue,
@@ -189,7 +231,9 @@ class CRMApp {
                 highIntent,
                 outreachToday,
                 funnel,
-                sources
+                sources,
+                scope,
+                lists: this.lists
             });
         } catch (error) {
             main.innerHTML = window.CRMComponents.renderError(error.message);
@@ -232,6 +276,121 @@ class CRMApp {
         if (path === '/') return this.renderDashboard();
         if (path === '/contacts') return this.renderContacts();
         if (path.startsWith('/contact/')) return this.renderContactDetail(path.split('/')[2]);
+        if (path === '/outreach') return this.renderOutreach();
+        if (path === '/settings') return this.renderSettings();
+    }
+
+    // ==========================================================================
+    // Today's outreach
+    // ==========================================================================
+
+    async renderOutreach() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = window.CRMComponents.renderLoading();
+
+        try {
+            const lists = await this.loadLists();
+            const remembered = this.loadPref('crm_outreach', { list: '' }).list;
+            const currentList = lists.find(l => l.name === remembered) || lists[0] || null;
+
+            let queue = { ready: [], waiting: [] };
+            let sentToday = 0;
+            if (currentList) {
+                [queue, sentToday] = await Promise.all([
+                    window.crmDB.getOutreachQueue(currentList.name),
+                    window.crmDB.getTodayOutreachCount({ list: currentList.name })
+                ]);
+            }
+            this.outreach = { list: currentList, queue };
+            main.innerHTML = window.CRMComponents.renderOutreach({ lists, currentList, queue, sentToday });
+        } catch (error) {
+            main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    async setOutreachList(name) {
+        this.savePref('crm_outreach', { list: name });
+        await this.renderOutreach();
+    }
+
+    async draftOutreach(id) {
+        const contact = this.outreach?.queue.ready.find(c => c.id === id);
+        if (!contact || !this.outreach.list) return;
+
+        const box = document.getElementById(`draft-${id}`);
+        const text = document.getElementById(`draftText-${id}`);
+        const status = document.getElementById(`draftStatus-${id}`);
+        box.hidden = false;
+        text.value = '';
+        text.placeholder = 'Drafting…';
+        status.textContent = '';
+
+        try {
+            text.value = await window.crmDB.draftOutreachMessage(contact, this.outreach.list);
+        } catch (e) {
+            text.placeholder = 'Write your message here';
+            status.textContent = '⚠️ ' + e.message;
+        }
+    }
+
+    async copyOutreach(id, button) {
+        const text = document.getElementById(`draftText-${id}`).value;
+        try {
+            await navigator.clipboard.writeText(text);
+            button.textContent = 'Copied ✓';
+            setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        } catch {
+            document.getElementById(`draftText-${id}`).select();
+        }
+    }
+
+    async markOutreachSent(id) {
+        const status = document.getElementById(`draftStatus-${id}`);
+        const message = document.getElementById(`draftText-${id}`)?.value.trim();
+        try {
+            status.textContent = 'Saving…';
+            await window.crmDB.markOutreachSent(id, message);
+            // Re-render so same-company people move to "Waiting" and the count updates
+            await this.renderOutreach();
+        } catch (e) {
+            status.textContent = '⚠️ ' + e.message;
+        }
+    }
+
+    // ==========================================================================
+    // Settings
+    // ==========================================================================
+
+    async renderSettings() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = window.CRMComponents.renderLoading();
+        try {
+            main.innerHTML = window.CRMComponents.renderSettings(await this.loadLists());
+        } catch (error) {
+            main.innerHTML = window.CRMComponents.renderError(error.message);
+        }
+    }
+
+    async saveList(form) {
+        const data = Object.fromEntries(new FormData(form).entries());
+        const status = form.querySelector('.outreach-status');
+        try {
+            status.textContent = 'Saving…';
+            await window.crmDB.saveList(form.dataset.original || null, data);
+            await this.renderSettings();
+        } catch (e) {
+            status.textContent = '⚠️ ' + e.message;
+        }
+    }
+
+    async deleteList(name) {
+        if (!confirm(`Delete the list "${name}"? Its contacts stay in the CRM; their list is cleared.`)) return;
+        try {
+            await window.crmDB.deleteList(name);
+            await this.renderSettings();
+        } catch (e) {
+            alert('Could not delete: ' + e.message);
+        }
     }
 
     async toggleDashboardContentTodo(id, isDone) {
@@ -248,8 +407,10 @@ class CRMApp {
         main.innerHTML = window.CRMComponents.renderLoading();
 
         try {
-            const contacts = await window.crmDB.getContacts(this.filters);
-            main.innerHTML = window.CRMComponents.renderContactsList(contacts, this.filters);
+            await this.loadLists();
+            const filters = { ...this.filters, ...this.scope };
+            const contacts = await window.crmDB.getContacts(filters);
+            main.innerHTML = window.CRMComponents.renderContactsList(contacts, filters, this.lists);
             // Load event tag options into the filter dropdown
             await this.loadEventTagFilter();
         } catch (error) {
@@ -797,6 +958,12 @@ class CRMApp {
             document.getElementById('editSource').innerHTML = window.CRM_CONFIG.SOURCES
                 .map(src => `<option value="${src}">${src}</option>`).join('');
             document.getElementById('editStatus').value = contact.status || 'Reached out';
+            await this.loadLists();
+            document.getElementById('editList').innerHTML = '<option value="">No list</option>' + this.lists
+                .map(l => `<option value="${window.CRMComponents.esc(l.name)}">${window.CRMComponents.esc(l.name)}</option>`).join('');
+            document.getElementById('editList').value = contact.list || '';
+            document.getElementById('editPriority').value = contact.priority || '';
+            document.getElementById('editOrgType').value = contact.org_type || '';
             document.getElementById('editSource').value = contact.source || 'Other';
             document.getElementById('editIntentReason').value = contact.intent_reason || '';
             document.getElementById('editSourceLinks').value = contact.source_links || '';
@@ -847,8 +1014,14 @@ class CRMApp {
                 source_links: document.getElementById('editSourceLinks').value.trim() || null,
                 event_tag: document.getElementById('editEventTag').value.trim() || null,
                 problem: document.getElementById('editProblem').value.trim() || null,
+                list: document.getElementById('editList').value || null,
+                priority: document.getElementById('editPriority').value || null,
+                org_type: document.getElementById('editOrgType').value.trim() || null,
                 company_id: companyId
             };
+            // A list decides the side
+            const list = this.lists.find(l => l.name === updates.list);
+            if (list) updates.side = list.side;
 
             await window.crmDB.updateContact(id, updates);
             this.closeEditContact();
@@ -946,6 +1119,11 @@ class CRMApp {
     async openCsvImport() {
         document.getElementById('csvImportModal').style.display = 'flex';
         this.resetCsvImport();
+
+        // Lists for rows without a "List" column
+        await this.loadLists();
+        document.getElementById('csvImportList').innerHTML = '<option value="">No list</option>' + this.lists
+            .map(l => `<option value="${window.CRMComponents.esc(l.name)}">${window.CRMComponents.esc(l.name)}</option>`).join('');
 
         // Load existing event tags for the dropdown
         try {
@@ -1105,7 +1283,11 @@ class CRMApp {
             phone: ['phone', 'phonenumber', 'mobile', 'cell', 'telephone', 'mobilephone', 'workphone'],
             job_title: ['title', 'jobtitle', 'position', 'role', 'jobrole'],
             linkedin_url: ['linkedin', 'linkedinurl', 'linkedinprofile', 'linkedinlink'],
-            intent_reason: ['reason', 'intentreason', 'reasoning', 'notes', 'whyhighintent'],
+            intent_reason: ['reason', 'intentreason', 'reasoning', 'whyhighintent'],
+            notes: ['notes', 'note', 'comments'],
+            org_type: ['orgtype', 'organizationtype', 'organisationtype', 'companytype', 'type'],
+            priority: ['priority', 'tier'],
+            list: ['list', 'outreachlist'],
             source_links: ['formula', 'sourcelinks', 'links', 'sources', 'researchlinks'],
             location: ['location', 'city', 'address', 'region'],
             event_tag: ['leadsource', 'source', 'tag', 'campaign', 'event']  // Lead Source → Event Tag
@@ -1156,27 +1338,42 @@ class CRMApp {
             html += `<p style="text-align: center; color: #94a3b8; margin-top: 12px;">...and ${rows.length - 5} more contacts</p>`;
         }
 
-        // Check if email column is mapped
-        if (columnMap.email === undefined) {
+        // A row needs a name and (email or LinkedIn)
+        const hasName = columnMap.full_name !== undefined || columnMap.first_name !== undefined;
+        const hasContact = columnMap.email !== undefined || columnMap.linkedin_url !== undefined;
+        if (!hasName || !hasContact) {
             html = `<div style="padding: 20px; background: #fef2f2; border-radius: 8px; color: #dc2626; margin-bottom: 16px;">
-                <strong>⚠️ Could not find email column.</strong><br>
-                Make sure your CSV has a column named "Email" or "email".
+                <strong>⚠️ Missing columns.</strong><br>
+                The file needs a Name column, plus Email or LinkedIn.
             </div>` + html;
             document.getElementById('csvImportBtn').disabled = true;
         } else {
             document.getElementById('csvImportBtn').disabled = false;
         }
+        // The list picker only matters when the file has no List column
+        document.getElementById('csvListPicker').style.display = columnMap.list === undefined ? 'block' : 'none';
 
         document.getElementById('csvPreviewTable').innerHTML = html;
     }
 
     async importCsvContacts() {
-        if (!this.csvData || !this.csvData.columnMap.email === undefined) return;
+        if (!this.csvData) return;
 
         const { rows, columnMap } = this.csvData;
         const source = document.getElementById('csvImportSource').value;
         const eventTag = document.getElementById('csvEventTag').value.trim() || null;
         const skipBrevo = document.getElementById('csvSkipBrevo').checked;
+        const pickedList = document.getElementById('csvImportList').value || null;
+        const listByName = Object.fromEntries(this.lists.map(l => [l.name.toLowerCase(), l]));
+
+        // Dedupe against the CRM and within the file, by email or LinkedIn URL
+        let existingKeys;
+        try {
+            existingKeys = await window.crmDB.getExistingContactKeys();
+        } catch (e) {
+            alert('Could not check for duplicates: ' + e.message);
+            return;
+        }
 
         // Show progress
         document.getElementById('csvStep2').style.display = 'none';
@@ -1184,7 +1381,7 @@ class CRMApp {
 
         let imported = 0;
         let skipped = 0;
-        let skipReasons = { noEmail: 0, invalidEmail: 0, dbError: 0 };
+        let skipReasons = { noEmail: 0, invalidEmail: 0, dbError: 0, noName: 0, noContact: 0, duplicate: 0, unknownList: 0 };
 
         // Log column mapping for debugging
         console.log('📊 Column Mapping:', columnMap);
@@ -1224,33 +1421,57 @@ class CRMApp {
                 }
             }
 
-            // Skip only if we have NO identifying info (no name at all)
+            const cleanEmail = email && email.includes('@') ? email.trim().toLowerCase() : null;
+            const linkedin = (row[columnMap.linkedin_url] || '').trim() || null;
+
+            // Valid row: a name AND (email OR LinkedIn)
             if (!firstName && !lastName) {
-                skipped++;
-                if (i < 5) console.log(`Row ${i}: Skipped - no name data`);
+                skipped++; skipReasons.noName++;
                 continue;
             }
-
-            // Validate email format if provided
-            if (email && !email.includes('@')) {
-                skipReasons.invalidEmail++;
-                // Still import but without the invalid email
-                console.log(`Row ${i}: Invalid email "${email}" - importing without email`);
+            if (!cleanEmail && !linkedin) {
+                skipped++; skipReasons.noContact++;
+                continue;
             }
+            if (email && !cleanEmail) {
+                // Still import, without the invalid email
+                skipReasons.invalidEmail++;
+            }
+
+            const keys = [cleanEmail && 'e:' + cleanEmail, linkedin && 'l:' + window.crmDB.normalizeLinkedIn(linkedin)].filter(Boolean);
+            if (keys.some(k => existingKeys.has(k))) {
+                skipped++; skipReasons.duplicate++;
+                continue;
+            }
+            keys.forEach(k => existingKeys.add(k));
+
+            // "List" column wins; otherwise the list picked in the modal
+            const listCell = (row[columnMap.list] || '').trim();
+            const list = listCell ? listByName[listCell.toLowerCase()] : listByName[(pickedList || '').toLowerCase()];
+            if (listCell && !list) skipReasons.unknownList++;
+
+            const priority = (row[columnMap.priority] || '').trim().toUpperCase().charAt(0);
 
             const contact = {
                 first_name: firstName,
                 last_name: lastName,
-                email: (email && email.includes('@')) ? email : null,
+                email: cleanEmail,
                 phone: row[columnMap.phone] || null,
                 job_title: row[columnMap.job_title] || null,
-                linkedin_url: row[columnMap.linkedin_url] || null,
+                linkedin_url: linkedin,
                 intent_reason: row[columnMap.intent_reason] || null,
+                notes: row[columnMap.notes] || null,
+                org_type: row[columnMap.org_type] || null,
+                location: row[columnMap.location] || null,
+                priority: ['A', 'B', 'C'].includes(priority) ? priority : null,
+                list: list?.name || null,
+                side: list?.side || null,
                 source_links: row[columnMap.source_links] || null,
                 source: source,
                 event_tag: row[columnMap.event_tag] || eventTag,  // CSV column takes priority, then manual input
-                // Imported lists haven't been contacted yet
-                status: 'Nurture',
+                // Imported prospects wait in "To contact"
+                status: 'To contact',
+                // Rows with no email are skipped by the Brevo sync
                 brevo_tag: window.CRM_CONFIG.BREVO_TAGS[source] || 'other-lead'
             };
 
@@ -1291,11 +1512,14 @@ class CRMApp {
         let skipDetail = '';
         if (skipped > 0) {
             const parts = [];
-            if (skipReasons.noEmail > 0) parts.push(`${skipReasons.noEmail} missing email`);
-            if (skipReasons.invalidEmail > 0) parts.push(`${skipReasons.invalidEmail} invalid email`);
+            if (skipReasons.duplicate > 0) parts.push(`${skipReasons.duplicate} already in the CRM`);
+            if (skipReasons.noContact > 0) parts.push(`${skipReasons.noContact} with no email or LinkedIn`);
+            if (skipReasons.noName > 0) parts.push(`${skipReasons.noName} with no name`);
             if (skipReasons.dbError > 0) parts.push(`${skipReasons.dbError} DB errors`);
             skipDetail = ` (${skipped} skipped: ${parts.join(', ')})`;
         }
+        if (skipReasons.invalidEmail > 0) skipDetail += ` ${skipReasons.invalidEmail} had an invalid email and were imported without it.`;
+        if (skipReasons.unknownList > 0) skipDetail += ` ${skipReasons.unknownList} had a List that doesn't exist yet and were imported with no list (add it in Settings).`;
         document.getElementById('csvCompleteText').textContent = `Imported ${imported} contacts!${skipDetail}`;
     }
 

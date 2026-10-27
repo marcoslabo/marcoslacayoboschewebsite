@@ -16,33 +16,27 @@ class SparkAI {
     }
 
     /**
-     * Call Claude API via serverless proxy
+     * Run one of Spark's prompts on the server (/api/spark builds the prompt)
      */
-    async callClaude(prompt) {
-        const { CLAUDE_MODEL } = window.SPARK_CONFIG;
-
+    async callPrompt(kind, args) {
         try {
-            const response = await fetch('/api/claude', {
+            const response = await fetch('/api/spark', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: CLAUDE_MODEL,
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.7
-                })
+                body: JSON.stringify({ action: 'ai', kind, args })
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `API error: ${response.status}`);
             }
 
             const data = await response.json();
             return data.text.trim();
         } catch (error) {
-            console.error('Claude API call failed:', error);
+            console.error('Spark AI call failed:', error);
             throw error;
         }
     }
@@ -51,8 +45,7 @@ class SparkAI {
      * Clean up problem description
      */
     async cleanupProblem(problemRaw) {
-        const prompt = window.AI_PROMPTS.problemCleanup(problemRaw);
-        const result = await this.callClaude(prompt);
+        const result = await this.callPrompt('problemCleanup', [problemRaw]);
 
         if (!result) {
             // Demo fallback
@@ -66,10 +59,7 @@ class SparkAI {
      * Classify solution level
      */
     async classifyLevel(problemClean, currentProcess, hoursPerWeek, peopleInvolved) {
-        const prompt = window.AI_PROMPTS.levelClassification(
-            problemClean, currentProcess, hoursPerWeek, peopleInvolved
-        );
-        const result = await this.callClaude(prompt);
+        const result = await this.callPrompt('levelClassification', [problemClean, currentProcess, hoursPerWeek, peopleInvolved]);
 
         if (!result) {
             // Demo fallback
@@ -92,8 +82,7 @@ class SparkAI {
      * Generate suggested approach
      */
     async generateApproach(problemClean, solutionLevel, industry) {
-        const prompt = window.AI_PROMPTS.suggestedApproach(problemClean, solutionLevel, industry);
-        const result = await this.callClaude(prompt);
+        const result = await this.callPrompt('suggestedApproach', [problemClean, solutionLevel, industry]);
 
         if (!result) {
             // Demo fallback
@@ -107,8 +96,7 @@ class SparkAI {
      * Estimate ROI when numbers unknown
      */
     async estimateROI(problemClean, industry, companySize) {
-        const prompt = window.AI_PROMPTS.roiEstimation(problemClean, industry, companySize);
-        const result = await this.callClaude(prompt);
+        const result = await this.callPrompt('roiEstimation', [problemClean, industry, companySize]);
 
         if (!result) {
             // Demo fallback
@@ -130,8 +118,7 @@ class SparkAI {
      * Generate brief title
      */
     async generateTitle(problemClean) {
-        const prompt = window.AI_PROMPTS.generateTitle(problemClean);
-        const result = await this.callClaude(prompt);
+        const result = await this.callPrompt('generateTitle', [problemClean]);
 
         if (!result) {
             // Demo fallback

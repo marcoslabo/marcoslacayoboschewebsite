@@ -8,8 +8,38 @@ const CRMComponents = {
     // Dashboard
     // ==========================================================================
 
+    esc(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    },
+
+    /**
+     * Side (All / Nymbl / Personal) + List filter, shared by Dashboard and Contacts
+     */
+    renderScopeBar(scope = {}, lists = []) {
+        const sides = window.CRM_CONFIG.SIDES;
+        const shownLists = lists.filter(l => !scope.side || l.side === scope.side);
+        return `
+            <div class="scope-bar">
+                <div class="scope-sides">
+                    ${[['', 'All'], ...Object.entries(sides)].map(([value, label]) => `
+                        <button class="scope-pill ${(scope.side || '') === value ? 'active' : ''}"
+                            onclick="window.crmApp.setScope({ side: '${value}', list: '' })">${label}</button>
+                    `).join('')}
+                </div>
+                <select class="filter-select" onchange="window.crmApp.setScope({ list: this.value })">
+                    <option value="">All lists</option>
+                    ${shownLists.map(l => `
+                        <option value="${this.esc(l.name)}" ${scope.list === l.name ? 'selected' : ''}>${this.esc(l.name)}</option>
+                    `).join('')}
+                </select>
+            </div>
+        `;
+    },
+
     renderDashboard(data) {
-        const { overdue, dueToday, highIntent, outreachToday, funnel, sources } = data;
+        const { overdue, dueToday, highIntent, outreachToday, funnel, sources, scope, lists } = data;
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         return `
@@ -17,6 +47,8 @@ const CRMComponents = {
                 <h1 class="page-title">Today</h1>
                 <p class="page-subtitle">${today}</p>
             </div>
+
+            ${this.renderScopeBar(scope, lists)}
 
             ${this.renderOutreachToday(outreachToday)}
             ${this.renderFunnel(funnel)}
@@ -227,12 +259,14 @@ const CRMComponents = {
     // Contacts List
     // ==========================================================================
 
-    renderContactsList(contacts, filters = {}) {
+    renderContactsList(contacts, filters = {}, lists = []) {
         return `
             <div class="page-header">
                 <h1 class="page-title">All Contacts</h1>
                 <p class="page-subtitle">${contacts.length} contact${contacts.length !== 1 ? 's' : ''}</p>
             </div>
+
+            ${this.renderScopeBar(filters, lists)}
 
             <div class="filters">
                 <input type="text" class="search-input" placeholder="Search name or email..." 
@@ -541,9 +575,133 @@ const CRMComponents = {
         if (!status) return '';
         const stageIndex = window.CRM_CONFIG.PIPELINE.indexOf(status);
         const cls = stageIndex >= 0
-            ? `badge-stage-${stageIndex + 1}`
+            ? `badge-stage-${stageIndex}`
             : { 'Nurture': 'badge-nurture', 'Not a Fit': 'badge-notafit' }[status] || '';
         return `<span class="badge ${cls}">${status}</span>`;
+    },
+
+    // ==========================================================================
+    // Today's outreach
+    // ==========================================================================
+
+    renderOutreach({ lists, currentList, queue, sentToday }) {
+        const target = window.CRM_CONFIG.DAILY_OUTREACH_TARGET;
+        if (!lists.length) {
+            return `
+                <div class="page-header"><h1 class="page-title">Today's outreach</h1></div>
+                <div class="card"><p>No lists yet. Add one in <a href="#/settings">Settings</a>.</p></div>
+            `;
+        }
+
+        return `
+            <div class="page-header">
+                <h1 class="page-title">Today's outreach</h1>
+                <p class="page-subtitle">${sentToday} / ${target} sent today on this list · priority A first</p>
+            </div>
+
+            <div class="scope-bar">
+                <select class="filter-select" onchange="window.crmApp.setOutreachList(this.value)">
+                    ${lists.map(l => `
+                        <option value="${this.esc(l.name)}" ${currentList?.name === l.name ? 'selected' : ''}>
+                            ${this.esc(l.name)} (${window.CRM_CONFIG.SIDES[l.side]})
+                        </option>
+                    `).join('')}
+                </select>
+                <span class="scope-note">${queue.ready.length} ready${queue.waiting.length ? ` · ${queue.waiting.length} waiting` : ''}</span>
+            </div>
+
+            ${queue.ready.length ? queue.ready.map(c => this.renderOutreachCard(c)).join('') : `
+                <div class="card">
+                    <div class="empty-state" style="padding: 24px;">
+                        <div class="empty-state-icon">✨</div>
+                        <h3 class="empty-state-title">Nobody left to contact on this list</h3>
+                        <p>Import more people with 📥 Import, or pick another list.</p>
+                    </div>
+                </div>
+            `}
+
+            ${queue.waiting.length ? `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Waiting <span class="card-count">${queue.waiting.length}</span></h3>
+                    </div>
+                    ${queue.waiting.map(c => `
+                        <div class="outreach-waiting">
+                            <a href="#/contact/${c.id}">${this.esc(c.first_name)} ${this.esc(c.last_name)}</a>
+                            <span>${this.esc(c.companies?.name || '')}</span>
+                            <span class="badge badge-notafit">${c.waitReason}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        `;
+    },
+
+    renderOutreachCard(c) {
+        const name = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+        const notes = c.notes || c.intent_reason || '';
+        return `
+            <div class="card outreach-card" id="outreach-${c.id}">
+                <div class="outreach-card-head">
+                    <div>
+                        <div class="outreach-name">
+                            ${c.priority ? `<span class="priority priority-${c.priority}">${c.priority}</span>` : ''}
+                            <a href="#/contact/${c.id}">${this.esc(name)}</a>
+                        </div>
+                        <div class="outreach-meta">${this.esc([c.job_title, c.companies?.name, c.org_type, c.location].filter(Boolean).join(' · '))}</div>
+                    </div>
+                    <div class="outreach-actions">
+                        ${c.linkedin_url ? `<a class="btn btn-sm btn-secondary" href="${this.esc(c.linkedin_url)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>` : ''}
+                        <button class="btn btn-sm btn-primary" onclick="window.crmApp.draftOutreach('${c.id}')">✍️ Draft message</button>
+                    </div>
+                </div>
+                ${notes ? `<p class="outreach-notes">${this.esc(notes)}</p>` : ''}
+                <div class="outreach-draft" id="draft-${c.id}" hidden>
+                    <textarea rows="5" id="draftText-${c.id}"></textarea>
+                    <div class="outreach-draft-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="window.crmApp.copyOutreach('${c.id}', this)">Copy</button>
+                        <button class="btn btn-sm btn-success" onclick="window.crmApp.markOutreachSent('${c.id}')">✓ Mark sent</button>
+                        <span class="outreach-status" id="draftStatus-${c.id}"></span>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ==========================================================================
+    // Settings: lists and their message templates
+    // ==========================================================================
+
+    renderSettings(lists) {
+        const sideOptions = selected => Object.entries(window.CRM_CONFIG.SIDES)
+            .map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`).join('');
+
+        const listForm = (l, i) => `
+            <form class="card settings-list" data-original="${this.esc(l?.name || '')}" onsubmit="event.preventDefault(); window.crmApp.saveList(this)">
+                <div class="settings-row">
+                    <input name="name" value="${this.esc(l?.name || '')}" placeholder="List name, e.g. Personal – New tool" required>
+                    <select name="side">${sideOptions(l?.side || 'personal')}</select>
+                    <input name="sort" type="number" value="${l?.sort ?? 100}" title="Order" style="width: 80px;">
+                </div>
+                <label class="settings-label">Message template (used by ✍️ Draft message)</label>
+                <textarea name="template" rows="7" placeholder="Tone, length, the pain, the proof, the offer, the closing question…">${this.esc(l?.template || '')}</textarea>
+                <div class="settings-row">
+                    <button type="submit" class="btn btn-sm btn-primary">${l ? 'Save' : '+ Add list'}</button>
+                    ${l ? `<button type="button" class="btn btn-sm btn-ghost" onclick="window.crmApp.deleteList(this.closest('form').dataset.original)">Delete</button>` : ''}
+                    <span class="outreach-status"></span>
+                </div>
+            </form>
+        `;
+
+        return `
+            <div class="page-header">
+                <h1 class="page-title">Settings</h1>
+                <p class="page-subtitle">Lists and their message templates. Renaming a list keeps its contacts; deleting one keeps the contacts and clears their list.</p>
+            </div>
+            ${lists.map(listForm).join('')}
+            <h3 style="margin: 24px 0 12px;">New list</h3>
+            ${listForm(null)}
+        `;
     },
 
     // ==========================================================================

@@ -19,6 +19,7 @@ const CRM_CONFIG = {
 
     // Pipeline stages, in order (stored in contacts.status)
     PIPELINE: [
+        'To contact',
         'Reached out',
         'Replied',
         'Graded',
@@ -30,6 +31,7 @@ const CRM_CONFIG = {
 
     // Every stage a contact can be in: the pipeline plus the two side stages
     STATUSES: [
+        'To contact',
         'Reached out',
         'Replied',
         'Graded',
@@ -42,7 +44,14 @@ const CRM_CONFIG = {
     ],
 
     // Daily outreach target shown on the dashboard
-    DAILY_OUTREACH_TARGET: 100,
+    DAILY_OUTREACH_TARGET: 50,
+
+    // Outreach workspace
+    SIDES: { nymbl: 'Nymbl', personal: 'Personal' },
+    OUTREACH_DAILY_MAX: 50,        // cards shown per list
+    OUTREACH_ORG_COOLDOWN_DAYS: 14, // skip a company someone there heard from recently
+    OUTREACH_FOLLOWUP_DAYS: 3,      // next action after "Mark sent"
+
 
     // Next Actions
     NEXT_ACTIONS: [

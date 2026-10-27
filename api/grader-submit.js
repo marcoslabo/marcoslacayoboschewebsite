@@ -85,7 +85,8 @@ export default async function handler(req, res) {
                 extra: {
                     next_action: 'Call',
                     next_action_date: tomorrow.toISOString().split('T')[0],
-                    brevo_tag: 'diagnose-lead'
+                    brevo_tag: 'diagnose-lead',
+                    side: 'nymbl'
                 }
             });
             contactId = lead.id;
