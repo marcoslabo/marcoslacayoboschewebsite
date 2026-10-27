@@ -118,7 +118,7 @@ const CRMComponents = {
                 <div class="person-actions">
                     ${c.linkedin_url ? `<a class="btn btn-sm btn-secondary" href="${this.esc(c.linkedin_url)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>` : ''}
                     ${c.email ? `<a class="btn btn-sm btn-secondary" href="mailto:${this.esc(c.email)}">Email ↗</a>` : ''}
-                    <button class="btn btn-sm btn-secondary" onclick="window.crmApp.draft('${c.id}')">✍️ Draft</button>
+                    <button class="btn btn-sm btn-secondary" onclick="window.crmApp.draft('${c.id}')">${kind === 'reply' || c.status === 'Replied' ? '✍️ Draft reply' : `✍️ Draft message ${step}`}</button>
                     <button class="btn btn-sm btn-secondary" onclick="window.crmApp.copyDraft('${c.id}', this)">Copy</button>
                     <span class="person-actions-gap"></span>
                     ${this.renderActionButtons(c, kind)}

@@ -311,12 +311,19 @@ class CRMApp {
         if (!box) return;
         if (!this.lists.length) await this.loadLists();
 
+        // A reply only makes sense if we know what they said
+        let theirReply = null;
+        if (contact.status === 'Replied') {
+            theirReply = prompt(`Paste what ${contact.first_name || 'they'} wrote, so the reply fits (or leave empty):`);
+            if (theirReply === null) return;
+        }
+
         box.hidden = false;
         text.value = '';
         text.placeholder = 'Drafting…';
         status.textContent = '';
         try {
-            text.value = await window.crmDB.draftMessage(contact, this.listFor(contact));
+            text.value = await window.crmDB.draftMessage(contact, this.listFor(contact), theirReply);
         } catch (e) {
             text.placeholder = 'Write your message here';
             status.textContent = '⚠️ ' + e.message;
