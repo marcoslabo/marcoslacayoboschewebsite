@@ -18,7 +18,12 @@
   "redirects": [
     {
       "source": "/downloads/healthcare-value-stream-map.pdf",
-      "destination": "/downloads/ai-employee-map.pdf",
+      "destination": "/downloads/ai-agent-map.pdf",
+      "permanent": false
+    },
+    {
+      "source": "/downloads/ai-employee-map.pdf",
+      "destination": "/downloads/ai-agent-map.pdf",
       "permanent": false
     }
   ]
