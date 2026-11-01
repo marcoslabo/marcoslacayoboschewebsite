@@ -14,5 +14,12 @@
       "source": "/crm/content/",
       "destination": "/crm/index.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/downloads/healthcare-value-stream-map.pdf",
+      "destination": "/downloads/ai-employee-map.pdf",
+      "permanent": false
+    }
   ]
 }
