@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Grader | Marcos Lacayo Bosche · VytalMed × Nymbl</title>
-    <meta name="description" content="Type your practice name. We'll show you what workflows we'd fix first. 5 seconds, no quiz.">
+    <title>Find your AI agent | Marcos Lacayo Bosche</title>
+    <meta name="description" content="Tell me one workflow your team does every day. AI suggests which HIPAA-safe AI agent fits, and I build the first one free.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
     <style>
         :root {
             --bg-gradient: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #faf5ff 100%);
@@ -222,6 +222,39 @@
             text-align: center;
         }
 
+        /* Agent finder form */
+        .finder {
+            background: white;
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 12px 32px rgba(109,40,217,0.10);
+        }
+        .finder label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+        .finder textarea, .finder select, .finder input {
+            width: 100%; font: inherit; font-size: 16px; color: var(--ink);
+            border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; background: #fff;
+        }
+        .finder textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+        .finder textarea:focus, .finder select:focus, .finder input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+        .finder-hint { font-size: 12px; color: var(--muted); margin: 8px 0 18px; }
+        .finder-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+        .finder-row label { font-weight: 600; color: var(--muted); font-size: 13px; }
+        .finder-btn {
+            width: 100%; padding: 16px; border: none; border-radius: 14px; background: var(--ink); color: white;
+            font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+        }
+        .finder-btn:hover { background: #1e293b; }
+        @media (max-width: 560px) { .finder-row { grid-template-columns: 1fr; } }
+
+        /* Plan */
+        .plan-label { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .plan-name { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 12px; }
+        .plan-does { font-size: 16px; line-height: 1.55; color: #334155; margin: 0 0 20px; }
+        .plan-facts { display: grid; gap: 10px; margin-bottom: 26px; }
+        .plan-fact { background: #f8fafc; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+        .plan-fact strong { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+        .privacy-note { background: #fffbeb; color: #92400e; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px; }
+
         .error { background: #fef2f2; color: #991b1b; padding: 14px 16px; border-radius: 12px; font-size: 14px; margin-top: 14px; }
 
         .footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 56px; }
@@ -237,82 +270,84 @@
 <body>
 
 <div class="page">
-    <!-- Stage 0: Hero + Search -->
+    <!-- Stage 0: Hero + workflow form -->
     <div id="stage-search" class="stage active">
         <div class="hero">
-            <div class="eyebrow">🩺 Workflow Grader by Marcos Lacayo Bosche</div>
-            <h1>What would we fix first<br>in your workflow?</h1>
-            <p class="sub">Type your practice name. 5 seconds. See the 3 workflows we'd fix first, then get a free working demo of #1.</p>
+            <div class="eyebrow">🤖 AI agent finder by Marcos Lacayo Bosche</div>
+            <h1>Tell me your workflow.<br>I'll tell you which AI agent fits.</h1>
+            <p class="sub">One agent, one job, a person approves the work. I build the first one free.</p>
         </div>
 
-        <div class="search-wrap">
-            <input id="search" class="search-input" type="text" placeholder="e.g., Radiology Imaging Associates" autocomplete="off" />
-            <div id="typeahead" class="typeahead"></div>
-        </div>
+        <form id="finder" class="finder">
+            <label for="workflow">What does your team do every day that eats time?</label>
+            <textarea id="workflow" required maxlength="2000"
+                placeholder="e.g., Our front desk calls every patient to confirm appointments and re-books no-shows by hand."></textarea>
+            <p class="finder-hint">Please don't include patient names or any patient information.</p>
 
-        <div class="fallback-link">
-            Can't find your practice? <a href="#" id="fallback-link">Pick your specialty instead →</a>
-        </div>
-
-        <!-- Hidden fallback specialty picker -->
-        <div id="fallback-picker" style="display:none; max-width: 420px; margin: 24px auto 0;">
-            <select id="fallback-specialty" class="search-input" style="border-radius:14px; background:white; box-shadow:0 1px 3px rgba(15,23,42,0.06);">
-                <option value="">— Pick your specialty —</option>
-                <option>Radiology</option>
-                <option>Cardiology</option>
-                <option>Orthopedics</option>
-                <option>Oncology</option>
-                <option>Primary Care</option>
-                <option>Multi-specialty Group</option>
-                <option>Hospital System</option>
-                <option>Imaging Center</option>
-                <option>Other</option>
-            </select>
-            <button id="fallback-go" style="margin-top:10px; width:100%; padding:14px; border:none; border-radius:14px; background:var(--ink); color:white; font-weight:700; cursor:pointer;">Score by specialty →</button>
-        </div>
-    </div>
-
-    <!-- Stage 1: Analyzing -->
-    <div id="stage-loading" class="stage">
-        <div class="spinner-wrap">
-            <div class="spinner"></div>
-            <div class="spinner-text">Reading your practice's data...</div>
-        </div>
-    </div>
-
-    <!-- Stage 2: Result -->
-    <div id="stage-result" class="stage">
-        <a href="#" id="reset-link" style="display:inline-block; margin-bottom:14px; font-size:13px; color:var(--accent); text-decoration:none; font-weight:600;">← Try another practice</a>
-        <div class="result-card">
-            <div id="practice-block" class="practice-block"></div>
-
-            <div class="score-display">
-                <div id="score-number" class="score-number">—</div>
-                <div class="score-meta">
-                    <div id="score-grade" class="score-grade">—</div>
-                    <div id="score-headline" class="score-headline">—</div>
+            <div class="finder-row">
+                <div>
+                    <label for="role">Your role (optional)</label>
+                    <select id="role">
+                        <option value="">Choose…</option>
+                        <option>Physician</option>
+                        <option>Practice owner</option>
+                        <option>Operations leader</option>
+                        <option>Front desk / billing</option>
+                        <option>IT</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="specialty">Specialty (optional)</label>
+                    <input id="specialty" type="text" maxlength="80" placeholder="e.g., Radiology, Primary care">
                 </div>
             </div>
 
-            <!-- Full report visible to everyone -->
-            <div class="patterns-title">Axis Breakdown</div>
-            <div id="breakdown" class="breakdown"></div>
+            <button type="submit" class="finder-btn">Find my AI agent →</button>
+            <div id="finder-error" class="error" style="display:none;"></div>
+        </form>
+    </div>
 
-            <div class="patterns-title">Top 3 Workflows We'd Fix First</div>
-            <div id="patterns"></div>
+    <!-- Stage 1: Thinking -->
+    <div id="stage-loading" class="stage">
+        <div class="spinner-wrap">
+            <div class="spinner"></div>
+            <div class="spinner-text">Matching your workflow to an AI agent...</div>
+        </div>
+    </div>
 
-            <!-- One action: book the free demo. The email form is optional and secondary. -->
+    <!-- Stage 2: The plan -->
+    <div id="stage-result" class="stage">
+        <a href="#" id="reset-link" style="display:inline-block; margin-bottom:14px; font-size:13px; color:var(--accent); text-decoration:none; font-weight:600;">← Try another workflow</a>
+        <div class="result-card">
+            <div id="privacy-note" class="privacy-note" style="display:none;"></div>
+
+            <div class="plan-label">Your best first agent</div>
+            <h2 id="plan-name" class="plan-name">—</h2>
+            <p id="plan-does" class="plan-does"></p>
+
+            <div class="plan-facts">
+                <div class="plan-fact"><strong>Connects to</strong><span id="plan-connects"></span></div>
+                <div class="plan-fact"><strong>A person approves</strong><span id="plan-human"></span></div>
+            </div>
+
+            <div id="alternatives-wrap">
+                <div class="patterns-title">Also worth a look</div>
+                <div id="alternatives"></div>
+            </div>
+
+            <!-- One action: book the build. The email form is optional and secondary. -->
             <div id="gate" class="gate">
-                <h3>Want to see #1 actually working?</h3>
-                <p>I'll build a free working demo of this workflow for your group. You can test it and share it with your team. No connection to your systems needed. I build 4 free demos a month.</p>
+                <h3>Want this agent working for your team?</h3>
+                <p>I'll build a working version around your real workflow, free. No connection to your systems and no patient data. Built under a BAA when it goes live. I build 4 free AI agents a month.</p>
                 <div class="cta-row" style="margin: 0 0 22px;">
-                    <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer" class="btn-primary" id="demo-btn">Book my free demo →</a>
+                    <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer" class="btn-primary" id="demo-btn">Book a 30-min call to build it free</a>
                 </div>
-                <p style="margin: 0 0 10px; font-size: 13px;">Not ready yet? Get these results by email.</p>
+                <p style="margin: 0 0 10px; font-size: 13px;">Not ready yet? Get this plan by email.</p>
                 <form class="gate-form" id="gate-form">
                     <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
                     <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
-                    <button type="submit" class="gate-btn" id="gate-btn">Email me these results</button>
+                    <button type="submit" class="gate-btn" id="gate-btn">Email me this plan</button>
                     <label class="gate-optin">
                         <input type="checkbox" id="gate-newsletter" />
                         Also send me Watch the Work, one useful idea a week for healthcare leaders building with AI
@@ -332,154 +367,64 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
-let currentPractice = null;
-let currentFallback = null;
 let currentAnalysis = null;
+let currentRole = '';
+let currentSpecialty = '';
 
-// ---------- Stage 0: typeahead ----------
-let searchTimer = null;
-$('search').addEventListener('input', (e) => {
-    const q = e.target.value.trim();
-    clearTimeout(searchTimer);
-    if (q.length < 3) {
-        $('typeahead').style.display = 'none';
-        return;
-    }
-    searchTimer = setTimeout(() => doSearch(q), 220);
-});
-
-async function doSearch(q) {
-    try {
-        const r = await fetch(`/api/npi-search?q=${encodeURIComponent(q)}`);
-        const { results } = await r.json();
-        renderTypeahead(results || []);
-    } catch (e) {
-        console.error(e);
-        $('typeahead').style.display = 'none';
-    }
-}
-
-function renderTypeahead(results) {
-    const ta = $('typeahead');
-    if (!results.length) {
-        ta.innerHTML = `<div class="ta-item" style="cursor:default; color:#94a3b8;">No matches. Try the specialty picker below.</div>`;
-        ta.style.display = 'block';
-        return;
-    }
-    ta.innerHTML = results.map((r, i) => `
-        <div class="ta-item" data-i="${i}">
-            <div class="ta-name">${escapeHtml(r.name)}</div>
-            <div class="ta-meta">${escapeHtml([r.specialty, r.city && r.state ? r.city + ', ' + r.state : null].filter(Boolean).join(' · ') || 'NPI ' + r.npi)}</div>
-        </div>
-    `).join('');
-    ta.style.display = 'block';
-    ta.querySelectorAll('.ta-item').forEach((el, idx) => {
-        el.addEventListener('click', () => pickPractice(results[idx]));
-    });
-}
-
-function pickPractice(practice) {
-    currentPractice = practice;
-    currentFallback = null;
-    $('typeahead').style.display = 'none';
-    runAnalysis();
-}
-
-// ---------- Fallback path ----------
-$('fallback-link').addEventListener('click', (e) => {
+// ---------- Stage 0 → 1: find an agent ----------
+$('finder').addEventListener('submit', async (e) => {
     e.preventDefault();
-    $('fallback-picker').style.display = $('fallback-picker').style.display === 'none' ? 'block' : 'none';
-});
-$('fallback-go').addEventListener('click', () => {
-    const v = $('fallback-specialty').value;
-    if (!v) { alert('Pick a specialty'); return; }
-    currentFallback = v;
-    currentPractice = null;
-    runAnalysis();
-});
+    const workflow = $('workflow').value.trim();
+    if (workflow.length < 15) {
+        $('finder-error').textContent = 'Tell me a bit more: one or two sentences about the task.';
+        $('finder-error').style.display = 'block';
+        return;
+    }
+    $('finder-error').style.display = 'none';
+    currentRole = $('role').value;
+    currentSpecialty = $('specialty').value.trim();
 
-// ---------- Stage 1: analyze ----------
-async function runAnalysis() {
     setStage('loading');
     try {
-        const body = currentPractice ? { practice: currentPractice } : { fallback_specialty: currentFallback };
         const r = await fetch('/api/grader-analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            body: JSON.stringify({ workflow, role: currentRole, specialty: currentSpecialty })
         });
-        if (!r.ok) {
-            const err = await r.json().catch(() => ({}));
-            throw new Error(err.error || 'Analysis failed');
-        }
-        currentAnalysis = await r.json();
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.error || 'Something went wrong');
+        currentAnalysis = body;
         renderResult();
-    } catch (e) {
-        alert('Something went wrong: ' + e.message);
+    } catch (err) {
         setStage('search');
+        $('finder-error').textContent = err.message;
+        $('finder-error').style.display = 'block';
     }
-}
+});
 
-// ---------- Stage 2: result ----------
+// ---------- Stage 2: the plan ----------
 function renderResult() {
     const a = currentAnalysis;
-    const p = currentPractice;
 
-    // Practice block
-    if (p) {
-        const initial = (p.name || '?').trim()[0].toUpperCase();
-        $('practice-block').innerHTML = `
-            <div class="practice-avatar">${escapeHtml(initial)}</div>
-            <div>
-                <div class="practice-name">${escapeHtml(p.name)}</div>
-                <div class="practice-meta">${escapeHtml([p.specialty, p.city && p.state ? p.city + ', ' + p.state : null, 'NPI ' + p.npi].filter(Boolean).join(' · '))}</div>
-            </div>
-        `;
-    } else {
-        $('practice-block').innerHTML = `
-            <div class="practice-avatar">${escapeHtml((currentFallback || '?')[0])}</div>
-            <div>
-                <div class="practice-name">${escapeHtml(currentFallback)} (specialty benchmark)</div>
-                <div class="practice-meta">No NPI match — scored against typical patterns for this specialty</div>
-            </div>
-        `;
-    }
+    $('privacy-note').textContent = a.privacy_note || '';
+    $('privacy-note').style.display = a.privacy_note ? 'block' : 'none';
 
-    // Score
-    $('score-number').textContent = a.risk_score;
-    $('score-grade').textContent = `Grade ${a.risk_grade}`;
-    $('score-headline').textContent = a.headline || '';
+    $('plan-name').textContent = a.best.name;
+    $('plan-does').textContent = a.best.does || '';
+    $('plan-connects').textContent = a.best.connects_to || '';
+    $('plan-human').textContent = a.best.human_step || '';
 
-    // Breakdown
-    const axes = [
-        ['automation', 'Automation Gap'],
-        ['integration', 'Integration Burden'],
-        ['vendor_lock_in', 'Vendor Lock-in'],
-        ['ai_readiness', 'AI Readiness'],
-        ['patient_impact', 'Patient Impact']
-    ];
-    $('breakdown').innerHTML = axes.map(([k, label]) => {
-        const v = (a.risk_breakdown || {})[k] ?? 0;
-        return `
-            <div class="axis">
-                <div class="axis-label">${label}</div>
-                <div class="axis-bar"><div class="axis-fill" style="width:${(v/20)*100}%"></div></div>
-                <div class="axis-score">${v} / 20</div>
-            </div>
-        `;
-    }).join('');
-
-    // Patterns
-    $('patterns').innerHTML = (a.top_patterns || []).map(p => `
+    const alts = a.alternatives || [];
+    $('alternatives-wrap').style.display = alts.length ? 'block' : 'none';
+    $('alternatives').innerHTML = alts.map(alt => `
         <div class="pattern">
-            <div class="pattern-title">${escapeHtml(p.title)}</div>
-            <div class="pattern-why">${escapeHtml(p.why_it_applies)}</div>
-            <div class="pattern-fix">→ ${escapeHtml(p.fix)}</div>
+            <div class="pattern-title">${escapeHtml(alt.name)}</div>
+            <div class="pattern-why">${escapeHtml(alt.why)}</div>
         </div>
     `).join('');
 
     setStage('result');
-    track('grade_complete', { grade: a.risk_grade, matched: p ? 'npi' : 'specialty' });
+    track('grade_complete', { agent: a.best.name });
 }
 
 // ---------- Tracking (Vercel Analytics custom events) ----------
@@ -509,15 +454,16 @@ $('gate-form').addEventListener('submit', async (e) => {
         $('gate-error').style.display = 'block';
         return;
     }
-    btn.disabled = true; btn.textContent = 'Unlocking…';
+    btn.disabled = true; btn.textContent = 'Sending…';
     $('gate-error').style.display = 'none';
     try {
         const r = await fetch('/api/grader-submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            // The plan only; the workflow text itself isn't sent or stored
             body: JSON.stringify({
-                practice: currentPractice,
-                fallback_specialty: currentFallback,
+                role: currentRole,
+                specialty: currentSpecialty,
                 analysis: currentAnalysis,
                 first_name,
                 email,
@@ -537,20 +483,15 @@ $('gate-form').addEventListener('submit', async (e) => {
     } catch (e) {
         $('gate-error').textContent = e.message;
         $('gate-error').style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Email me these results';
+        btn.disabled = false; btn.textContent = 'Email me this plan';
     }
 });
 
 // ---------- Reset ----------
 $('reset-link').addEventListener('click', (e) => {
     e.preventDefault();
-    currentPractice = null;
-    currentFallback = null;
     currentAnalysis = null;
-    $('search').value = '';
-    $('fallback-specialty').value = '';
-    $('typeahead').style.display = 'none';
-    $('fallback-picker').style.display = 'none';
+    $('workflow').value = '';
     // Reset gate UI in case they had submitted
     $('gate-form').style.display = 'flex';
     $('gate-success').style.display = 'none';
@@ -559,9 +500,9 @@ $('reset-link').addEventListener('click', (e) => {
     $('gate-email').value = '';
     $('gate-newsletter').checked = false;
     $('gate-btn').disabled = false;
-    $('gate-btn').textContent = 'Email me these results';
+    $('gate-btn').textContent = 'Email me this plan';
     setStage('search');
-    setTimeout(() => $('search').focus(), 50);
+    setTimeout(() => $('workflow').focus(), 50);
 });
 
 // ---------- Helpers ----------

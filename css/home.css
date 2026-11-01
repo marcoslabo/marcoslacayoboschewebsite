@@ -270,6 +270,53 @@
 }
 
 /* --------------------------------------------------------------------------
+   AI agents we build
+   -------------------------------------------------------------------------- */
+
+.home-agent-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.home-agent-list li {
+  position: relative;
+  padding-left: var(--space-4);
+  color: var(--color-text-muted);
+  line-height: var(--leading-snug);
+}
+
+.home-agent-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  opacity: 0.6;
+}
+
+.home-agents-note {
+  margin: var(--space-8) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Big projects (Nymbl) */
+.home-about-inner .home-title {
+  margin-bottom: var(--space-4);
+}
+
+.home-about-link {
+  display: inline-block;
+  margin-top: var(--space-6);
+}
+
+/* --------------------------------------------------------------------------
    Case study + testimonial
    -------------------------------------------------------------------------- */
 
@@ -619,6 +666,11 @@
   .home-cards {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-6);
+  }
+
+  /* Six departments: 3 columns from 768px up */
+  #agents .home-problem-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .home-built-grid {
