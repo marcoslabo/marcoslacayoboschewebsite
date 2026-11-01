@@ -199,7 +199,7 @@ async function sendReportEmail({ to, firstName, plan }) {
 
     <div style="background:#0f172a; padding:24px; border-radius:14px; text-align:center; margin:32px 0 8px;">
         <div style="color:white; font-size:16px; font-weight:700; margin-bottom:6px;">Want this agent working for your team?</div>
-        <div style="color:#94a3b8; font-size:13px; margin-bottom:16px;">I'll build a working version around your real workflow, free. No connection to your systems and no patient data. Built under a BAA when it goes live. I build 4 free AI agents a month.</div>
+        <div style="color:#94a3b8; font-size:13px; margin-bottom:16px;">I'll build a working version around your real workflow, free. No connection to your systems and no patient data. Built under a BAA when it goes live.</div>
         <a href="${esc(calendlyUrl)}" style="display:inline-block; padding:14px 24px; background:white; color:#0f172a; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px;">Book a 30-min call to build it free</a>
     </div>
 
