@@ -45,6 +45,8 @@ export default async function handler(req, res) {
         best: {
             name: clip(analysis.best.name, 120),
             does: clip(analysis.best.does, 600),
+            steps: (Array.isArray(analysis.best.steps) ? analysis.best.steps : [])
+                .map(step => clip(step, 160)).filter(Boolean).slice(0, 4),
             connects_to: clip(analysis.best.connects_to, 300),
             human_step: clip(analysis.best.human_step, 300)
         },
@@ -184,6 +186,12 @@ async function sendReportEmail({ to, firstName, plan }) {
         <div style="font-size:22px; font-weight:800; color:#0f172a; margin-bottom:8px;">${esc(plan.best.name)}</div>
         <div style="font-size:15px; color:#334155; line-height:1.55;">${esc(plan.best.does)}</div>
     </div>
+
+    ${plan.best.steps.length ? `
+    <h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:6px 0 10px;">How it would work</h2>
+    <ol style="margin:0 0 18px; padding-left:20px; font-size:14px; color:#0f172a; line-height:1.6;">
+        ${plan.best.steps.map(step => `<li style="margin-bottom:4px;">${esc(step)}</li>`).join('')}
+    </ol>` : ''}
 
     ${fact('Connects to', plan.best.connects_to)}
     ${fact('A person approves', plan.best.human_step)}

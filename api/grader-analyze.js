@@ -1,7 +1,7 @@
 // ==========================================================================
 // POST /api/grader-analyze  (the AI agent finder; URL kept for analytics)
 // Body: { workflow, role?, specialty? }
-// Returns: { best: { name, does, connects_to, human_step },
+// Returns: { best: { name, does, steps[], connects_to, human_step },
 //            alternatives: [{ name, why }], privacy_note? }
 //
 // The workflow text is only sent to Claude to answer; it is never logged
@@ -49,6 +49,7 @@ Imaging and specialty
 HOW TO ANSWER
 - Read the workflow the team described. Pick the catalog agent that takes the most repetitive, rule-based work off them. If nothing in the catalog fits, propose a custom agent with a short, plain name.
 - "does": 2 to 3 short sentences on what the agent would do day to day, in their words.
+- "steps": 3 or 4 short steps (one line each, under 15 words) showing how it would work in THEIR workflow, in order, e.g. "Every morning it pulls tomorrow's schedule from your EMR." End with the step where their team approves or reviews.
 - "connects_to": the systems in general terms only, e.g. "your EMR's scheduling", "your phone system", "your clearinghouse". Never name a vendor unless the person did.
 - "human_step": the one point where a person on their team reviews or approves the agent's work.
 - "alternatives": 1 or 2 runner-up agents, each with one sentence on why it could also help.
@@ -58,7 +59,7 @@ HOW TO ANSWER
 
 RETURN ONLY JSON (no markdown, no prose):
 {
-  "best": { "name": "...", "does": "...", "connects_to": "...", "human_step": "..." },
+  "best": { "name": "...", "does": "...", "steps": ["...", "...", "..."], "connects_to": "...", "human_step": "..." },
   "alternatives": [ { "name": "...", "why": "..." } ],
   "privacy_note": "only when needed, otherwise omit"
 }`;
@@ -100,6 +101,8 @@ export default async function handler(req, res) {
             best: {
                 name: str(parsed.best.name, 120),
                 does: str(parsed.best.does, 600),
+                steps: (Array.isArray(parsed.best.steps) ? parsed.best.steps : [])
+                    .map(step => str(step, 160)).filter(Boolean).slice(0, 4),
                 connects_to: str(parsed.best.connects_to, 300),
                 human_step: str(parsed.best.human_step, 300)
             },

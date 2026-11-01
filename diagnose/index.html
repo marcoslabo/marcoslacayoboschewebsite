@@ -251,6 +251,17 @@
         .plan-name { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 12px; }
         .plan-does { font-size: 16px; line-height: 1.55; color: #334155; margin: 0 0 20px; }
         .plan-facts { display: grid; gap: 10px; margin-bottom: 26px; }
+        /* How it would work: visible to everyone */
+        .plan-steps-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; }
+        .plan-steps { list-style: none; counter-reset: step; padding: 0; margin: 0 0 24px; display: grid; gap: 8px; }
+        .plan-steps li {
+            counter-increment: step; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start;
+            background: #faf5ff; border-radius: 12px; padding: 10px 14px; font-size: 15px; line-height: 1.45; color: var(--ink);
+        }
+        .plan-steps li::before {
+            content: counter(step); width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white;
+            font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+        }
         .plan-fact { background: #f8fafc; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
         .plan-fact strong { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
         /* The rest of the plan unlocks with an email */
@@ -337,6 +348,11 @@
             <div class="plan-label">Your best first agent</div>
             <h2 id="plan-name" class="plan-name">—</h2>
             <p id="plan-does" class="plan-does"></p>
+
+            <div id="plan-steps-wrap" style="display:none;">
+                <div class="plan-steps-title">How it would work</div>
+                <ol id="plan-steps" class="plan-steps"></ol>
+            </div>
 
             <!-- Connects to, who approves and the alternatives unlock with an email -->
             <div id="locked-area" class="locked-area is-locked">
@@ -434,6 +450,9 @@ function renderResult() {
 
     $('plan-name').textContent = a.best.name;
     $('plan-does').textContent = a.best.does || '';
+    const steps = a.best.steps || [];
+    $('plan-steps-wrap').style.display = steps.length ? 'block' : 'none';
+    $('plan-steps').innerHTML = steps.map(step => `<li><span>${escapeHtml(step)}</span></li>`).join('');
     $('plan-connects').textContent = a.best.connects_to || '';
     $('plan-human').textContent = a.best.human_step || '';
 
