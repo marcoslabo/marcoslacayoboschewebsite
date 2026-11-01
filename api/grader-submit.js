@@ -190,6 +190,13 @@ async function sendReportEmail({ to, firstName, plan }) {
 
     ${alternativesHtml ? `<h2 style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin:26px 0 10px;">Also worth a look</h2>${alternativesHtml}` : ''}
 
+    <div style="border:1px solid #e2e8f0; padding:18px 20px; border-radius:14px; margin:28px 0 0;">
+        <div style="font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Your free workbook</div>
+        <div style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:4px;">The AI Employee Map</div>
+        <div style="font-size:13px; color:#475569; line-height:1.5; margin-bottom:10px;">Map one workflow, find the step an AI agent can take, what it connects to and who approves it. 4 pages, 30 minutes.</div>
+        <a href="https://www.marcoslacayobosche.com/downloads/ai-employee-map.pdf" style="font-size:14px; font-weight:700; color:#6d28d9; text-decoration:none;">Download the workbook →</a>
+    </div>
+
     <div style="background:#0f172a; padding:24px; border-radius:14px; text-align:center; margin:32px 0 8px;">
         <div style="color:white; font-size:16px; font-weight:700; margin-bottom:6px;">Want this agent working for your team?</div>
         <div style="color:#94a3b8; font-size:13px; margin-bottom:16px;">I'll build a working version around your real workflow, free. No connection to your systems and no patient data. Built under a BAA when it goes live. I build 4 free AI agents a month.</div>

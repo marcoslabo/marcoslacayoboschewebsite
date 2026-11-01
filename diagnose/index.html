@@ -253,6 +253,18 @@
         .plan-facts { display: grid; gap: 10px; margin-bottom: 26px; }
         .plan-fact { background: #f8fafc; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
         .plan-fact strong { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+        /* The rest of the plan unlocks with an email */
+        .locked-area { position: relative; }
+        .locked-area.is-locked { min-height: 340px; }
+        .locked-area.is-locked .locked-content {
+            filter: blur(7px); opacity: 0.55; user-select: none; pointer-events: none;
+        }
+        .unlock { display: none; }
+        .locked-area.is-locked .unlock {
+            display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; padding: 8px;
+        }
+        .unlock .gate { margin: 0; width: 100%; max-width: 520px; box-shadow: 0 18px 40px rgba(76,29,149,0.25); }
+        .unlocked-note { background: #ecfdf5; color: #047857; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; margin-bottom: 16px; }
         .privacy-note { background: #fffbeb; color: #92400e; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px; }
 
         .error { background: #fef2f2; color: #991b1b; padding: 14px 16px; border-radius: 12px; font-size: 14px; margin-top: 14px; }
@@ -326,35 +338,46 @@
             <h2 id="plan-name" class="plan-name">—</h2>
             <p id="plan-does" class="plan-does"></p>
 
-            <div class="plan-facts">
-                <div class="plan-fact"><strong>Connects to</strong><span id="plan-connects"></span></div>
-                <div class="plan-fact"><strong>A person approves</strong><span id="plan-human"></span></div>
+            <!-- Connects to, who approves and the alternatives unlock with an email -->
+            <div id="locked-area" class="locked-area is-locked">
+                <div id="gate-success" class="unlocked-note" style="display:none;">✓ Here's your full plan. It's also on its way to your inbox, with The AI Employee Map workbook.</div>
+                <div class="locked-content" aria-hidden="true">
+                    <div class="plan-facts">
+                        <div class="plan-fact"><strong>Connects to</strong><span id="plan-connects"></span></div>
+                        <div class="plan-fact"><strong>A person approves</strong><span id="plan-human"></span></div>
+                    </div>
+
+                    <div id="alternatives-wrap">
+                        <div class="patterns-title">Also worth a look</div>
+                        <div id="alternatives"></div>
+                    </div>
+                </div>
+
+                <div class="unlock">
+                    <div class="gate">
+                        <h3>See your full plan</h3>
+                        <p>What it connects to, who on your team approves the work, and <span id="alt-count">2 more agents</span> that fit. I'll also email it to you with The AI Employee Map workbook.</p>
+                        <form class="gate-form" id="gate-form">
+                            <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
+                            <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
+                            <button type="submit" class="gate-btn" id="gate-btn">Show my full plan →</button>
+                            <label class="gate-optin">
+                                <input type="checkbox" id="gate-newsletter" />
+                                Also send me Watch the Work, one useful idea a week for healthcare leaders building with AI
+                            </label>
+                        </form>
+                        <div id="gate-error" class="error" style="display:none; margin-top:14px; background:rgba(255,255,255,0.15); color:white;"></div>
+                    </div>
+                </div>
             </div>
 
-            <div id="alternatives-wrap">
-                <div class="patterns-title">Also worth a look</div>
-                <div id="alternatives"></div>
-            </div>
-
-            <!-- One action: book the build. The email form is optional and secondary. -->
+            <!-- One action: book the build -->
             <div id="gate" class="gate">
                 <h3>Want this agent working for your team?</h3>
                 <p>I'll build a working version around your real workflow, free. No connection to your systems and no patient data. Built under a BAA when it goes live. I build 4 free AI agents a month.</p>
-                <div class="cta-row" style="margin: 0 0 22px;">
+                <div class="cta-row" style="margin: 0;">
                     <a href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer" class="btn-primary" id="demo-btn">Book a 30-min call to build it free</a>
                 </div>
-                <p style="margin: 0 0 10px; font-size: 13px;">Not ready yet? Get this plan by email.</p>
-                <form class="gate-form" id="gate-form">
-                    <input type="text" id="gate-first-name" class="gate-input" placeholder="First name" required style="max-width: 160px;" />
-                    <input type="email" id="gate-email" class="gate-input" placeholder="you@yourpractice.com" required />
-                    <button type="submit" class="gate-btn" id="gate-btn">Email me this plan</button>
-                    <label class="gate-optin">
-                        <input type="checkbox" id="gate-newsletter" />
-                        Also send me Watch the Work, one useful idea a week for healthcare leaders building with AI
-                    </label>
-                </form>
-                <div id="gate-error" class="error" style="display:none; margin-top:14px; background:rgba(255,255,255,0.15); color:white;"></div>
-                <div id="gate-success" style="display:none; margin-top:14px; color:white; font-weight:600;">✓ Sent. Check your inbox.</div>
             </div>
         </div>
     </div>
@@ -416,6 +439,7 @@ function renderResult() {
 
     const alts = a.alternatives || [];
     $('alternatives-wrap').style.display = alts.length ? 'block' : 'none';
+    $('alt-count').textContent = alts.length === 1 ? '1 more agent' : alts.length ? `${alts.length} more agents` : 'other agents';
     $('alternatives').innerHTML = alts.map(alt => `
         <div class="pattern">
             <div class="pattern-title">${escapeHtml(alt.name)}</div>
@@ -476,14 +500,14 @@ $('gate-form').addEventListener('submit', async (e) => {
             const err = await r.json().catch(() => ({}));
             throw new Error(err.error || 'Submission failed');
         }
-        // Hide the form, show inline success
-        $('gate-form').style.display = 'none';
+        // Unlock the rest of the plan
+        $('locked-area').classList.remove('is-locked');
         $('gate-success').style.display = 'block';
         track('email_results');
     } catch (e) {
         $('gate-error').textContent = e.message;
         $('gate-error').style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Email me this plan';
+        btn.disabled = false; btn.textContent = 'Show my full plan →';
     }
 });
 
@@ -492,15 +516,15 @@ $('reset-link').addEventListener('click', (e) => {
     e.preventDefault();
     currentAnalysis = null;
     $('workflow').value = '';
-    // Reset gate UI in case they had submitted
-    $('gate-form').style.display = 'flex';
+    // Lock the next plan again
+    $('locked-area').classList.add('is-locked');
     $('gate-success').style.display = 'none';
     $('gate-error').style.display = 'none';
     $('gate-first-name').value = '';
     $('gate-email').value = '';
     $('gate-newsletter').checked = false;
     $('gate-btn').disabled = false;
-    $('gate-btn').textContent = 'Email me this plan';
+    $('gate-btn').textContent = 'Show my full plan →';
     setStage('search');
     setTimeout(() => $('workflow').focus(), 50);
 });
