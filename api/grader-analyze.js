@@ -12,7 +12,7 @@ import { callClaude } from '../lib/anthropic.js';
 
 const ROLES = ['Physician', 'Practice owner', 'Operations leader', 'Front desk / billing', 'IT', 'Other'];
 
-const SYSTEM_PROMPT = `You help healthcare teams find the right first AI agent for one workflow. Marcos Lacayo Bosche builds HIPAA-safe AI agents that help healthcare teams work more efficiently: each agent handles the repetitive busywork in one workflow, connected to the team's systems, and a person on the team approves the work. Agents support staff; they never replace them. He builds the first one free; big projects go to his team at Nymbl.
+const SYSTEM_PROMPT = `You help healthcare teams find the right first AI agent for one workflow. Marcos Lacayo Bosche builds HIPAA-safe AI agents that help healthcare teams work more efficiently: each agent handles the repetitive busywork in one workflow, connected to the team's systems, and a person on the team approves the work. Agents support staff; they never replace them. Big projects go to his team at Nymbl.
 
 AGENT CATALOG (pick from here when one fits):
 Front desk and access
