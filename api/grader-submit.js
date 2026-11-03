@@ -125,7 +125,22 @@ export default async function handler(req, res) {
             emailError = err.message.slice(0, 200);
         }
 
-        // 4. Newsletter opt-in (only when they ticked the box)
+        // 4. Tell Marcos right away, to reach out while it's fresh
+        try {
+            await sendLeadAlert({
+                email: cleanEmail,
+                firstName: first_name.trim(),
+                role: clip(role, 40),
+                specialty,
+                plan,
+                contactId,
+                emailSent
+            });
+        } catch (err) {
+            console.warn('Lead alert failed (non-fatal):', err.message);
+        }
+
+        // 5. Newsletter opt-in (only when they ticked the box)
         let subscribed = false;
         if (newsletter === true) {
             try {
@@ -214,6 +229,51 @@ async function sendReportEmail({ to, firstName, plan }) {
     <p style="font-size:12px; color:#94a3b8; text-align:center; margin-top:32px;">Marcos Lacayo Bosche · Built with VytalMed × Nymbl<br>You got this email because you used the AI agent finder at marcoslacayobosche.com/diagnose.</p>
 </div></body></html>`;
 
+    await brevoSend(brevoKey, {
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to, name: firstName }],
+        subject: `Your AI agent plan: ${plan.best.name}`,
+        htmlContent
+    });
+}
+
+// ============================================================================
+// Lead alert to Marcos. Reply-To is the lead, so hitting Reply writes to them.
+// ============================================================================
+async function sendLeadAlert({ email, firstName, role, specialty, plan, contactId, emailSent }) {
+    const brevoKey = process.env.BREVO_API_KEY;
+    if (!brevoKey) throw new Error('BREVO_API_KEY not configured');
+
+    const alertTo = process.env.LEAD_ALERT_EMAIL || 'marcoslacayobosche@gmail.com';
+    const senderEmail = process.env.GRADER_SENDER_EMAIL || 'marcos@marcoslacayobosche.com';
+    const crmUrl = `https://www.marcoslacayobosche.com/crm${contactId ? `#/contact/${contactId}` : ''}`;
+    const who = [role, specialty].filter(Boolean).join(' · ');
+    const row = (label, value) => value ? `<tr><td style="padding:4px 12px 4px 0; color:#64748b; font-size:13px; vertical-align:top;">${esc(label)}</td><td style="padding:4px 0; font-size:14px; color:#0f172a;">${value}</td></tr>` : '';
+
+    await brevoSend(brevoKey, {
+        sender: { name: 'Agent finder', email: senderEmail },
+        to: [{ email: alertTo }],
+        replyTo: { email, name: firstName },
+        subject: `🔥 New lead: ${firstName}${who ? ` (${who})` : ''} → ${plan.best.name}`,
+        htmlContent: `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; max-width:560px;">
+    <h2 style="font-size:18px; color:#0f172a; margin:0 0 12px;">${esc(firstName)} just used the AI agent finder</h2>
+    <table style="border-collapse:collapse; margin-bottom:16px;">
+        ${row('Email', `<a href="mailto:${esc(email)}">${esc(email)}</a>`)}
+        ${row('Role', esc(role))}
+        ${row('Specialty', esc(specialty))}
+        ${row('Best agent', `<strong>${esc(plan.best.name)}</strong>`)}
+        ${row('What it does', esc(plan.best.does))}
+        ${row('Connects to', esc(plan.best.connects_to))}
+        ${row('Plan email', emailSent ? 'Sent ✓' : '<strong style="color:#b91c1c;">Failed: send it yourself</strong>')}
+    </table>
+    <a href="${esc(crmUrl)}" style="display:inline-block; padding:10px 18px; background:#0f172a; color:white; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open in CRM</a>
+    <p style="font-size:13px; color:#64748b; margin-top:16px;">Hit Reply to write to ${esc(firstName)} directly. They're pinned at the top of Today in the CRM until you reach out.</p>
+</div>`
+    });
+}
+
+async function brevoSend(brevoKey, payload) {
     const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -221,12 +281,7 @@ async function sendReportEmail({ to, firstName, plan }) {
             'api-key': brevoKey,
             'accept': 'application/json'
         },
-        body: JSON.stringify({
-            sender: { name: senderName, email: senderEmail },
-            to: [{ email: to, name: firstName }],
-            subject: `Your AI agent plan: ${plan.best.name}`,
-            htmlContent
-        })
+        body: JSON.stringify(payload)
     });
 
     if (!resp.ok) {

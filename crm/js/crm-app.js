@@ -250,7 +250,7 @@ class CRMApp {
             const newTarget = this.getTarget();
             const today = await window.crmDB.getToday(this.scope, newTarget);
             this.people = Object.fromEntries(
-                [...today.replies, ...today.followUps, ...today.queue.ready].map(c => [c.id, c])
+                [...today.finder, ...today.replies, ...today.followUps, ...today.queue.ready].map(c => [c.id, c])
             );
             this.touches = await window.crmDB.getTouches(Object.keys(this.people));
             main.innerHTML = window.CRMComponents.renderToday({ ...today, scope: this.scope, lists: this.lists, newTarget });

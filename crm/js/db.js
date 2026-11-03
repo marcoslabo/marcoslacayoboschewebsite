@@ -754,7 +754,18 @@ class CRMDB {
             .select('*, companies(id, name)')
             .eq('owner', owner), scope);
 
-        const [repliesRes, followRes, sentRes, allSentRes] = await Promise.all([
+        const [finderRes, repliesRes, followRes, sentRes, allSentRes] = await Promise.all([
+            // Used the agent finder and nobody has reached out yet. Both sides,
+            // outside the daily target: inbound leads go first.
+            this.supabase
+                .from('contacts')
+                .select('*, companies(id, name)')
+                .eq('owner', owner)
+                .eq('status', 'To contact')
+                .not('graded_at', 'is', null)
+                .or(`next_action_date.is.null,next_action_date.lte.${today}`)
+                .order('graded_at', { ascending: false })
+                .limit(50),
             // They answered (or graded): answer these first
             base().eq('status', 'Replied')
                 .or(`next_action_date.is.null,next_action_date.lte.${today}`)
@@ -785,15 +796,19 @@ class CRMDB {
                 .gte('created_at', this.todayStart())
                 .limit(1000)
         ]);
-        for (const r of [repliesRes, followRes, sentRes, allSentRes]) if (r.error) throw r.error;
+        for (const r of [finderRes, repliesRes, followRes, sentRes, allSentRes]) if (r.error) throw r.error;
+        const finder = finderRes.data || [];
 
         const sent = sentRes.data || [];
         const newSentToday = (allSentRes.data || []).length;
         const channelCounts = { linkedin: 0, email: 0, call: 0 };
         for (const a of sent) channelCounts[a.activity_type === 'outreach' ? 'linkedin' : a.activity_type]++;
         const queue = await this.getOutreachQueue(scope, Math.max(0, newTarget - newSentToday));
+        const finderIds = new Set(finder.map(c => c.id));
+        queue.ready = queue.ready.filter(c => !finderIds.has(c.id));
 
         return {
+            finder,
             replies: repliesRes.data || [],
             followUps: followRes.data || [],
             queue,

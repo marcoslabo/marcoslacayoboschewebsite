@@ -33,7 +33,7 @@ const CRMComponents = {
     // Today: one list, top to bottom
     // ==========================================================================
 
-    renderToday({ scope, lists, replies, followUps, queue, channelCounts, newSentToday, newTarget }) {
+    renderToday({ scope, lists, finder = [], replies, followUps, queue, channelCounts, newSentToday, newTarget }) {
         const sideLabel = window.CRM_CONFIG.SIDES[scope.side];
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
@@ -60,10 +60,11 @@ const CRMComponents = {
                 </div>
             </div>
 
+            ${finder.length ? this.renderTodaySection('🔥 Used the agent finder: contact today', 'They described a workflow and got their plan. Reach out while it\'s fresh.', finder, 'new') : ''}
             ${replies.length ? this.renderTodaySection('They replied: answer these first', 'People you marked with 💬 They replied.', replies, 'reply') : ''}
             ${followUps.length ? this.renderTodaySection('Follow-ups due', 'You reached out before. Time for the next touch, on any channel.', followUps, 'follow') : ''}
             ${this.renderTodaySection('New people', queue.total
-                ? `Not contacted yet. 🩺 Grader leads first, then priority A. ${queue.ready.length ? 'Pick LinkedIn, email or call, then log what you did.' : 'You hit today\'s target 🎉'}`
+                ? `Not contacted yet. Priority A first. ${queue.ready.length ? 'Pick LinkedIn, email or call, then log what you did.' : 'You hit today\'s target 🎉'}`
                 : 'Nobody waiting. Import a list with ⋯ → Import.', queue.ready, 'new')}
 
             ${queue.waiting.length ? `
@@ -112,7 +113,7 @@ const CRMComponents = {
                         <div class="person-name">
                             ${c.priority ? `<span class="priority priority-${c.priority}">${c.priority}</span>` : ''}
                             <a href="#/contact/${c.id}">${this.esc(name)}</a>
-                            ${c.graded_at ? '<span class="badge badge-graded" title="Finished the Workflow Grader">🩺 Graded</span>' : ''}
+                            ${c.graded_at ? '<span class="badge badge-graded" title="Used the AI agent finder">🤖 Finder</span>' : ''}
                         </div>
                         <div class="person-meta">${this.esc([person ? c.job_title : 'Main line (no named contact yet)', person ? c.companies?.name : null, c.list].filter(Boolean).join(' · '))}</div>
                     </div>
@@ -257,7 +258,7 @@ const CRMComponents = {
                             <a class="board-card" href="#/contact/${c.id}" draggable="true"
                                 ondragstart="event.dataTransfer.setData('text/plain', '${c.id}')">
                                 <strong>${this.esc(`${c.first_name || ''} ${c.last_name || ''}`.trim())}</strong>
-                                ${c.graded_at ? ' 🩺' : ''}
+                                ${c.graded_at ? ' 🤖' : ''}
                                 <span>${this.esc(c.companies?.name || '')}</span>
                             </a>
                         `).join('')}
@@ -542,7 +543,7 @@ const CRMComponents = {
                         <h4 class="contact-section-title">Stage</h4>
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             ${this.renderStatusBadge(contact.status)}
-                            ${contact.graded_at ? '<span class="badge badge-graded">🩺 Graded</span>' : ''}
+                            ${contact.graded_at ? '<span class="badge badge-graded">🤖 Finder</span>' : ''}
                             ${contact.status === 'Won' || contact.status === 'Not a Fit' ? '' : this.renderActionButtons(contact, contact.status === 'Replied' ? 'reply' : '')}
                         </div>
                         ${contact.status === 'Won' || contact.status === 'Not a Fit' ? '' : `<div style="margin-top: 12px;">${this.renderChannels(contact, contact.status === 'Replied' ? 'reply' : '')}</div>`}
