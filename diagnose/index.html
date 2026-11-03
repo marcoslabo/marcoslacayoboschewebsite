@@ -519,8 +519,12 @@ $('gate-form').addEventListener('submit', async (e) => {
             const err = await r.json().catch(() => ({}));
             throw new Error(err.error || 'Submission failed');
         }
+        const result = await r.json().catch(() => ({}));
         // Unlock the rest of the plan
         $('locked-area').classList.remove('is-locked');
+        if (result.email_sent === false) {
+            $('gate-success').textContent = "✓ Here's your full plan. The email didn't go through, so save this page; I'll follow up personally.";
+        }
         $('gate-success').style.display = 'block';
         track('email_results');
     } catch (e) {
