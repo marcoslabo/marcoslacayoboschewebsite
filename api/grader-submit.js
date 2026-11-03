@@ -112,6 +112,7 @@ export default async function handler(req, res) {
         // 3. Send the results email via Brevo. Awaited because Vercel serverless
         //    will kill non-awaited async work when the function returns.
         let emailSent = false;
+        let emailError = null;
         try {
             await sendReportEmail({
                 to: cleanEmail,
@@ -121,6 +122,7 @@ export default async function handler(req, res) {
             emailSent = true;
         } catch (err) {
             console.warn('Report email send failed (non-fatal):', err.message);
+            emailError = err.message.slice(0, 200);
         }
 
         // 4. Newsletter opt-in (only when they ticked the box)
@@ -138,6 +140,7 @@ export default async function handler(req, res) {
             id: inserted[0]?.id,
             contact_id: contactId,
             email_sent: emailSent,
+            email_error: emailError,
             subscribed,
             ok: true
         });
@@ -152,10 +155,7 @@ export default async function handler(req, res) {
 // ============================================================================
 async function sendReportEmail({ to, firstName, plan }) {
     const brevoKey = process.env.BREVO_API_KEY;
-    if (!brevoKey) {
-        console.warn('BREVO_API_KEY not configured — skipping email send');
-        return;
-    }
+    if (!brevoKey) throw new Error('BREVO_API_KEY not configured');
 
     const senderEmail = process.env.GRADER_SENDER_EMAIL || 'marcos@marcoslacayobosche.com';
     const senderName  = process.env.GRADER_SENDER_NAME  || 'Marcos Lacayo Bosche';
