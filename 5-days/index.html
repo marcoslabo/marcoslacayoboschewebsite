@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build your first AI agent in 5 days | Marcos Lacayo Bosche</title>
+  <meta name="description"
+    content="A free 5-day email course for healthcare teams. One move a day: pick the workflow, map it, put a number on it, design the agent, and test it in Claude.">
+  <link rel="canonical" href="https://www.marcoslacayobosche.com/5-days">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.marcoslacayobosche.com/5-days">
+  <meta property="og:title" content="Build your first AI agent in 5 days, one move a day">
+  <meta property="og:description"
+    content="A free 5-day email course for healthcare teams. By day 5 you have an agent plan, instructions to test it in Claude, and a one-page spec.">
+  <meta property="og:image" content="https://www.marcoslacayobosche.com/images/og-image.png?v=6">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234334dc'/><text x='50' y='66' font-family='Arial,sans-serif' font-size='44' font-weight='700' fill='white' text-anchor='middle'>MB</text></svg>">
+
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+
+  <style>
+    [hidden] { display: none !important; }
+    body { background: var(--color-secondary); }
+    .course { max-width: 640px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 28px; }
+    .course-brand { font-weight: 700; color: var(--color-text-primary); text-decoration: none; font-size: 15px; }
+    .course-hero { display: grid; gap: 14px; }
+    .course-kicker { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--color-accent); }
+    .course-hero h1 { font-size: clamp(34px, 8vw, 52px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 800; margin: 0; text-wrap: balance; }
+    .course-hero h1 em { color: var(--color-accent); font-style: italic; }
+    .course-hero p { font-size: 18px; color: var(--color-text-secondary); margin: 0; }
+
+    .optin { background: var(--color-card); border: 1px solid var(--color-border); border-radius: 18px; padding: 24px; display: grid; gap: 14px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
+    .optin h2 { font-size: 22px; margin: 0; }
+    .optin p { margin: 0; color: var(--color-text-muted); font-size: 15px; }
+    .optin form { display: grid; gap: 10px; }
+    .optin input[type="text"], .optin input[type="email"] {
+      font: inherit; font-size: 16px; padding: 14px 16px; border: 1px solid var(--color-border); border-radius: 12px; width: 100%;
+      background: var(--color-primary); color: var(--color-text-primary);
+    }
+    .optin input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+    .optin button { width: 100%; justify-content: center; font-size: 16px; padding: 15px 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .optin .fine { font-size: 13px; }
+    .optin .error { color: #b91c1c; font-size: 14px; }
+    .optin .done { display: grid; gap: 8px; }
+    .optin .done strong { font-size: 18px; }
+    .hp { position: absolute; left: -9999px; }
+
+    .course-why p { margin: 0 0 12px; font-size: 17px; color: var(--color-text-secondary); line-height: 1.6; }
+    .days-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    .days-list li { display: grid; grid-template-columns: 64px 1fr; gap: 14px; background: var(--color-card); border: 1px solid var(--color-border); border-radius: 14px; padding: 16px; }
+    .days-list .d { font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--color-accent); padding-top: 3px; }
+    .days-list h3 { font-size: 17px; margin: 0 0 4px; }
+    .days-list p { margin: 0; color: var(--color-text-muted); font-size: 15px; line-height: 1.5; }
+
+    .course-me { display: grid; grid-template-columns: 72px 1fr; gap: 16px; align-items: center; }
+    .course-me img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; object-position: center 20%; }
+    .course-me p { margin: 0; font-size: 15px; color: var(--color-text-secondary); line-height: 1.55; }
+    .course-foot { font-size: 13px; color: var(--color-text-muted); text-align: center; }
+    .course-foot a { color: var(--color-text-muted); }
+  </style>
+</head>
+
+<body>
+  <main class="course">
+    <a href="/" class="course-brand">Marcos Lacayo Bosche</a>
+
+    <header class="course-hero">
+      <span class="course-kicker">Free 5-day email course</span>
+      <h1>Build your first AI agent in 5 days, <em>one move a day.</em></h1>
+      <p>For healthcare teams. One short email a day. By day 5 you have an agent plan for the workflow your team hates, instructions to test it in Claude, and a one-page spec.</p>
+    </header>
+
+    <section class="optin" id="optin" aria-labelledby="optin-h">
+      <h2 id="optin-h">Start the free 5-day course</h2>
+      <p>Drop your email and Day 1 lands right now.</p>
+      <form id="course-form" novalidate>
+        <label class="hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <input type="text" id="first_name" name="first_name" placeholder="First name" autocomplete="given-name" aria-label="First name">
+        <input type="email" id="email" name="email" placeholder="Your work email" autocomplete="email" required aria-label="Email">
+        <button type="submit" class="btn btn-primary" id="course-btn">Send me Day 1</button>
+        <p class="error" id="course-error" role="alert" hidden></p>
+        <p class="fine">You'll also get my newsletter, Watch the Work. Unsubscribe anytime. No patient information, ever.</p>
+      </form>
+      <div class="done" id="course-done" hidden>
+        <strong>✓ Day 1 is on its way.</strong>
+        <p>Check your inbox in the next few minutes (and Promotions or Spam, just in case). Days 2 to 5 arrive one a day.</p>
+      </div>
+    </section>
+
+    <section class="course-why">
+      <p>You already know AI could take hours of busywork off your team. The hard part is knowing where to start, and doing it without risking patient data.</p>
+      <p>So the course is one move per email, in order. Each day opens a free workbench where you do the move for your own practice, with Claude helping.</p>
+    </section>
+
+    <ol class="days-list">
+      <li><span class="d">Day 1</span><div><h3>Pick the workflow</h3><p>Rate the tasks your team hates and find the one that makes the best first agent. Hint: it's the boring one.</p></div></li>
+      <li><span class="d">Day 2</span><div><h3>Map it</h3><p>Turn "how it really works" into clear steps: who, what, which system, how many minutes, and where it breaks.</p></div></li>
+      <li><span class="d">Day 3</span><div><h3>Put a number on it</h3><p>Hours a week, cost a year, and how much time an agent could give back. The number that gets a project approved.</p></div></li>
+      <li><span class="d">Day 4</span><div><h3>Design the agent</h3><p>Decide what the agent does, what a person approves, and what stays human. Plus the tools it needs and a HIPAA checklist.</p></div></li>
+      <li><span class="d">Day 5</span><div><h3>Build it</h3><p>Get the agent instructions to test in Claude with made-up examples, and a one-page spec for whoever builds the real thing.</p></div></li>
+    </ol>
+
+    <section class="course-me">
+      <img src="/images/marcos-bosche.jpg" alt="Marcos Lacayo Bosche" width="72" height="72">
+      <p><strong>Marcos Lacayo Bosche.</strong> Former firefighter and paramedic, now building healthcare AI. The AI I lead has read 250,000+ medical faxes and turned them into orders in the EMR. TEDx speaker, Forbes Central America Top 30.</p>
+    </section>
+
+    <a href="#optin" class="btn btn-primary" style="justify-self:center">Start the course: it's free</a>
+
+    <p class="course-foot">© 2026 Marcos Lacayo Bosche · <a href="/">marcoslacayobosche.com</a></p>
+  </main>
+
+  <script>
+    const form = document.getElementById('course-form');
+    const btn = document.getElementById('course-btn');
+    const errEl = document.getElementById('course-error');
+    const params = new URLSearchParams(location.search);
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = form.email.value.trim();
+      errEl.hidden = true;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errEl.textContent = 'Please enter a valid email.'; errEl.hidden = false; form.email.focus(); return;
+      }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            first_name: form.first_name.value.trim(),
+            website: form.website.value,
+            source: '5-day-course',
+            course: 'first-agent',
+            utm_source: params.get('utm_source'),
+            utm_campaign: params.get('utm_campaign')
+          })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+        form.hidden = true;
+        document.getElementById('course-done').hidden = false;
+        if (data.course && data.course.enrolled === false) {
+          document.querySelector('#course-done strong').textContent = "✓ You're already in the course.";
+          document.querySelector('#course-done p').textContent = 'Your daily emails keep coming. Check your inbox for Day 1 if you missed it.';
+        }
+        window.va('event', { name: 'course_signup' });
+      } catch (err) {
+        errEl.textContent = err.message; errEl.hidden = false;
+        btn.disabled = false; btn.textContent = 'Send me Day 1';
+      }
+    });
+  </script>
+</body>
+
+</html>
