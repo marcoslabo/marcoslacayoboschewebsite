@@ -5,23 +5,30 @@
    - UTM pass-through to /diagnose and Calendly, plus click events for Vercel Analytics
    ========================================================================== */
 
-// Cards with no link aren't clickable
+// Cards with no link aren't clickable. `image` is a 16:10 thumbnail in /images/built;
+// without one the card shows a branded placeholder with the project's initials.
 const BUILT_PROJECTS = [
   {
     name: 'VytalMed',
     oneLiner: '6-suite AI radiology platform running inside one of the largest radiology groups in the U.S.',
     link: 'https://www.vytalmed.co',
-    tag: 'With Nymbl'
+    tag: 'With Nymbl',
+    image: '/images/built/vytalmed.webp',
+    imageAlt: 'VytalMed screens: AI fax classification, staffing surge, shift schedule and HL7 messaging'
   },
   {
     name: 'VytalList',
     oneLiner: 'Replaced a rented worklist (Clario) with their own. Projected $3.5M/yr in SaaS savings.',
-    tag: 'With Nymbl'
+    tag: 'With Nymbl',
+    image: '/images/built/vytallist.webp',
+    imageAlt: 'VytalList reporting dashboard with turnaround time and SLA compliance by site'
   },
   {
     name: 'Estación Vital',
     oneLiner: 'Telehealth kiosk platform for 400,000 users, installed with Walmart.',
-    tag: 'Founder'
+    tag: 'Founder',
+    image: '/images/built/estacion-vital.webp',
+    imageAlt: 'Estación Vital app icon'
   },
   {
     name: 'Movistar Health Club',
@@ -37,13 +44,17 @@ const BUILT_PROJECTS = [
     name: 'Aló',
     oneLiner: 'The bilingual receptionist that never misses a call',
     link: 'https://marcoslabo.github.io/sofia-site/',
-    tag: 'My lab'
+    tag: 'My lab',
+    image: '/images/built/alo.webp',
+    imageAlt: 'Aló website: the bilingual receptionist that answers every call'
   },
   {
     name: 'KeepMedCover',
     oneLiner: 'Helps Medicaid patients keep their coverage',
     link: 'https://keepmedcover.com',
-    tag: 'My lab'
+    tag: 'My lab',
+    image: '/images/built/keepmedcover.webp',
+    imageAlt: 'KeepMedCover website: keep your Medicaid patients covered'
   }
 ];
 
@@ -60,7 +71,12 @@ function escapeHtml(value) {
 }
 
 function renderBuiltCard(project) {
+  const initials = project.name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const thumb = project.image
+    ? `<img class="home-built-thumb" src="${escapeHtml(project.image)}" alt="${escapeHtml(project.imageAlt || project.name)}" width="960" height="600" loading="lazy" decoding="async">`
+    : `<div class="home-built-thumb is-placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
   const inner = `
+      ${thumb}
       <span class="home-built-tag">${escapeHtml(project.tag)}</span>
       <h3 class="home-built-name">${escapeHtml(project.name)}</h3>
       <p class="home-built-text">${escapeHtml(project.oneLiner)}</p>

@@ -453,6 +453,28 @@
   box-shadow: var(--shadow-lg);
 }
 
+.home-built-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  background: var(--color-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.home-built-thumb.is-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--gradient-accent);
+  border: 0;
+  color: var(--color-text-inverse);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: -0.02em;
+}
+
 .home-built-tag {
   align-self: flex-start;
   font-size: var(--text-xs);
