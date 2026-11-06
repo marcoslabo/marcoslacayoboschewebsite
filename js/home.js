@@ -33,12 +33,16 @@ const BUILT_PROJECTS = [
   {
     name: 'Movistar Health Club',
     oneLiner: 'Health platform for 100,000+ telecom subscribers.',
-    tag: 'Founder'
+    tag: 'Founder',
+    image: '/images/built/movistar.webp',
+    imageAlt: 'Movistar logo'
   },
   {
     name: 'Philips wellness app',
     oneLiner: 'Obesity wellness app, a $1.5M partnership.',
-    tag: 'Founder'
+    tag: 'Founder',
+    image: '/images/built/philips.webp',
+    imageAlt: 'Philips logo'
   },
   {
     name: 'Aló',
