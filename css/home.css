@@ -370,6 +370,63 @@
   margin: 0;
 }
 
+/* Photo beside a section's text (Why me, final CTA). Stacks on phones. */
+.home-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.home-photo {
+  margin: 0;
+  max-width: 320px;
+}
+
+.home-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Newsletter byline: small face next to a line from Marcos */
+.home-byline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-light);
+  font-size: var(--text-sm);
+}
+
+.home-byline img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-accent-light);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .home-split {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: var(--space-12);
+  }
+
+  .home-split-reverse {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .home-photo {
+    max-width: none;
+  }
+}
+
 /* --------------------------------------------------------------------------
    FAQ accordion
    -------------------------------------------------------------------------- */
