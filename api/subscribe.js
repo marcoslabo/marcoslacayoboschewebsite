@@ -7,6 +7,9 @@
 // Adds the person to the Watch the Work newsletter (beehiiv) and to the CRM
 // (stage Nurture, source Newsletter). Every email form on the site posts here.
 //
+// POST {action:'course-plan', ...} emails a 5-day course student their Day 5
+// plan and saves them as a lead (lib/course.js → sendCoursePlan).
+//
 // GET runs the daily cron (course emails, then the beehiiv sync), or
 // ?course_unsub=<id> stops someone's course emails.
 // ==========================================================================
@@ -14,7 +17,7 @@
 import { subscribe, ROLES } from '../lib/beehiiv.js';
 import { ensureNewsletterContact } from '../lib/crm.js';
 import { beehiivSync } from '../lib/beehiiv-sync.js';
-import { COURSE, enrollInCourse, courseDrip, courseUnsubscribe } from '../lib/course.js';
+import { COURSE, enrollInCourse, courseDrip, courseUnsubscribe, sendCoursePlan } from '../lib/course.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -33,6 +36,8 @@ export default async function handler(req, res) {
         return beehiivSync(req, res);
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    if (req.body?.action === 'course-plan') return coursePlan(req, res);
 
     const { email, first_name, role, source, course, utm_source, utm_campaign, website } = req.body || {};
     const inCourse = course === COURSE;
@@ -88,4 +93,33 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ ok: true, course: courseResult });
+}
+
+async function coursePlan(req, res) {
+    const { email, first_name, role, path, problem, follow_up, doc, website } = req.body || {};
+    if (website) return res.status(200).json({ ok: true });
+
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!EMAIL_RE.test(cleanEmail)) return res.status(400).json({ error: 'Please enter a valid email' });
+    const cleanName = typeof first_name === 'string' ? first_name.trim().slice(0, 60) : '';
+    if (!cleanName) return res.status(400).json({ error: 'Please add your first name' });
+    const cleanProblem = typeof problem === 'string' ? problem.trim().slice(0, 140) : '';
+    const cleanDoc = typeof doc === 'string' ? doc.trim().slice(0, 8000) : '';
+    if (!cleanProblem || !cleanDoc) return res.status(400).json({ error: 'Your plan is missing. Open this page from Day 5 of the workbench.' });
+
+    try {
+        const r = await sendCoursePlan({
+            email: cleanEmail,
+            firstName: cleanName,
+            role: ROLES.includes(role) ? role : undefined,
+            path: path === 'founder' ? 'founder' : 'org',
+            problem: cleanProblem,
+            followUp: follow_up === true,
+            doc: cleanDoc
+        });
+        return res.status(200).json({ ok: true, emailSent: r.emailSent });
+    } catch (e) {
+        console.error('Course plan email failed:', e.message);
+        return res.status(502).json({ error: "We couldn't send your plan. Please try again in a minute." });
+    }
 }

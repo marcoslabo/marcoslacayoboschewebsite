@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email me my plan | Marcos Lacayo Bosche</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234334dc'/><text x='50' y='66' font-family='Arial,sans-serif' font-size='44' font-weight='700' fill='white' text-anchor='middle'>MB</text></svg>">
+  <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <style>
+    [hidden] { display: none !important; }
+    body { background: var(--color-secondary); }
+    .plan { max-width: 620px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 22px; }
+    .plan-brand { font-weight: 700; color: var(--color-text-primary); text-decoration: none; font-size: 15px; }
+    .kicker { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--color-accent); }
+    h1 { font-size: clamp(30px, 7vw, 42px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 800; margin: 6px 0 0; }
+    .lede { font-size: 17px; color: var(--color-text-secondary); margin: 0; }
+    .card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: 18px; padding: 24px; display: grid; gap: 14px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
+    .problem { display: grid; gap: 4px; padding: 14px 16px; border-radius: 12px; background: var(--color-tertiary); }
+    .problem span { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-text-muted); }
+    .problem strong { font-size: 17px; }
+    form { display: grid; gap: 10px; }
+    label.lbl { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+    input[type="text"], input[type="email"], select {
+      font: inherit; font-size: 16px; padding: 13px 15px; border: 1px solid var(--color-border); border-radius: 12px; width: 100%;
+      background: var(--color-primary); color: var(--color-text-primary);
+    }
+    input:focus-visible, select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+    .follow { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; color: var(--color-text-secondary); }
+    .follow input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--color-accent); }
+    button.btn { width: 100%; justify-content: center; font-size: 16px; padding: 15px 20px; }
+    .fine { font-size: 13px; color: var(--color-text-muted); margin: 0; }
+    .error { color: #b91c1c; font-size: 14px; margin: 0; }
+    details { font-size: 14px; }
+    details summary { cursor: pointer; font-weight: 600; color: var(--color-text-secondary); }
+    pre { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.55; background: var(--color-tertiary); border-radius: 10px; padding: 14px; max-height: 360px; overflow: auto; margin: 10px 0 0; }
+    .done { display: grid; gap: 10px; }
+    .done strong { font-size: 20px; }
+    .hp { position: absolute; left: -9999px; }
+  </style>
+</head>
+
+<body>
+  <main class="plan">
+    <a href="/" class="plan-brand">Marcos Lacayo Bosche</a>
+
+    <header>
+      <span class="kicker">Build your health idea with AI · Day 5</span>
+      <h1>Email me my plan</h1>
+    </header>
+
+    <section class="card" id="plan-card" hidden>
+      <p class="lede">You built this. Tell me where to send it.</p>
+      <div class="problem"><span id="path-label">Your plan</span><strong id="problem"></strong></div>
+      <details>
+        <summary>See what you'll get</summary>
+        <pre id="doc"></pre>
+      </details>
+      <form id="plan-form" novalidate>
+        <label class="hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <label class="lbl" for="first_name">First name</label>
+        <input type="text" id="first_name" name="first_name" autocomplete="given-name" required>
+        <label class="lbl" for="email">Work email</label>
+        <input type="email" id="email" name="email" autocomplete="email" required>
+        <label class="lbl" for="role">Your role</label>
+        <select id="role" name="role">
+          <option value="" selected>Choose one</option>
+          <option value="physician">Physician</option>
+          <option value="operations-leader">Operations leader (COO, VP Ops)</option>
+          <option value="practice-owner">Practice owner</option>
+          <option value="builder">Builder / founder</option>
+          <option value="other">Other</option>
+        </select>
+        <label class="follow"><input type="checkbox" id="follow_up" name="follow_up"> <span>Marcos can follow up with me.</span></label>
+        <button type="submit" class="btn btn-primary" id="send-btn">Email me my plan</button>
+        <p class="error" id="error" role="alert" hidden></p>
+        <p class="fine">We'll only store your name, email, role and the one-line problem. No patient information. Your plan is emailed to you, not stored.</p>
+      </form>
+      <div class="done" id="done" hidden>
+        <strong>✓ Your plan is on its way.</strong>
+        <p class="lede">Check your inbox in the next few minutes (and Promotions or Spam, just in case).</p>
+        <a class="btn btn-primary" href="https://calendly.com/marcos-bosche-nymbl/30min" target="_blank" rel="noopener noreferrer" style="justify-self:start">Book a 30-min call</a>
+      </div>
+    </section>
+
+    <section class="card" id="missing" hidden>
+      <p class="lede">This page sends the plan you built on Day 5 of the workbench, but no plan came with the link.</p>
+      <p class="fine">Open Day 5 of the workbench and tap "Email me my plan" again. Not in the course yet? <a href="/5-days">Start the free 5-day course</a>.</p>
+    </section>
+  </main>
+
+  <script>
+    // The plan travels in the link's #fragment, so it never reaches a server log.
+    function readPlan() {
+      const m = /[#&]p=([A-Za-z0-9_-]+)/.exec(location.hash);
+      if (!m) return null;
+      try {
+        let b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        const bin = atob(b64);
+        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+        const data = JSON.parse(new TextDecoder().decode(bytes));
+        if (!data || typeof data.doc !== 'string' || typeof data.problem !== 'string') return null;
+        return { path: data.path === 'founder' ? 'founder' : 'org', problem: data.problem.slice(0, 140), doc: data.doc.slice(0, 8000) };
+      } catch { return null; }
+    }
+
+    const plan = readPlan();
+    if (!plan) {
+      document.getElementById('missing').hidden = false;
+    } else {
+      document.getElementById('plan-card').hidden = false;
+      document.getElementById('problem').textContent = plan.problem;
+      document.getElementById('path-label').textContent = plan.path === 'founder' ? 'Your business plan' : 'Your spec and pitch';
+      document.getElementById('doc').textContent = plan.doc;
+      if (plan.path === 'founder') document.getElementById('role').value = 'builder';
+    }
+
+    const form = document.getElementById('plan-form');
+    const btn = document.getElementById('send-btn');
+    const errEl = document.getElementById('error');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      errEl.hidden = true;
+      const email = form.email.value.trim();
+      const first = form.first_name.value.trim();
+      if (!first) { errEl.textContent = 'Please add your first name.'; errEl.hidden = false; form.first_name.focus(); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email.'; errEl.hidden = false; form.email.focus(); return; }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'course-plan',
+            email,
+            first_name: first,
+            role: form.role.value,
+            path: plan.path,
+            problem: plan.problem,
+            follow_up: form.follow_up.checked,
+            doc: plan.doc,
+            website: form.website.value
+          })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+        form.hidden = true;
+        document.getElementById('done').hidden = false;
+        window.va('event', { name: 'course_plan_emailed', data: { path: plan.path, follow_up: form.follow_up.checked } });
+      } catch (err) {
+        errEl.textContent = err.message; errEl.hidden = false;
+        btn.disabled = false; btn.textContent = 'Email me my plan';
+      }
+    });
+  </script>
+</body>
+
+</html>
