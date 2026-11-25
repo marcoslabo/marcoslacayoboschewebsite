@@ -5,12 +5,14 @@
 // in the CRM, and emails them the plan. The visitor's workflow text is not
 // sent here, so it is never stored. Service role only: the CRM tables are
 // closed to the public key.
-// If the person ticks the newsletter box, also subscribes them to beehiiv.
+// If the person ticks the newsletter box, also adds them to the email list
+// (Brevo) and the welcome sequence.
 // ==========================================================================
 
-import { subscribe } from '../lib/beehiiv.js';
+import { addSignupContact } from '../lib/brevo-contacts.js';
 import { rest } from '../lib/supabase-server.js';
 import { upsertLead } from '../lib/crm.js';
+import { enrollInWelcome } from '../lib/welcome.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -144,10 +146,15 @@ export default async function handler(req, res) {
         let subscribed = false;
         if (newsletter === true) {
             try {
-                await subscribe({ email: cleanEmail, firstName: first_name.trim(), source: 'diagnose' });
+                await addSignupContact({ email: cleanEmail, firstName: first_name.trim(), source: 'diagnose', utmSource: clip(utm_source) });
                 subscribed = true;
             } catch (err) {
                 console.warn('Newsletter subscribe failed (non-fatal):', err.message);
+            }
+            try {
+                await enrollInWelcome({ email: cleanEmail, firstName: first_name.trim(), source: 'diagnose', utmSource: clip(utm_source) });
+            } catch (err) {
+                console.warn('Welcome sequence (non-fatal):', err.message);
             }
         }
 

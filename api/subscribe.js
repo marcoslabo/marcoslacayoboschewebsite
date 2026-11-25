@@ -4,26 +4,31 @@
 //   website — honeypot; real people never fill it
 //   course  — 'first-agent' also enrolls them in the 5-day email course
 //
-// Adds the person to the Watch the Work newsletter (beehiiv) and to the CRM
-// (stage Nurture, source Newsletter). Every email form on the site posts here.
+// Adds the person to the email list (Brevo, lib/brevo-contacts.js), the 10-email
+// welcome sequence (lib/welcome.js) and the CRM (stage Nurture, source
+// Newsletter). Every email form on the site posts here, and so can Zapier
+// (e.g. new Skool members: {email, first_name, source:'skool', utm_source:'skool'}).
 //
 // POST {action:'course-plan', ...} emails a 5-day course student their Day 5
 // plan and saves them as a lead (lib/course.js → sendCoursePlan).
 //
-// GET runs the daily cron (course emails, then the beehiiv sync), or
-// ?course_unsub=<id> stops someone's course emails.
+// GET runs the daily cron (course + welcome emails, then the old beehiiv → CRM sync),
+// or ?course_unsub=<id> / ?welcome_unsub=<id> stops those emails.
 // ==========================================================================
 
-import { subscribe, ROLES } from '../lib/beehiiv.js';
+import { ROLES } from '../lib/beehiiv.js';
+import { addSignupContact } from '../lib/brevo-contacts.js';
 import { ensureNewsletterContact } from '../lib/crm.js';
 import { beehiivSync } from '../lib/beehiiv-sync.js';
 import { COURSE, enrollInCourse, courseDrip, courseUnsubscribe, sendCoursePlan } from '../lib/course.js';
+import { enrollInWelcome, welcomeDrip, welcomeUnsubscribe } from '../lib/welcome.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async function handler(req, res) {
     if (req.method === 'GET') {
         if (req.query?.course_unsub) return courseUnsubscribe(req, res);
+        if (req.query?.welcome_unsub) return welcomeUnsubscribe(req, res);
         // Daily cron (Vercel Cron, CRON_SECRET-protected): course emails, then beehiiv → CRM
         const secret = process.env.CRON_SECRET;
         if (secret && req.headers.authorization === `Bearer ${secret}`) {
@@ -31,6 +36,11 @@ export default async function handler(req, res) {
                 console.log('course drip done:', JSON.stringify(await courseDrip()));
             } catch (e) {
                 console.error('course drip failed:', e.message);
+            }
+            try {
+                console.log('welcome drip done:', JSON.stringify(await welcomeDrip()));
+            } catch (e) {
+                console.error('welcome drip failed:', e.message);
             }
         }
         return beehiivSync(req, res);
@@ -56,16 +66,19 @@ export default async function handler(req, res) {
     const clip = v => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 100) : undefined);
 
     try {
-        await subscribe({
+        await addSignupContact({
             email: cleanEmail,
             firstName: cleanName || undefined,
-            role: cleanRole,
-            source: cleanSource
+            source: cleanSource,
+            utmSource: clip(utm_source)
         });
     } catch (e) {
         // The course still works without the newsletter
-        if (!inCourse) return res.status(e.status || 500).json({ error: e.message || 'Subscribe failed' });
-        console.warn('Newsletter subscribe (non-fatal for the course):', e.message);
+        if (!inCourse) {
+            console.error('Sign-up failed:', e.message);
+            return res.status(502).json({ error: "We couldn't sign you up right now. Please try again in a minute." });
+        }
+        console.warn('Email list (non-fatal for the course):', e.message);
     }
 
     let courseResult = null;
@@ -76,6 +89,19 @@ export default async function handler(req, res) {
             console.error('Course enroll failed:', e.message);
             return res.status(500).json({ error: "We couldn't start the course. Please try again in a minute." });
         }
+    }
+
+    // 10-email welcome sequence, for every door (course students start after the course)
+    try {
+        await enrollInWelcome({
+            email: cleanEmail,
+            firstName: cleanName || undefined,
+            source: cleanSource,
+            utmSource: clip(utm_source),
+            inCourse
+        });
+    } catch (e) {
+        console.warn('Welcome sequence (non-fatal):', e.message);
     }
 
     // The sign-up already succeeded; a CRM hiccup shouldn't fail it
