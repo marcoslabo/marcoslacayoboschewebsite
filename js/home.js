@@ -25,7 +25,7 @@ const BUILT_PROJECTS = [
   },
   {
     name: 'Estación Vital',
-    oneLiner: 'Telehealth kiosk platform for 400,000 users, installed with Walmart.',
+    oneLiner: 'Telehealth kiosks that helped about half a million people, installed with Walmart.',
     tag: 'Founder',
     image: '/images/built/estacion-vital.webp',
     imageAlt: 'Estación Vital app icon'
